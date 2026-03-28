@@ -7,7 +7,7 @@ interface Eleve {
   niveau: string;
   matiere: string;
   tarifHeure: number;
-  statut: "actif" | "en pause" | "terminé";
+  statut: "actif" | "en attente" | "en pause" | "terminé";
   solde: number; // <0 = doit, 0 = à jour, >0 = avance
   tags: string[];
   notes: string;
@@ -96,6 +96,7 @@ const initialEleves: Eleve[] = [
 
 const statutColors: Record<string, string> = {
   actif: "bg-green-100 text-green-700",
+  "en attente": "bg-blue-100 text-blue-700",
   "en pause": "bg-amber-100 text-amber-700",
   terminé: "bg-gray-100 text-gray-500",
 };
@@ -227,7 +228,6 @@ export function Eleves() {
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Matière</th>
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Tarif/h</th>
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Statut</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Solde</th>
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Dernier cours</th>
               <th className="px-6 py-3" />
             </tr>
@@ -263,9 +263,6 @@ export function Eleves() {
                     <span className={`px-2.5 py-1 rounded-full ${statutColors[eleve.statut]}`} style={{ fontSize: 13 }}>
                       {eleve.statut}
                     </span>
-                  </td>
-                  <td className="px-6 py-3">
-                    <SoldeCell solde={eleve.solde} />
                   </td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-1.5">
@@ -327,15 +324,6 @@ export function Eleves() {
                   </div>
                   <p style={{ fontSize: 22, fontWeight: 600 }}>{selectedEleve.totalPaye} €</p>
                   <SoldeCell solde={selectedEleve.solde} />
-                </div>
-                <div className="bg-green-50 rounded-xl p-4 col-span-2">
-                  <div className="flex items-center gap-1.5 text-green-700 mb-1" style={{ fontSize: 12 }}>
-                    <TrendingUp className="w-3.5 h-3.5" /> Crédit d'impôt généré pour la famille
-                  </div>
-                  <p style={{ fontSize: 22, fontWeight: 600 }} className="text-green-700">
-                    {(selectedEleve.totalPaye * 0.5).toFixed(0)} €
-                  </p>
-                  <p className="text-green-600" style={{ fontSize: 12 }}>= 50% des {selectedEleve.totalPaye} € déclarés</p>
                 </div>
               </div>
 
@@ -467,6 +455,7 @@ export function Eleves() {
                     className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                   >
                     <option value="actif">Actif</option>
+                    <option value="en attente">En attente</option>
                     <option value="en pause">En pause</option>
                     <option value="terminé">Terminé</option>
                   </select>

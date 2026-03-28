@@ -21,7 +21,6 @@ const stats = [
   { label: "Revenus bruts", value: `${BRUT.toLocaleString("fr-FR")} €`, icon: Euro, change: "+18%" },
   { label: "Élèves actifs", value: "12", icon: Users, change: "+3" },
   { label: "Heures ce mois", value: "34h", icon: BookOpen, change: "+8h" },
-  { label: "Crédit d'impôt total", value: `${creditImpot.toLocaleString("fr-FR")} €`, icon: TrendingUp, change: "+18%" },
 ];
 
 const ranking = {
@@ -117,13 +116,6 @@ export function Dashboard() {
       desc: "Créer un nouveau profil élève",
       color: "bg-green-50 text-green-600",
     },
-    {
-      key: "paiement" as ModalType,
-      icon: Euro,
-      label: "Déclencher un paiement",
-      desc: "Marquer un règlement reçu",
-      color: "bg-purple-50 text-purple-600",
-    },
   ];
 
   return (
@@ -176,7 +168,7 @@ export function Dashboard() {
           <div className="space-y-3">
             <div className="flex items-center justify-between py-3 border-b border-border">
               <div>
-                <p style={{ fontWeight: 500 }}>Revenus bruts</p>
+                <p style={{ fontWeight: 500 }}>Revenus bruts ce mois</p>
                 <p className="text-muted-foreground" style={{ fontSize: 13 }}>Total facturé aux familles</p>
               </div>
               <p style={{ fontSize: 20, fontWeight: 600 }}>{BRUT.toLocaleString("fr-FR")} €</p>
@@ -209,10 +201,8 @@ export function Dashboard() {
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-border flex flex-col">
-          <h3 className="mb-2">Crédit d'impôt généré</h3>
-          <p className="text-muted-foreground mb-4" style={{ fontSize: 13 }}>
-            Votre argument commercial — les familles récupèrent 50% du coût
-          </p>
+          <h3 className="mb-2">Gain généré </h3>
+
           <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
               <TrendingUp className="w-7 h-7 text-green-600" />

@@ -1,12 +1,15 @@
-import { NavLink } from "react-router";
-import { LayoutDashboard, Users, BookOpen, CircleUser, X } from "lucide-react";
+import { NavLink, useNavigate } from "react-router";
+import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X } from "lucide-react";
 import logo from "@/assets/colibri.png";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/eleves", icon: Users, label: "Élèves" },
-  { to: "/cours", icon: BookOpen, label: "Cours" },
-  { to: "/profil", icon: CircleUser, label: "Mon profil" },
+  { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/eleves", icon: Users, label: "Élèves" },
+  { to: "/app/cours", icon: BookOpen, label: "Cours" },
+  { to: "/app/factures", icon: FileText, label: "Factures" },
+  { to: "/app/paps", icon: GraduationCap, label: "PAPS" },
+  { to: "/app/aide", icon: HelpCircle, label: "Aide" },
+  { to: "/app/profil", icon: CircleUser, label: "Mon profil" },
 ];
 
 interface SidebarProps {
@@ -15,6 +18,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
+  const navigate = useNavigate();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -51,7 +56,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === "/"}
+              end={item.to === "/app"}
               onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
@@ -66,6 +71,16 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             </NavLink>
           ))}
         </nav>
+
+        <div className="p-3 border-t border-border">
+          <button
+            onClick={() => { onClose(); navigate("/"); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-sm">Déconnexion</span>
+          </button>
+        </div>
       </aside>
     </>
   );

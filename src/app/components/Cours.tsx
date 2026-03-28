@@ -25,16 +25,6 @@ const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-const statutColors: Record<string, string> = {
-  payé: "bg-green-100 text-green-700",
-  "en attente": "bg-amber-100 text-amber-700",
-  planifié: "bg-blue-100 text-blue-700",
-};
-const statutDotColors: Record<string, string> = {
-  payé: "bg-green-500",
-  "en attente": "bg-amber-500",
-  planifié: "bg-blue-500",
-};
 
 const initialCours: CoursItem[] = [
   { id: 1, eleve: "Lucas Martin", matiere: "Mathématiques", date: "2026-03-28", duree: "2h", montant: 60, statut: "planifié" },
@@ -75,13 +65,14 @@ export function Cours() {
 
   // Monthly summary computed dynamically
   const monthlySummary = useMemo(() => {
-    const map: Record<string, { total: number; nbCours: number }> = {};
+    const map: Record<string, { total: number; nbCours: number; allPaid: boolean }> = {};
     cours.forEach((c) => {
       const [y, m] = c.date.split("-");
       const key = `${MOIS[Number(m) - 1]} ${y}`;
-      if (!map[key]) map[key] = { total: 0, nbCours: 0 };
+      if (!map[key]) map[key] = { total: 0, nbCours: 0, allPaid: true };
       map[key].total += c.montant;
       map[key].nbCours += 1;
+      if (c.statut !== "payé") map[key].allPaid = false;
     });
     return Object.entries(map)
       .map(([mois, v]) => ({ mois, ...v }))
@@ -154,9 +145,15 @@ export function Cours() {
           <div key={m.mois} className="bg-white rounded-xl p-5 border border-border">
             <div className="flex items-center justify-between mb-3">
               <span className="text-muted-foreground" style={{ fontSize: 14 }}>{m.mois}</span>
-              <span className="flex items-center gap-1 text-green-600" style={{ fontSize: 13 }}>
-                <CheckCircle2 className="w-3.5 h-3.5" /> Suivi
-              </span>
+              {m.allPaid ? (
+                <span className="flex items-center gap-1 text-green-600" style={{ fontSize: 13 }}>
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Payé
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-amber-500" style={{ fontSize: 13 }}>
+                  En attente
+                </span>
+              )}
             </div>
             <p className="text-2xl" style={{ fontWeight: 600 }}>{m.total.toLocaleString("fr-FR")} €</p>
             <div className="flex items-center gap-4 mt-2 text-muted-foreground" style={{ fontSize: 13 }}>
@@ -217,10 +214,10 @@ export function Cours() {
                 <span style={{ fontSize: 13, fontWeight: isToday ? 600 : 400 }}>{day}</span>
                 {dayCours.length > 0 && (
                   <div className="flex gap-0.5 mt-1">
-                    {dayCours.slice(0, 3).map((c, idx) => (
+                    {dayCours.slice(0, 3).map((_, idx) => (
                       <span
                         key={idx}
-                        className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : statutDotColors[c.statut]}`}
+                        className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : "bg-primary"}`}
                       />
                     ))}
                   </div>
@@ -228,16 +225,6 @@ export function Cours() {
               </button>
             );
           })}
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-5 mt-4 pt-4 border-t border-border">
-          {Object.entries(statutDotColors).map(([statut, color]) => (
-            <span key={statut} className="flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: 12 }}>
-              <span className={`w-2 h-2 rounded-full ${color}`} />
-              {statut.charAt(0).toUpperCase() + statut.slice(1)}
-            </span>
-          ))}
         </div>
 
         {/* Selected day detail */}
@@ -253,12 +240,7 @@ export function Cours() {
                     <span style={{ fontWeight: 500 }}>{c.eleve}</span>
                     <span className="text-muted-foreground ml-2" style={{ fontSize: 13 }}>{c.matiere} · {c.duree}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span style={{ fontWeight: 500 }}>{c.montant} €</span>
-                    <span className={`px-2.5 py-0.5 rounded-full ${statutColors[c.statut]}`} style={{ fontSize: 12 }}>
-                      {c.statut}
-                    </span>
-                  </div>
+                  <span style={{ fontWeight: 500 }}>{c.montant} €</span>
                 </div>
               ))}
             </div>
@@ -284,7 +266,6 @@ export function Cours() {
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Date</th>
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Durée</th>
               <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Montant</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Statut</th>
             </tr>
           </thead>
           <tbody>
@@ -295,11 +276,6 @@ export function Cours() {
                 <td className="px-6 py-4 text-muted-foreground">{formatDate(c.date)}</td>
                 <td className="px-6 py-4 text-muted-foreground">{c.duree}</td>
                 <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.montant} €</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full ${statutColors[c.statut]}`} style={{ fontSize: 13 }}>
-                    {c.statut}
-                  </span>
-                </td>
               </tr>
             ))}
           </tbody>
