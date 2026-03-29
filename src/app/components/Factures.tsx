@@ -1,84 +1,32 @@
 import { useState } from "react";
-import { FileText, Download, CheckCircle2, Clock, Plus, X, ChevronDown, Euro, Users, BookOpen } from "lucide-react";
-
-interface LigneFacture {
-  eleve: string;
-  matiere: string;
-  heures: number;
-  tarifHeure: number;
-}
-
-interface Facture {
-  id: string;
-  mois: string;
-  dateEmission: string;
-  lignes: LigneFacture[];
-  statut: "payée" | "en attente";
-}
-
-const PROF = {
-  nom: "Jean Dupont",
-  siret: "123 456 789 00012",
-  adresse: "12 rue de la Paix, 75001 Paris",
-  email: "jean.dupont@universite.fr",
-};
+import { FileText, Download, CheckCircle2, Clock, Plus, X, ChevronDown, Euro, Users, BookOpen, Loader2 } from "lucide-react";
+import { useFactures } from "../../lib/hooks/useFactures";
+import { useAuth } from "../../lib/auth";
+import type { FactureRow, LigneRow } from "../../lib/hooks/useFactures";
 
 const URSSAF = 0.211;
 
-const MOIS_DISPONIBLES = [
-  "Mars 2026", "Janvier 2026", "Décembre 2025", "Novembre 2025", "Octobre 2025",
-];
-
-function calcTotal(lignes: LigneFacture[]) {
-  return lignes.reduce((acc, l) => acc + l.heures * l.tarifHeure, 0);
+function calcTotal(lignes: LigneRow[]) {
+  return lignes.reduce((acc, l) => acc + l.heures * l.tarif_heure, 0);
 }
-
-const initialFactures: Facture[] = [
-  {
-    id: "FAC-2026-02",
-    mois: "Février 2026",
-    dateEmission: "28/02/2026",
-    statut: "payée",
-    lignes: [
-      { eleve: "Lucas Martin", matiere: "Mathématiques", heures: 10, tarifHeure: 30 },
-      { eleve: "Emma Dupont", matiere: "Anglais", heures: 7, tarifHeure: 25 },
-      { eleve: "Thomas Laurent", matiere: "Anglais", heures: 6, tarifHeure: 25 },
-      { eleve: "Camille Simon", matiere: "SVT", heures: 8, tarifHeure: 28 },
-    ],
-  },
-  {
-    id: "FAC-2026-01",
-    mois: "Janvier 2026",
-    dateEmission: "31/01/2026",
-    statut: "payée",
-    lignes: [
-      { eleve: "Lucas Martin", matiere: "Mathématiques", heures: 8, tarifHeure: 30 },
-      { eleve: "Hugo Bernard", matiere: "Physique-Chimie", heures: 8, tarifHeure: 28 },
-      { eleve: "Léa Petit", matiere: "Français", heures: 5, tarifHeure: 25 },
-    ],
-  },
-  {
-    id: "FAC-2025-12",
-    mois: "Décembre 2025",
-    dateEmission: "31/12/2025",
-    statut: "en attente",
-    lignes: [
-      { eleve: "Nathan Moreau", matiere: "SES", heures: 4, tarifHeure: 30 },
-      { eleve: "Camille Simon", matiere: "SVT", heures: 6, tarifHeure: 28 },
-    ],
-  },
-];
 
 const statutConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   payée: { label: "Payée", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
   "en attente": { label: "En attente", color: "bg-amber-100 text-amber-700", icon: Clock },
 };
 
-function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () => void }) {
+function FacturePreview({ facture, onClose, profInfo }: {
+  facture: FactureRow;
+  onClose: () => void;
+  profInfo: { nom: string; siret: string; adresse: string; email: string };
+}) {
   const brut = calcTotal(facture.lignes);
   const urssaf = Math.round(brut * URSSAF);
   const net = brut - urssaf;
   const creditImpot = Math.round(brut * 0.5);
+  const dateStr = facture.date_emission
+    ? new Date(facture.date_emission).toLocaleDateString("fr-FR")
+    : "—";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
@@ -86,17 +34,17 @@ function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () =>
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
             <p className="text-muted-foreground" style={{ fontSize: 13 }}>Aperçu de la facture</p>
-            <h3 style={{ fontWeight: 700 }}>{facture.id} — {facture.mois}</h3>
+            <h3 style={{ fontWeight: 700 }}>{facture.id.slice(0, 8).toUpperCase()} — {facture.mois}</h3>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90"
               style={{ fontSize: 13 }}
             >
               <Download className="w-4 h-4" /> Télécharger
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
@@ -105,15 +53,15 @@ function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () =>
         <div className="p-8">
           <div className="flex justify-between mb-8">
             <div>
-              <p style={{ fontWeight: 700, fontSize: 18 }}>{PROF.nom}</p>
+              <p style={{ fontWeight: 700, fontSize: 18 }}>{profInfo.nom}</p>
               <p className="text-muted-foreground" style={{ fontSize: 13 }}>Auto-entrepreneur</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>SIRET : {PROF.siret}</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{PROF.adresse}</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{PROF.email}</p>
+              {profInfo.siret && <p className="text-muted-foreground" style={{ fontSize: 13 }}>SIRET : {profInfo.siret}</p>}
+              {profInfo.adresse && <p className="text-muted-foreground" style={{ fontSize: 13 }}>{profInfo.adresse}</p>}
+              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{profInfo.email}</p>
             </div>
             <div className="text-right">
-              <p style={{ fontWeight: 700, fontSize: 22 }} className="text-primary">{facture.id}</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>Émise le {facture.dateEmission}</p>
+              <p style={{ fontWeight: 700, fontSize: 22 }} className="text-primary">{facture.id.slice(0, 8).toUpperCase()}</p>
+              <p className="text-muted-foreground" style={{ fontSize: 13 }}>Émise le {dateStr}</p>
               <p className="text-muted-foreground mt-1" style={{ fontSize: 13 }}>Période : {facture.mois}</p>
               <span className={`inline-flex mt-2 px-2.5 py-0.5 rounded-full ${statutConfig[facture.statut].color}`} style={{ fontSize: 12 }}>
                 {statutConfig[facture.statut].label}
@@ -139,11 +87,11 @@ function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () =>
             <tbody>
               {facture.lignes.map((l, i) => (
                 <tr key={i} className="border-b border-border">
-                  <td className="py-3" style={{ fontWeight: 500 }}>{l.eleve}</td>
+                  <td className="py-3" style={{ fontWeight: 500 }}>{l.eleve_nom}</td>
                   <td className="py-3 text-muted-foreground">{l.matiere}</td>
                   <td className="py-3 text-right text-muted-foreground">{l.heures}h</td>
-                  <td className="py-3 text-right text-muted-foreground">{l.tarifHeure} €</td>
-                  <td className="py-3 text-right" style={{ fontWeight: 500 }}>{(l.heures * l.tarifHeure).toFixed(2)} €</td>
+                  <td className="py-3 text-right text-muted-foreground">{l.tarif_heure} €</td>
+                  <td className="py-3 text-right" style={{ fontWeight: 500 }}>{(l.heures * l.tarif_heure).toFixed(2)} €</td>
                 </tr>
               ))}
             </tbody>
@@ -169,14 +117,14 @@ function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () =>
               Crédit d'impôt services à la personne (Art. 199 sexdecies CGI)
             </p>
             <p className="text-green-600 mt-1" style={{ fontSize: 13 }}>
-              Les familles bénéficient d'un crédit d'impôt de 50% sur ces prestations, soit <strong>{creditImpot.toFixed(2)} €</strong> de réduction fiscale.
+              Les familles bénéficient d'un crédit d'impôt de 50% sur ces prestations, soit <strong>{creditImpot.toFixed(2)} €</strong>.
             </p>
           </div>
 
           <div className="mt-4 p-4 bg-secondary rounded-xl">
             <p className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 500 }}>Note interne (non imprimée)</p>
             <div className="flex gap-6 mt-1">
-              <span className="text-muted-foreground" style={{ fontSize: 13 }}>Charges URSSAF : <strong className="text-red-500">−{urssaf} €</strong></span>
+              <span className="text-muted-foreground" style={{ fontSize: 13 }}>URSSAF : <strong className="text-red-500">−{urssaf} €</strong></span>
               <span className="text-muted-foreground" style={{ fontSize: 13 }}>Net réel : <strong className="text-green-600">{net} €</strong></span>
             </div>
           </div>
@@ -186,38 +134,41 @@ function FacturePreview({ facture, onClose }: { facture: Facture; onClose: () =>
   );
 }
 
-const emptyLigne: LigneFacture = { eleve: "", matiere: "", heures: 1, tarifHeure: 25 };
+const MOIS_DISPONIBLES = ["Mars 2026", "Février 2026", "Janvier 2026", "Décembre 2025", "Novembre 2025", "Octobre 2025"];
+const emptyLigne: LigneRow = { eleve_nom: "", matiere: "", heures: 1, tarif_heure: 25 };
 
 export function Factures() {
-  const [factures, setFactures] = useState<Facture[]>(initialFactures);
-  const [preview, setPreview] = useState<Facture | null>(null);
+  const { factures, loading, error, createFacture } = useFactures();
+  const { profile } = useAuth();
+
+  const [preview, setPreview] = useState<FactureRow | null>(null);
   const [showGenerate, setShowGenerate] = useState(false);
   const [genMois, setGenMois] = useState(MOIS_DISPONIBLES[0]);
-  const [genLignes, setGenLignes] = useState<LigneFacture[]>([{ ...emptyLigne }]);
+  const [genLignes, setGenLignes] = useState<LigneRow[]>([{ ...emptyLigne }]);
   const [genSuccess, setGenSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  function addLigne() {
-    setGenLignes((prev) => [...prev, { ...emptyLigne }]);
-  }
-  function removeLigne(i: number) {
-    setGenLignes((prev) => prev.filter((_, idx) => idx !== i));
-  }
-  function updateLigne(i: number, field: keyof LigneFacture, value: string | number) {
+  const profInfo = {
+    nom: profile ? `${profile.prenom} ${profile.nom}` : "—",
+    siret: profile?.siret ?? "",
+    adresse: profile?.adresse ?? "",
+    email: profile?.email ?? "",
+  };
+
+  function addLigne() { setGenLignes((prev) => [...prev, { ...emptyLigne }]); }
+  function removeLigne(i: number) { setGenLignes((prev) => prev.filter((_, idx) => idx !== i)); }
+  function updateLigne(i: number, field: keyof LigneRow, value: string | number) {
     setGenLignes((prev) => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
   }
 
-  function handleGenerate() {
-    const moisShort = genMois.slice(0, 3).toUpperCase();
-    const id = `FAC-${genMois.split(" ")[1]}-${moisShort}`;
-    const newFacture: Facture = {
-      id,
-      mois: genMois,
-      dateEmission: new Date().toLocaleDateString("fr-FR"),
-      statut: "en attente",
-      lignes: genLignes.filter((l) => l.eleve && l.matiere),
-    };
-    setFactures((prev) => [newFacture, ...prev]);
-    setGenSuccess(true);
+  async function handleGenerate() {
+    setSaving(true);
+    try {
+      await createFacture(genMois, genLignes);
+      setGenSuccess(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function closeGenerate() {
@@ -227,9 +178,22 @@ export function Factures() {
     setGenMois(MOIS_DISPONIBLES[0]);
   }
 
+  const moisAvecFacture = new Set(factures.map((f) => f.mois));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">{error}</div>;
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="mb-1">Factures</h1>
         <p className="text-muted-foreground" style={{ fontSize: 14 }}>
@@ -237,7 +201,6 @@ export function Factures() {
         </p>
       </div>
 
-      {/* Factures list */}
       <div className="space-y-3">
         {factures.map((f) => {
           const brut = calcTotal(f.lignes);
@@ -246,18 +209,12 @@ export function Factures() {
           const Icon = cfg.icon;
           return (
             <div key={f.id} className="bg-white border border-border rounded-xl p-5 flex items-center gap-5 hover:shadow-sm transition-shadow">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                f.statut === "payée" ? "bg-green-100" : "bg-amber-100"
-              }`}>
-                <Icon className={`w-5 h-5 ${
-                  f.statut === "payée" ? "text-green-600" : "text-amber-600"
-                }`} />
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${f.statut === "payée" ? "bg-green-100" : "bg-amber-100"}`}>
+                <Icon className={`w-5 h-5 ${f.statut === "payée" ? "text-green-600" : "text-amber-600"}`} />
               </div>
-
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <p style={{ fontWeight: 600 }}>{f.mois}</p>
-                  <span className="text-muted-foreground" style={{ fontSize: 13 }}>· {f.id}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground" style={{ fontSize: 12 }}>
                   <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {f.lignes.length} élève{f.lignes.length > 1 ? "s" : ""}</span>
@@ -265,30 +222,24 @@ export function Factures() {
                   <span className="flex items-center gap-1"><Euro className="w-3 h-3" /> Net {net.toLocaleString("fr-FR")} €</span>
                 </div>
               </div>
-
               <div className="text-right shrink-0">
                 <p style={{ fontSize: 18, fontWeight: 700 }}>{brut.toLocaleString("fr-FR")} €</p>
                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full ${cfg.color}`} style={{ fontSize: 12 }}>
                   {cfg.label}
                 </span>
               </div>
-
               <button
                 onClick={() => setPreview(f)}
-                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
+                className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-border hover:bg-muted"
                 style={{ fontSize: 13 }}
               >
-                <FileText className="w-4 h-4" />
-                Voir
+                <FileText className="w-4 h-4" /> Voir
               </button>
             </div>
           );
         })}
 
-        {/* Mois sans facture — bouton Générer */}
-        {MOIS_DISPONIBLES.filter(
-          (m) => !factures.some((f) => f.mois === m)
-        ).map((m) => (
+        {MOIS_DISPONIBLES.filter((m) => !moisAvecFacture.has(m)).map((m) => (
           <div key={m} className="bg-white border border-dashed border-border rounded-xl p-5 flex items-center gap-5">
             <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-muted-foreground" />
@@ -299,30 +250,26 @@ export function Factures() {
             </div>
             <button
               onClick={() => { setGenMois(m); setShowGenerate(true); setGenSuccess(false); }}
-              className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90"
               style={{ fontSize: 13 }}
             >
-              <Plus className="w-4 h-4" />
-              Générer la facture
+              <Plus className="w-4 h-4" /> Générer la facture
             </button>
           </div>
         ))}
       </div>
 
-      {preview && <FacturePreview facture={preview} onClose={() => setPreview(null)} />}
+      {preview && <FacturePreview facture={preview} onClose={() => setPreview(null)} profInfo={profInfo} />}
 
-      {/* Generate modal */}
       {showGenerate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3>Générer une facture</h3>
-                <p className="text-muted-foreground mt-0.5" style={{ fontSize: 13 }}>
-                  {genMois} — ajoutez les cours effectués ce mois.
-                </p>
+                <p className="text-muted-foreground mt-0.5" style={{ fontSize: 13 }}>{genMois}</p>
               </div>
-              <button onClick={closeGenerate} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+              <button onClick={closeGenerate} className="p-1.5 rounded-lg hover:bg-muted">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
@@ -334,9 +281,9 @@ export function Factures() {
                 </div>
                 <p style={{ fontWeight: 600, fontSize: 16 }} className="mb-1">Facture générée !</p>
                 <p className="text-muted-foreground mb-6" style={{ fontSize: 14 }}>
-                  La facture pour <strong>{genMois}</strong> a été créée avec le statut "En attente".
+                  La facture pour <strong>{genMois}</strong> a été enregistrée.
                 </p>
-                <button onClick={closeGenerate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
+                <button onClick={closeGenerate} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:opacity-90">
                   Fermer
                 </button>
               </div>
@@ -359,11 +306,7 @@ export function Factures() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-muted-foreground" style={{ fontSize: 13 }}>Cours effectués</label>
-                    <button
-                      onClick={addLigne}
-                      className="flex items-center gap-1 text-primary hover:opacity-70 transition-opacity"
-                      style={{ fontSize: 13 }}
-                    >
+                    <button onClick={addLigne} className="flex items-center gap-1 text-primary hover:opacity-70" style={{ fontSize: 13 }}>
                       <Plus className="w-3.5 h-3.5" /> Ajouter une ligne
                     </button>
                   </div>
@@ -373,8 +316,8 @@ export function Factures() {
                       <div key={i} className="bg-muted rounded-xl p-3 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <input
-                            value={l.eleve}
-                            onChange={(e) => updateLigne(i, "eleve", e.target.value)}
+                            value={l.eleve_nom}
+                            onChange={(e) => updateLigne(i, "eleve_nom", e.target.value)}
                             placeholder="Nom de l'élève"
                             className="px-3 py-2 bg-white rounded-lg outline-none"
                             style={{ fontSize: 13 }}
@@ -402,17 +345,17 @@ export function Factures() {
                           <div className="relative">
                             <input
                               type="number"
-                              value={l.tarifHeure}
-                              onChange={(e) => updateLigne(i, "tarifHeure", Number(e.target.value))}
+                              value={l.tarif_heure}
+                              onChange={(e) => updateLigne(i, "tarif_heure", Number(e.target.value))}
                               className="w-full px-3 py-2 bg-white rounded-lg outline-none pr-6"
                               style={{ fontSize: 13 }}
                             />
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" style={{ fontSize: 11 }}>€/h</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>{(l.heures * l.tarifHeure).toFixed(0)} €</span>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{(l.heures * l.tarif_heure).toFixed(0)} €</span>
                             {genLignes.length > 1 && (
-                              <button onClick={() => removeLigne(i)} className="p-1 hover:text-red-500 transition-colors">
+                              <button onClick={() => removeLigne(i)} className="p-1 hover:text-red-500">
                                 <X className="w-3.5 h-3.5 text-muted-foreground" />
                               </button>
                             )}
@@ -423,7 +366,7 @@ export function Factures() {
                   </div>
                 </div>
 
-                {genLignes.some(l => l.eleve && l.matiere) && (
+                {genLignes.some((l) => l.eleve_nom && l.matiere) && (
                   <div className="bg-secondary rounded-xl p-4 space-y-1.5">
                     <div className="flex justify-between text-muted-foreground" style={{ fontSize: 13 }}>
                       <span>Brut</span>
@@ -441,14 +384,15 @@ export function Factures() {
                 )}
 
                 <div className="flex gap-3">
-                  <button onClick={closeGenerate} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors">
+                  <button onClick={closeGenerate} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted">
                     Annuler
                   </button>
                   <button
                     onClick={handleGenerate}
-                    disabled={genLignes.every(l => !l.eleve || !l.matiere)}
-                    className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40"
+                    disabled={genLignes.every((l) => !l.eleve_nom || !l.matiere) || saving}
+                    className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
                   >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     Générer la facture
                   </button>
                 </div>

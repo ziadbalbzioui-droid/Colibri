@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import { Home, BookOpen, FileText, LogOut, Menu, X } from "lucide-react";
 import logo from "@/assets/colibri.png";
+import { useAuth } from "../../lib/auth";
 
 const parentNavItems = [
   { to: "/parent", icon: Home, label: "Accueil", end: true },
@@ -12,6 +13,7 @@ const parentNavItems = [
 export function ParentLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -96,7 +98,7 @@ export function ParentLayout() {
 
         <div className="p-3 border-t border-border">
           <button
-            onClick={() => navigate("/")}
+            onClick={async () => { await signOut(); navigate("/"); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <LogOut className="w-5 h-5" />

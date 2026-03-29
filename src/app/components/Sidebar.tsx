@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router";
 import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X } from "lucide-react";
 import logo from "@/assets/colibri.png";
+import { useAuth } from "../../lib/auth";
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
@@ -19,6 +20,7 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   return (
     <>
@@ -74,7 +76,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         <div className="p-3 border-t border-border">
           <button
-            onClick={() => { onClose(); navigate("/"); }}
+            onClick={async () => { onClose(); await signOut(); navigate("/"); }}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <LogOut className="w-5 h-5" />

@@ -1,49 +1,21 @@
-import { useState } from "react";
-import { TrendingUp, Euro, Users, BookOpen, Trophy, Flame, AlertCircle, Plus, CheckCircle2, X } from "lucide-react";
+import { useState, useMemo } from "react";
+import { TrendingUp, Euro, Users, BookOpen, Trophy, Flame, AlertCircle, Plus, CheckCircle2, X, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEleves } from "../../lib/hooks/useEleves";
+import { useCours } from "../../lib/hooks/useCours";
+import { useAuth } from "../../lib/auth";
+import type { EleveRow } from "../../lib/hooks/useEleves";
+import type { CoursRow } from "../../lib/hooks/useCours";
 
-const monthlyData = [
-  { month: "Oct", revenus: 320 },
-  { month: "Nov", revenus: 480 },
-  { month: "Déc", revenus: 560 },
-  { month: "Jan", revenus: 720 },
-  { month: "Fév", revenus: 890 },
-  { month: "Mar", revenus: 1050 },
-];
-
-const BRUT = 4020;
 const URSSAF_RATE = 0.211;
-const urssaf = Math.round(BRUT * URSSAF_RATE);
-const net = BRUT - urssaf;
-const creditImpot = Math.round(BRUT * 0.5);
-
-const stats = [
-  { label: "Revenus bruts", value: `${BRUT.toLocaleString("fr-FR")} €`, icon: Euro, change: "+18%" },
-  { label: "Élèves actifs", value: "12", icon: Users, change: "+3" },
-  { label: "Heures ce mois", value: "34h", icon: BookOpen, change: "+8h" },
-];
-
-const ranking = {
-  topEarner: { nom: "Lucas Martin", matiere: "Mathématiques", montant: 780, heures: 28 },
-  mostActive: { nom: "Thomas Laurent", matiere: "Anglais", heuresCeMois: 6, evolution: "+3h vs mois dernier" },
-  inactive: [
-    { nom: "Léa Petit", since: "23 jours" },
-    { nom: "Chloé Roux", since: "18 jours" },
-  ],
-};
-
-const elevesDisponibles = [
-  "Lucas Martin", "Emma Dupont", "Hugo Bernard", "Léa Petit",
-  "Nathan Moreau", "Chloé Roux", "Thomas Laurent", "Camille Simon",
-];
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {
   "30min": 0.5, "1h": 1, "1h30": 1.5, "2h": 2, "2h30": 2.5, "3h": 3,
 };
 const niveaux = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère S", "1ère ES", "Terminale S", "Terminale ES", "BTS", "Licence 1"];
-const methodesPaiement = ["Virement", "Espèces", "Chèque", "Paylib / Lydia"];
+const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-type ModalType = "cours" | "eleve" | "paiement" | null;
+type ModalType = "cours" | "eleve" | null;
 
 function ModalWrapper({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -69,64 +41,169 @@ function SuccessState({ message, onClose }: { message: string; onClose: () => vo
       </div>
       <p style={{ fontWeight: 600, fontSize: 16 }} className="mb-1">{message}</p>
       <p className="text-muted-foreground mb-6" style={{ fontSize: 14 }}>L'opération a bien été enregistrée.</p>
-      <button onClick={onClose} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
-        Fermer
-      </button>
+      <button onClick={onClose} className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:opacity-90">Fermer</button>
     </div>
   );
 }
 
 export function Dashboard() {
+  const { profile } = useAuth();
+  const { eleves, addEleve } = useEleves();
+  const { cours, addCours } = useCours();
+
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Cours form
-  const [coursForm, setCoursForm] = useState({ eleve: elevesDisponibles[0], matiere: "", date: "", duree: "1h", tarifHeure: 30 });
-  // Élève form
-  const [eleveForm, setEleveForm] = useState({ nom: "", niveau: "2nde", matiere: "", tarifHeure: 25 });
-  // Paiement form
-  const [paiementForm, setPaiementForm] = useState({ eleve: elevesDisponibles[0], montant: 60, methode: "Virement", note: "" });
+  const [coursForm, setCoursForm] = useState({
+    eleve_id: "", eleve_nom: "", matiere: "", date: "", duree: "1h", tarif_heure: 30,
+  });
+  const [eleveForm, setEleveForm] = useState({ nom: "", niveau: "2nde", matiere: "", tarif_heure: 25 });
 
   function openModal(type: ModalType) {
     setSuccess(false);
+    setSaving(false);
     setActiveModal(type);
+    if (eleves.length > 0) {
+      setCoursForm((f) => ({ ...f, eleve_id: eleves[0].id, eleve_nom: eleves[0].nom, tarif_heure: eleves[0].tarif_heure }));
+    }
+  }
+  function closeModal() { setActiveModal(null); setSuccess(false); }
+
+  async function submitCours() {
+    if (!coursForm.matiere || !coursForm.date) return;
+    setSaving(true);
+    try {
+      const heures = dureeToHours[coursForm.duree] ?? 1;
+      await addCours({
+        eleve_id: coursForm.eleve_id || null,
+        eleve_nom: coursForm.eleve_nom,
+        matiere: coursForm.matiere,
+        date: coursForm.date,
+        duree: coursForm.duree,
+        duree_heures: heures,
+        montant: coursForm.tarif_heure * heures,
+        statut: "planifié",
+      });
+      setSuccess(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function closeModal() {
-    setActiveModal(null);
-    setSuccess(false);
+  async function submitEleve() {
+    if (!eleveForm.nom || !eleveForm.matiere) return;
+    setSaving(true);
+    try {
+      await addEleve(
+        { nom: eleveForm.nom, niveau: eleveForm.niveau, matiere: eleveForm.matiere, tarif_heure: eleveForm.tarif_heure, statut: "actif" },
+        []
+      );
+      setSuccess(true);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function submit() {
-    setSuccess(true);
-  }
+  // ── Computed stats ──────────────────────────────────────────────
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const coursThisMonth = useMemo(
+    () => cours.filter((c: CoursRow) => c.date.startsWith(thisMonth)),
+    [cours, thisMonth]
+  );
+
+  const brutThisMonth = useMemo(
+    () => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.montant, 0),
+    [coursThisMonth]
+  );
+
+  const elevesActifs = useMemo(
+    () => eleves.filter((e: EleveRow) => e.statut === "actif").length,
+    [eleves]
+  );
+
+  const heuresThisMonth = useMemo(
+    () => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0),
+    [coursThisMonth]
+  );
+
+  const urssaf = Math.round(brutThisMonth * URSSAF_RATE);
+  const net = brutThisMonth - urssaf;
+  const creditImpot = Math.round(brutThisMonth * 0.5);
+
+  // Monthly chart — last 6 months
+  const monthlyData = useMemo(() => {
+    const map: Record<string, number> = {};
+    cours.forEach((c: CoursRow) => {
+      const [y, m] = c.date.split("-");
+      const key = `${MOIS[Number(m) - 1].slice(0, 3)} ${y.slice(2)}`;
+      map[key] = (map[key] ?? 0) + c.montant;
+    });
+    return Object.entries(map).slice(-6).map(([month, revenus]) => ({ month, revenus }));
+  }, [cours]);
+
+  // Ranking
+  const topEarner = useMemo(() => {
+    const map: Record<string, { nom: string; matiere: string; montant: number; heures: number }> = {};
+    cours.forEach((c: CoursRow) => {
+      if (!map[c.eleve_nom]) map[c.eleve_nom] = { nom: c.eleve_nom, matiere: c.matiere, montant: 0, heures: 0 };
+      map[c.eleve_nom].montant += c.montant;
+      map[c.eleve_nom].heures += c.duree_heures;
+    });
+    return Object.values(map).sort((a, b) => b.montant - a.montant)[0] ?? null;
+  }, [cours]);
+
+  const mostActiveThisMonth = useMemo(() => {
+    const map: Record<string, { nom: string; matiere: string; heures: number }> = {};
+    coursThisMonth.forEach((c: CoursRow) => {
+      if (!map[c.eleve_nom]) map[c.eleve_nom] = { nom: c.eleve_nom, matiere: c.matiere, heures: 0 };
+      map[c.eleve_nom].heures += c.duree_heures;
+    });
+    return Object.values(map).sort((a, b) => b.heures - a.heures)[0] ?? null;
+  }, [coursThisMonth]);
+
+  const inactifs = useMemo(() => {
+    return eleves
+      .filter((e: EleveRow) => {
+        if (e.statut !== "actif") return false;
+        const days = e.dernier_cours
+          ? Math.floor((Date.now() - new Date(e.dernier_cours).getTime()) / 86400000)
+          : Infinity;
+        return days >= 14;
+      })
+      .slice(0, 3)
+      .map((e: EleveRow) => ({
+        nom: e.nom,
+        since: e.dernier_cours
+          ? `${Math.floor((Date.now() - new Date(e.dernier_cours).getTime()) / 86400000)} jours`
+          : "inconnu",
+      }));
+  }, [eleves]);
+
+  const stats = [
+    { label: "Revenus bruts", value: `${brutThisMonth.toLocaleString("fr-FR")} €`, icon: Euro, change: `ce mois` },
+    { label: "Élèves actifs", value: String(elevesActifs), icon: Users, change: `sur ${eleves.length} total` },
+    { label: "Heures ce mois", value: `${heuresThisMonth.toFixed(1)}h`, icon: BookOpen, change: `${coursThisMonth.length} séances` },
+  ];
 
   const quickActions = [
-    {
-      key: "cours" as ModalType,
-      icon: BookOpen,
-      label: "Déclarer un cours",
-      desc: "Enregistrer une séance effectuée",
-      color: "bg-blue-50 text-blue-600",
-    },
-    {
-      key: "eleve" as ModalType,
-      icon: Users,
-      label: "Ajouter un élève",
-      desc: "Créer un nouveau profil élève",
-      color: "bg-green-50 text-green-600",
-    },
+    { key: "cours" as ModalType, icon: BookOpen, label: "Déclarer un cours", desc: "Enregistrer une séance effectuée", color: "bg-blue-50 text-blue-600" },
+    { key: "eleve" as ModalType, icon: Users, label: "Ajouter un élève", desc: "Créer un nouveau profil élève", color: "bg-green-50 text-green-600" },
   ];
+
+  const prenomAffiche = profile?.prenom ?? "Prof";
 
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
-        <h1>Tableau de bord</h1>
+        <h1>Bonjour, {prenomAffiche} 👋</h1>
         <p className="text-muted-foreground mt-1">Vue d'ensemble de votre activité</p>
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {quickActions.map((action) => (
           <button
             key={action.key}
@@ -146,7 +223,7 @@ export function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl p-4 border border-border">
             <div className="flex items-center justify-between mb-2">
@@ -156,53 +233,50 @@ export function Dashboard() {
               </div>
             </div>
             <p className="text-xl" style={{ fontWeight: 600 }}>{stat.value}</p>
-            <span className="text-green-600" style={{ fontSize: 12 }}>{stat.change} ce mois</span>
+            <span className="text-muted-foreground" style={{ fontSize: 12 }}>{stat.change}</span>
           </div>
         ))}
       </div>
 
-      {/* Revenue breakdown + Credit impôt */}
+      {/* Revenue breakdown + Crédit d'impôt */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
         <div className="bg-white rounded-xl p-6 border border-border">
           <h3 className="mb-5">Décomposition des revenus</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div>
-                <p style={{ fontWeight: 500 }}>Revenus bruts ce mois</p>
-                <p className="text-muted-foreground" style={{ fontSize: 13 }}>Total facturé aux familles</p>
+          {brutThisMonth === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-6">Aucun cours ce mois-ci</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-3 border-b border-border">
+                <div>
+                  <p style={{ fontWeight: 500 }}>Revenus bruts ce mois</p>
+                  <p className="text-muted-foreground" style={{ fontSize: 13 }}>Total facturé aux familles</p>
+                </div>
+                <p style={{ fontSize: 20, fontWeight: 600 }}>{brutThisMonth.toLocaleString("fr-FR")} €</p>
               </div>
-              <p style={{ fontSize: 20, fontWeight: 600 }}>{BRUT.toLocaleString("fr-FR")} €</p>
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div>
-                <p className="text-red-500" style={{ fontWeight: 500 }}>— Charges URSSAF</p>
-                <p className="text-muted-foreground" style={{ fontSize: 13 }}>Auto-entrepreneur (21,1%)</p>
+              <div className="flex items-center justify-between py-3 border-b border-border">
+                <div>
+                  <p className="text-red-500" style={{ fontWeight: 500 }}>— Charges URSSAF</p>
+                  <p className="text-muted-foreground" style={{ fontSize: 13 }}>Auto-entrepreneur (21,1%)</p>
+                </div>
+                <p className="text-red-500" style={{ fontSize: 20, fontWeight: 600 }}>− {urssaf.toLocaleString("fr-FR")} €</p>
               </div>
-              <p className="text-red-500" style={{ fontSize: 20, fontWeight: 600 }}>− {urssaf.toLocaleString("fr-FR")} €</p>
-            </div>
-            <div className="flex items-center justify-between py-3 bg-green-50 rounded-xl px-4">
-              <div>
-                <p className="text-green-700" style={{ fontWeight: 600 }}>Net réel</p>
-                <p className="text-green-600" style={{ fontSize: 13 }}>Ce que vous empochez</p>
+              <div className="flex items-center justify-between py-3 bg-green-50 rounded-xl px-4">
+                <div>
+                  <p className="text-green-700" style={{ fontWeight: 600 }}>Net réel</p>
+                  <p className="text-green-600" style={{ fontSize: 13 }}>Ce que vous empochez</p>
+                </div>
+                <p className="text-green-700" style={{ fontSize: 22, fontWeight: 700 }}>{net.toLocaleString("fr-FR")} €</p>
               </div>
-              <p className="text-green-700" style={{ fontSize: 22, fontWeight: 700 }}>{net.toLocaleString("fr-FR")} €</p>
+              <div className="flex rounded-full overflow-hidden h-2 mt-2">
+                <div className="bg-green-400" style={{ width: `${(net / brutThisMonth) * 100}%` }} />
+                <div className="bg-red-300 flex-1" />
+              </div>
             </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex rounded-full overflow-hidden h-2">
-              <div className="bg-green-400" style={{ width: `${(net / BRUT) * 100}%` }} />
-              <div className="bg-red-300 flex-1" />
-            </div>
-            <div className="flex justify-between mt-1 text-muted-foreground" style={{ fontSize: 11 }}>
-              <span>Net {Math.round((net / BRUT) * 100)}%</span>
-              <span>URSSAF {Math.round(URSSAF_RATE * 100)}%</span>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-border flex flex-col">
-          <h3 className="mb-2">Gain généré </h3>
-
+          <h3 className="mb-2">Gain généré pour les familles</h3>
           <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
             <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
               <TrendingUp className="w-7 h-7 text-green-600" />
@@ -211,36 +285,38 @@ export function Dashboard() {
               {creditImpot.toLocaleString("fr-FR")} €
             </p>
             <p className="text-muted-foreground mt-1" style={{ fontSize: 13 }}>
-              économisés par vos élèves ce semestre
+              économisés par vos élèves ce mois
             </p>
           </div>
           <div className="mt-auto pt-4 border-t border-border">
             <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-              Sur {BRUT.toLocaleString("fr-FR")} € déclarés, les familles reçoivent <strong>{creditImpot.toLocaleString("fr-FR")} €</strong> — coût réel : <strong>{(BRUT - creditImpot).toLocaleString("fr-FR")} €</strong>.
+              Crédit d'impôt 50% (Art. 199 sexdecies) — coût réel pour les familles : <strong>{(brutThisMonth - creditImpot).toLocaleString("fr-FR")} €</strong>.
             </p>
           </div>
         </div>
       </div>
 
       {/* Revenue chart */}
-      <div className="bg-white rounded-xl p-6 border border-border mb-6">
-        <h3 className="mb-6">Évolution des revenus</h3>
-        <ResponsiveContainer width="100%" height={240}>
-          <AreaChart data={monthlyData}>
-            <defs>
-              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2196F3" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#2196F3" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E3F2FD" />
-            <XAxis dataKey="month" stroke="#5C7A99" fontSize={13} />
-            <YAxis stroke="#5C7A99" fontSize={13} tickFormatter={(v) => `${v}€`} />
-            <Tooltip formatter={(value: number) => [`${value} €`, "Revenus"]} />
-            <Area type="monotone" dataKey="revenus" stroke="#2196F3" fill="url(#colorRev)" strokeWidth={2} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      {monthlyData.length > 0 && (
+        <div className="bg-white rounded-xl p-6 border border-border mb-6">
+          <h3 className="mb-6">Évolution des revenus</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={monthlyData}>
+              <defs>
+                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2196F3" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#2196F3" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E3F2FD" />
+              <XAxis dataKey="month" stroke="#5C7A99" fontSize={13} />
+              <YAxis stroke="#5C7A99" fontSize={13} tickFormatter={(v: number) => `${v}€`} />
+              <Tooltip formatter={(value: number) => [`${value} €`, "Revenus"]} />
+              <Area type="monotone" dataKey="revenus" stroke="#2196F3" fill="url(#colorRev)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Mini ranking */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -251,12 +327,16 @@ export function Dashboard() {
             </div>
             <p style={{ fontWeight: 500, fontSize: 14 }}>Élève le plus rentable</p>
           </div>
-          <p style={{ fontWeight: 700, fontSize: 18 }}>{ranking.topEarner.nom}</p>
-          <p className="text-muted-foreground" style={{ fontSize: 13 }}>{ranking.topEarner.matiere}</p>
-          <div className="mt-3 pt-3 border-t border-border flex justify-between text-muted-foreground" style={{ fontSize: 13 }}>
-            <span>{ranking.topEarner.heures}h au total</span>
-            <span className="text-green-600" style={{ fontWeight: 500 }}>{ranking.topEarner.montant} €</span>
-          </div>
+          {topEarner ? (
+            <>
+              <p style={{ fontWeight: 700, fontSize: 18 }}>{topEarner.nom}</p>
+              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{topEarner.matiere}</p>
+              <div className="mt-3 pt-3 border-t border-border flex justify-between text-muted-foreground" style={{ fontSize: 13 }}>
+                <span>{topEarner.heures.toFixed(1)}h au total</span>
+                <span className="text-green-600" style={{ fontWeight: 500 }}>{topEarner.montant.toFixed(0)} €</span>
+              </div>
+            </>
+          ) : <p className="text-muted-foreground text-sm">Aucun cours encore</p>}
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-border">
@@ -266,12 +346,15 @@ export function Dashboard() {
             </div>
             <p style={{ fontWeight: 500, fontSize: 14 }}>Plus de volume ce mois</p>
           </div>
-          <p style={{ fontWeight: 700, fontSize: 18 }}>{ranking.mostActive.nom}</p>
-          <p className="text-muted-foreground" style={{ fontSize: 13 }}>{ranking.mostActive.matiere}</p>
-          <div className="mt-3 pt-3 border-t border-border flex justify-between text-muted-foreground" style={{ fontSize: 13 }}>
-            <span>{ranking.mostActive.heuresCeMois}h ce mois</span>
-            <span className="text-blue-600" style={{ fontWeight: 500 }}>{ranking.mostActive.evolution}</span>
-          </div>
+          {mostActiveThisMonth ? (
+            <>
+              <p style={{ fontWeight: 700, fontSize: 18 }}>{mostActiveThisMonth.nom}</p>
+              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{mostActiveThisMonth.matiere}</p>
+              <div className="mt-3 pt-3 border-t border-border" style={{ fontSize: 13 }}>
+                <span className="text-blue-600" style={{ fontWeight: 500 }}>{mostActiveThisMonth.heures.toFixed(1)}h ce mois</span>
+              </div>
+            </>
+          ) : <p className="text-muted-foreground text-sm">Aucun cours ce mois</p>}
         </div>
 
         <div className="bg-white rounded-xl p-5 border border-border">
@@ -281,32 +364,39 @@ export function Dashboard() {
             </div>
             <p style={{ fontWeight: 500, fontSize: 14 }}>Inactifs depuis 2 sem.</p>
           </div>
-          <div className="space-y-3">
-            {ranking.inactive.map((e) => (
-              <div key={e.nom} className="flex items-center justify-between">
-                <p style={{ fontWeight: 500, fontSize: 14 }}>{e.nom}</p>
-                <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full" style={{ fontSize: 12 }}>
-                  il y a {e.since}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="text-muted-foreground mt-3 pt-3 border-t border-border" style={{ fontSize: 12 }}>
-            Penser à les relancer pour ne pas perdre le suivi.
-          </p>
+          {inactifs.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Tous vos élèves sont actifs ✓</p>
+          ) : (
+            <div className="space-y-3">
+              {inactifs.map((e) => (
+                <div key={e.nom} className="flex items-center justify-between">
+                  <p style={{ fontWeight: 500, fontSize: 14 }}>{e.nom}</p>
+                  <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full" style={{ fontSize: 12 }}>
+                    {e.since}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* — Modal: Déclarer un cours — */}
+      {/* Modal: Déclarer un cours */}
       {activeModal === "cours" && (
         <ModalWrapper title="Déclarer un cours" onClose={closeModal}>
           {success ? <SuccessState message="Cours enregistré !" onClose={closeModal} /> : (
             <div className="space-y-4">
               <div>
                 <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Élève</label>
-                <select value={coursForm.eleve} onChange={(e) => setCoursForm({ ...coursForm, eleve: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none">
-                  {elevesDisponibles.map((n) => <option key={n}>{n}</option>)}
+                <select
+                  value={coursForm.eleve_id}
+                  onChange={(e) => {
+                    const elv = eleves.find((el: EleveRow) => el.id === e.target.value);
+                    setCoursForm({ ...coursForm, eleve_id: e.target.value, eleve_nom: elv?.nom ?? "", tarif_heure: elv?.tarif_heure ?? 30 });
+                  }}
+                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
+                >
+                  {eleves.map((e: EleveRow) => <option key={e.id} value={e.id}>{e.nom}</option>)}
                 </select>
               </div>
               <div>
@@ -330,19 +420,18 @@ export function Dashboard() {
               </div>
               <div>
                 <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Tarif / heure (€)</label>
-                <input type="number" value={coursForm.tarifHeure} onChange={(e) => setCoursForm({ ...coursForm, tarifHeure: Number(e.target.value) })}
+                <input type="number" value={coursForm.tarif_heure} onChange={(e) => setCoursForm({ ...coursForm, tarif_heure: Number(e.target.value) })}
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none" />
               </div>
               <div className="flex items-center justify-between px-4 py-3 bg-secondary rounded-lg">
-                <span className="text-secondary-foreground" style={{ fontSize: 13 }}>Montant estimé</span>
-                <span style={{ fontWeight: 600 }}>
-                  {(coursForm.tarifHeure * (dureeToHours[coursForm.duree] ?? 1)).toFixed(2)} €
-                </span>
+                <span style={{ fontSize: 13 }}>Montant estimé</span>
+                <span style={{ fontWeight: 600 }}>{(coursForm.tarif_heure * (dureeToHours[coursForm.duree] ?? 1)).toFixed(2)} €</span>
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors">Annuler</button>
-                <button onClick={submit} disabled={!coursForm.matiere || !coursForm.date}
-                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40">
+                <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted">Annuler</button>
+                <button onClick={submitCours} disabled={!coursForm.matiere || !coursForm.date || saving}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Enregistrer
                 </button>
               </div>
@@ -351,7 +440,7 @@ export function Dashboard() {
         </ModalWrapper>
       )}
 
-      {/* — Modal: Ajouter un élève — */}
+      {/* Modal: Ajouter un élève */}
       {activeModal === "eleve" && (
         <ModalWrapper title="Ajouter un élève" onClose={closeModal}>
           {success ? <SuccessState message="Élève ajouté !" onClose={closeModal} /> : (
@@ -377,63 +466,15 @@ export function Dashboard() {
               </div>
               <div>
                 <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Tarif / heure (€)</label>
-                <input type="number" value={eleveForm.tarifHeure} onChange={(e) => setEleveForm({ ...eleveForm, tarifHeure: Number(e.target.value) })}
+                <input type="number" value={eleveForm.tarif_heure} onChange={(e) => setEleveForm({ ...eleveForm, tarif_heure: Number(e.target.value) })}
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none" />
               </div>
               <div className="flex gap-3 pt-2">
-                <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors">Annuler</button>
-                <button onClick={submit} disabled={!eleveForm.nom || !eleveForm.matiere}
-                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40">
+                <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted">Annuler</button>
+                <button onClick={submitEleve} disabled={!eleveForm.nom || !eleveForm.matiere || saving}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Ajouter
-                </button>
-              </div>
-            </div>
-          )}
-        </ModalWrapper>
-      )}
-
-      {/* — Modal: Déclencher un paiement — */}
-      {activeModal === "paiement" && (
-        <ModalWrapper title="Déclencher un paiement" onClose={closeModal}>
-          {success ? <SuccessState message="Paiement enregistré !" onClose={closeModal} /> : (
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Élève</label>
-                <select value={paiementForm.eleve} onChange={(e) => setPaiementForm({ ...paiementForm, eleve: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none">
-                  {elevesDisponibles.map((n) => <option key={n}>{n}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Montant (€)</label>
-                  <input type="number" value={paiementForm.montant} onChange={(e) => setPaiementForm({ ...paiementForm, montant: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none" />
-                </div>
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Méthode</label>
-                  <select value={paiementForm.methode} onChange={(e) => setPaiementForm({ ...paiementForm, methode: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none">
-                    {methodesPaiement.map((m) => <option key={m}>{m}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Note (optionnel)</label>
-                <input value={paiementForm.note} onChange={(e) => setPaiementForm({ ...paiementForm, note: e.target.value })}
-                  placeholder="Mars 2026, 3 séances..." className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none" />
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 bg-secondary rounded-lg">
-                <span className="text-secondary-foreground" style={{ fontSize: 13 }}>
-                  {paiementForm.eleve}
-                </span>
-                <span style={{ fontWeight: 600 }}>{paiementForm.montant} € — {paiementForm.methode}</span>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors">Annuler</button>
-                <button onClick={submit} disabled={!paiementForm.montant}
-                  className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40">
-                  Confirmer
                 </button>
               </div>
             </div>
