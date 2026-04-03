@@ -1,8 +1,20 @@
 import { useState, useMemo } from "react";
-import { CalendarDays, Euro, Clock, CheckCircle2, Plus, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { CalendarDays, Euro, Clock, Plus, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useCours } from "../../lib/hooks/useCours";
 import { useEleves } from "../../lib/hooks/useEleves";
+import { useAuth } from "../../lib/auth";
+import { useRecapMensuel } from "../../lib/hooks/useRecapMensuel";
 import type { CoursRow } from "../../lib/hooks/useCours";
+import type { RecapStatut } from "../../lib/database.types";
+import { LoadingGuard } from "./LoadingGuard";
+
+function StatusBadge({ statut }: { statut: RecapStatut }) {
+  if (statut === "valide")
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Validé</span>;
+  if (statut === "en_attente_parent")
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En attente parent</span>;
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">En cours</span>;
+}
 
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {
@@ -23,43 +35,61 @@ function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+const initialFormState = {
+  eleve_id: "",
+  eleve_nom: "",
+  matiere: "",
+  date: "",
+  duree: "1h",
+  tarif_heure: 30,
+  statut: "planifié" as CoursRow["statut"],
+};
+
 export function Cours() {
-  const { cours, loading, error, addCours } = useCours();
+  const { profile } = useAuth();
+  const { cours, loading, error, reload, addCours } = useCours();
   const { eleves } = useEleves();
+  const { recaps, validerMois } = useRecapMensuel();
+  const hasSiret = !!profile?.siret;
 
   const today = new Date();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recapModal, setRecapModal] = useState<{ mois: string; moisNum: number; anneeNum: number; coursList: CoursRow[] } | null>(null);
+  const [validating, setValidating] = useState(false);
   const [calYear, setCalYear] = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const emptyForm = {
-    eleve_id: eleves[0]?.id ?? "",
-    eleve_nom: eleves[0]?.nom ?? "",
-    matiere: "",
-    date: "",
-    duree: "1h",
-    tarif_heure: eleves[0]?.tarif_heure ?? 30,
-    statut: "planifié" as CoursRow["statut"],
-  };
-  const [form, setForm] = useState(emptyForm);
+  // L'état est maintenant initialisé à vide au montage
+  const [form, setForm] = useState(initialFormState);
 
-  // Update form when eleves loads
   const selectedEleve = eleves.find((e) => e.id === form.eleve_id);
 
   const monthlySummary = useMemo(() => {
-    const map: Record<string, { total: number; nbCours: number; allPaid: boolean }> = {};
+    const map: Record<string, { total: number; nbCours: number; allPaid: boolean; moisNum: number; anneeNum: number; coursList: CoursRow[] }> = {};
     cours.forEach((c: CoursRow) => {
       const [y, m] = c.date.split("-");
       const key = `${MOIS[Number(m) - 1]} ${y}`;
-      if (!map[key]) map[key] = { total: 0, nbCours: 0, allPaid: true };
+      if (!map[key]) map[key] = { total: 0, nbCours: 0, allPaid: true, moisNum: Number(m), anneeNum: Number(y), coursList: [] };
       map[key].total += c.montant;
       map[key].nbCours += 1;
+      map[key].coursList.push(c);
       if (c.statut !== "payé") map[key].allPaid = false;
     });
-    return Object.entries(map).map(([mois, v]) => ({ mois, ...v })).slice(0, 3);
-  }, [cours]);
+    return Object.entries(map).map(([mois, v]) => {
+      const eleveIds = [...new Set(v.coursList.map((c) => c.eleve_id).filter(Boolean) as string[])];
+      const monthRecaps = eleveIds.map((id) =>
+        recaps.find((r) => r.eleve_id === id && r.mois === v.moisNum && r.annee === v.anneeNum)
+      );
+      let recapStatut: RecapStatut = "en_cours";
+      if (eleveIds.length > 0 && monthRecaps.every((r) => r)) {
+        if (monthRecaps.every((r) => r!.statut === "valide")) recapStatut = "valide";
+        else if (monthRecaps.every((r) => r!.statut === "valide" || r!.statut === "en_attente_parent")) recapStatut = "en_attente_parent";
+      }
+      return { mois, ...v, recapStatut };
+    }).slice(0, 3);
+  }, [cours, recaps]);
 
   const firstDay = getFirstDayOfWeek(calYear, calMonth);
   const daysInMonth = getDaysInMonth(calYear, calMonth);
@@ -85,13 +115,36 @@ export function Cours() {
     else setCalMonth(calMonth + 1);
   }
 
+  // Fonction dédiée pour ouvrir la modale proprement
+  function handleOpenModal() {
+    if (eleves.length === 0) {
+      alert("Vous devez d'abord ajouter un élève avant de déclarer un cours.");
+      return;
+    }
+    
+    const premierEleve = eleves[0];
+    setForm({
+      eleve_id: premierEleve.id,
+      eleve_nom: premierEleve.nom,
+      matiere: premierEleve.matiere || "",
+      date: "",
+      duree: "1h",
+      tarif_heure: premierEleve.tarif_heure ?? 30,
+      statut: "planifié",
+    });
+    
+    setShowModal(true);
+  }
+
   async function handleAdd() {
-    if (!form.matiere || !form.date) return;
+    // Barrière de sécurité finale (Guard Clause)
+    if (!form.eleve_id || !form.matiere || !form.date) return;
+    
     setSaving(true);
     try {
       const heures = dureeToHours[form.duree] ?? 1;
       await addCours({
-        eleve_id: form.eleve_id || null,
+        eleve_id: form.eleve_id, // Plus de || null permissif
         eleve_nom: form.eleve_nom,
         matiere: form.matiere,
         date: form.date,
@@ -101,27 +154,63 @@ export function Cours() {
         statut: form.statut,
       });
       setShowModal(false);
-      setForm(emptyForm);
+      setForm(initialFormState); // On réinitialise proprement
     } finally {
       setSaving(false);
     }
   }
 
+  async function handleValiderMois() {
+    if (!recapModal) return;
+    setValidating(true);
+    try {
+      const byEleve: Record<string, CoursRow[]> = {};
+      recapModal.coursList.forEach((c) => {
+        if (!c.eleve_id) return;
+        if (!byEleve[c.eleve_id]) byEleve[c.eleve_id] = [];
+        byEleve[c.eleve_id].push(c);
+      });
+      await Promise.all(
+        Object.entries(byEleve).map(([eleveId, items]) =>
+          validerMois(eleveId, recapModal.moisNum, recapModal.anneeNum, items.map((c) => c.id))
+        )
+      );
+      setRecapModal(null);
+    } finally {
+      setValidating(false);
+    }
+  }
+
   const selectedCoursItems = selectedDay ? (coursByDate[selectedDay] ?? []) : [];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
+  // Lookup recap par eleve+mois pour les badges
+  const recapMap = useMemo(() => {
+    const map: Record<string, typeof recaps[0]> = {};
+    recaps.forEach((r) => {
+      map[`${r.eleve_id}-${r.annee}-${String(r.mois).padStart(2, "0")}`] = r;
+    });
+    return map;
+  }, [recaps]);
 
-  if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">{error}</div>;
-  }
+  // Groupement par Élève > Mois
+  const groupedCours = useMemo(() => {
+    const byEleve: Record<string, { nom: string; id: string | null; moisMap: Record<string, CoursRow[]> }> = {};
+    cours.forEach((c) => {
+      const key = c.eleve_id ?? c.eleve_nom;
+      if (!byEleve[key]) byEleve[key] = { nom: c.eleve_nom, id: c.eleve_id, moisMap: {} };
+      const [y, m] = c.date.split("-");
+      const moisKey = `${y}-${m.padStart(2, "0")}`;
+      if (!byEleve[key].moisMap[moisKey]) byEleve[key].moisMap[moisKey] = [];
+      byEleve[key].moisMap[moisKey].push(c);
+    });
+    return Object.values(byEleve);
+  }, [cours]);
+
+  // Le boolean qui détermine si le formulaire est valide
+  const isFormValid = form.eleve_id !== "" && form.matiere.trim() !== "" && form.date !== "";
 
   return (
+    <LoadingGuard loading={loading} error={error} onRetry={reload}>
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -129,8 +218,10 @@ export function Cours() {
           <p className="text-muted-foreground mt-1">Suivi des cours et versements mensuels</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+          onClick={handleOpenModal}
+          disabled={!hasSiret}
+          title={!hasSiret ? "Renseignez votre SIRET pour débloquer cette action" : undefined}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" />
           Déclarer un cours
@@ -145,18 +236,22 @@ export function Cours() {
           <div key={m.mois} className="bg-white rounded-xl p-5 border border-border">
             <div className="flex items-center justify-between mb-3">
               <span className="text-muted-foreground" style={{ fontSize: 14 }}>{m.mois}</span>
-              {m.allPaid ? (
-                <span className="flex items-center gap-1 text-green-600" style={{ fontSize: 13 }}>
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Payé
-                </span>
-              ) : (
-                <span className="text-amber-500" style={{ fontSize: 13 }}>En attente</span>
-              )}
+              <StatusBadge statut={m.recapStatut} />
             </div>
             <p className="text-2xl" style={{ fontWeight: 600 }}>{m.total.toLocaleString("fr-FR")} €</p>
-            <div className="flex items-center gap-4 mt-2 text-muted-foreground" style={{ fontSize: 13 }}>
-              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{m.nbCours} cours</span>
-              <span className="flex items-center gap-1"><Euro className="w-3.5 h-3.5" />{(m.total / 2).toLocaleString("fr-FR")} € crédit</span>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-4 text-muted-foreground" style={{ fontSize: 13 }}>
+                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{m.nbCours} cours</span>
+                <span className="flex items-center gap-1"><Euro className="w-3.5 h-3.5" />{(m.total / 2).toLocaleString("fr-FR")} € crédit</span>
+              </div>
+              {m.recapStatut === "en_cours" && (
+                <button
+                  onClick={() => setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList })}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors shrink-0"
+                >
+                  Finir le mois
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -243,40 +338,124 @@ export function Cours() {
         )}
       </div>
 
-      {/* Courses list */}
+      {/* Courses list — groupé par Élève > Mois */}
       <div className="bg-white rounded-xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border">
           <h3>Tous les cours</h3>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Élève</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Matière</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Date</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Durée</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Montant</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cours.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                  Aucun cours enregistré
-                </td>
-              </tr>
-            ) : cours.map((c: CoursRow) => (
-              <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.eleve_nom}</td>
-                <td className="px-6 py-4 text-muted-foreground">{c.matiere}</td>
-                <td className="px-6 py-4 text-muted-foreground">{formatDate(c.date)}</td>
-                <td className="px-6 py-4 text-muted-foreground">{c.duree}</td>
-                <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.montant} €</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {cours.length === 0 ? (
+          <p className="px-6 py-12 text-center text-muted-foreground">Aucun cours enregistré</p>
+        ) : groupedCours.map((eleve) => (
+          <div key={eleve.id ?? eleve.nom}>
+            {/* En-tête élève */}
+            <div className="px-6 py-3 bg-muted/50 border-b border-border">
+              <span style={{ fontWeight: 600 }}>{eleve.nom}</span>
+            </div>
+            {Object.entries(eleve.moisMap)
+              .sort(([a], [b]) => b.localeCompare(a))
+              .map(([moisKey, items]) => {
+                const [anneeStr, moisStr] = moisKey.split("-");
+                const recap = eleve.id ? recapMap[`${eleve.id}-${anneeStr}-${moisStr}`] : undefined;
+                const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
+                const totalM = items.reduce((s, c) => s + c.montant, 0);
+                return (
+                  <div key={moisKey}>
+                    {/* En-tête mois */}
+                    <div className="px-6 py-2.5 border-b border-border flex items-center justify-between">
+                      <span className="text-muted-foreground" style={{ fontSize: 13 }}>
+                        {MOIS[Number(moisStr) - 1]} {anneeStr}
+                        <span className="ml-3">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</span>
+                      </span>
+                      <StatusBadge statut={recap?.statut ?? "en_cours"} />
+                    </div>
+                    {/* Lignes cours */}
+                    <table className="w-full">
+                      <tbody>
+                        {items.map((c: CoursRow) => (
+                          <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                            <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.eleve_nom}</td>
+                            <td className="px-6 py-4 text-muted-foreground">{c.matiere}</td>
+                            <td className="px-6 py-4 text-muted-foreground">{formatDate(c.date)}</td>
+                            <td className="px-6 py-4 text-muted-foreground">{c.duree}</td>
+                            <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.montant} €</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+          </div>
+        ))}
       </div>
+
+      {/* Recap modal */}
+      {recapModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3>Récapitulatif — {recapModal.mois}</h3>
+                <p className="text-muted-foreground mt-0.5" style={{ fontSize: 13 }}>
+                  {recapModal.coursList.length} cours · {recapModal.coursList.reduce((s, c) => s + c.duree_heures, 0)}h
+                </p>
+              </div>
+              <button onClick={() => setRecapModal(null)} className="p-1.5 rounded-lg hover:bg-muted">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-4 mb-5">
+              {Object.entries(
+                recapModal.coursList.reduce<Record<string, CoursRow[]>>((acc, c) => {
+                  const k = c.eleve_nom;
+                  if (!acc[k]) acc[k] = [];
+                  acc[k].push(c);
+                  return acc;
+                }, {})
+              ).map(([nom, items]) => (
+                <div key={nom}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span style={{ fontWeight: 600 }}>{nom}</span>
+                    <span className="text-muted-foreground" style={{ fontSize: 13 }}>
+                      {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {items.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between px-3 py-2 bg-muted rounded-lg">
+                        <span className="text-muted-foreground" style={{ fontSize: 13 }}>{formatDate(c.date)} · {c.matiere} · {c.duree}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>{c.montant} €</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-border flex items-center justify-between mb-4">
+              <span style={{ fontWeight: 600 }}>Total</span>
+              <span style={{ fontWeight: 600 }}>
+                {recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setRecapModal(null)} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted">
+                Annuler
+              </button>
+              <button
+                onClick={handleValiderMois}
+                disabled={validating}
+                className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
+              >
+                {validating && <Loader2 className="w-4 h-4 animate-spin" />}
+                Valider le mois
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add modal */}
       {showModal && (
@@ -296,10 +475,17 @@ export function Cours() {
                   value={form.eleve_id}
                   onChange={(e) => {
                     const elv = eleves.find((el) => el.id === e.target.value);
-                    setForm({ ...form, eleve_id: e.target.value, eleve_nom: elv?.nom ?? "", tarif_heure: elv?.tarif_heure ?? 30 });
+                    setForm({ 
+                      ...form, 
+                      eleve_id: e.target.value, 
+                      eleve_nom: elv?.nom ?? "", 
+                      tarif_heure: elv?.tarif_heure ?? 30,
+                      matiere: elv?.matiere ?? form.matiere // Bonus: pré-remplit la matière selon l'élève
+                    });
                   }}
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                 >
+                  <option value="" disabled>Sélectionner un élève</option>
                   {eleves.map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
                 </select>
               </div>
@@ -309,7 +495,7 @@ export function Cours() {
                 <input
                   value={form.matiere}
                   onChange={(e) => setForm({ ...form, matiere: e.target.value })}
-                  placeholder={selectedEleve?.matiere ?? "Mathématiques..."}
+                  placeholder="Mathématiques..."
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                 />
               </div>
@@ -346,18 +532,6 @@ export function Cours() {
                     className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Statut</label>
-                  <select
-                    value={form.statut}
-                    onChange={(e) => setForm({ ...form, statut: e.target.value as CoursRow["statut"] })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                  >
-                    <option value="planifié">Planifié</option>
-                    <option value="en attente">En attente</option>
-                    <option value="payé">Payé</option>
-                  </select>
-                </div>
               </div>
 
               <div className="flex items-center justify-between px-4 py-3 bg-secondary rounded-lg">
@@ -374,8 +548,8 @@ export function Cours() {
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!form.matiere || !form.date || saving}
-                className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
+                disabled={!isFormValid || saving}
+                className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Ajouter
@@ -385,5 +559,7 @@ export function Cours() {
         </div>
       )}
     </div>
+    </LoadingGuard>
   );
 }
+

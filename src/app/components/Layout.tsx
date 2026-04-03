@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { SiretBanner } from "./SiretBanner";
 import logo from "@/assets/colibri.png";
 
 export function Layout() {
@@ -26,9 +27,12 @@ export function Layout() {
 
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <main className="flex-1 p-4 pt-18 md:pt-4 md:p-8 overflow-auto">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col overflow-auto">
+        <SiretBanner />
+        <main className="flex-1 p-4 pt-18 md:pt-4 md:p-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

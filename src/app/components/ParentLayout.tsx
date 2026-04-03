@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
-import { Home, BookOpen, FileText, LogOut, Menu, X } from "lucide-react";
+import { Home, BookOpen, FileText, LogOut, Menu, X, UserCircle } from "lucide-react";
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../lib/auth";
 
@@ -8,6 +8,7 @@ const parentNavItems = [
   { to: "/parent", icon: Home, label: "Accueil", end: true },
   { to: "/parent/cours", icon: BookOpen, label: "Cours" },
   { to: "/parent/factures", icon: FileText, label: "Factures" },
+  { to: "/parent/profil", icon: UserCircle, label: "Profil" },
 ];
 
 export function ParentLayout() {
@@ -63,17 +64,6 @@ export function ParentLayout() {
         </div>
 
         {/* Child info card */}
-        <div className="mx-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary/20 rounded-full flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
-              T
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Thomas Dupont</p>
-              <p className="text-xs text-muted-foreground">Terminale · Mathématiques</p>
-            </div>
-          </div>
-        </div>
 
         <nav className="flex-1 px-3 py-2 space-y-1">
           {parentNavItems.map((item) => (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MapPin, Clock, Plus, X, AlertTriangle, Euro, Loader2, Trash2 } from "lucide-react";
+import { LoadingGuard } from "./LoadingGuard";
 import { usePaps } from "../../lib/hooks/usePaps";
 import { useAuth } from "../../lib/auth";
 import type { AnnonceRow } from "../../lib/hooks/usePaps";
@@ -22,7 +23,7 @@ const emptyForm = {
 };
 
 export function Paps() {
-  const { annonces, loading, error, createAnnonce, closeAnnonce, isOwn } = usePaps();
+  const { annonces, loading, error, reload, createAnnonce, closeAnnonce, isOwn } = usePaps();
   const { profile } = useAuth();
 
   const [filterMatiere, setFilterMatiere] = useState("Toutes");
@@ -79,20 +80,9 @@ export function Paps() {
     }, 2000);
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">{error}</div>;
-  }
-
   return (
-    <div className="max-w-5xl mx-auto">
+    <LoadingGuard loading={loading} error={error} onRetry={reload}>
+    <div className={`max-w-5xl mx-auto ${!profile?.siret ? "opacity-50 pointer-events-none select-none" : ""}`}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1>PAPS — Échange entre profs</h1>
@@ -339,5 +329,6 @@ export function Paps() {
         </div>
       )}
     </div>
+    </LoadingGuard>
   );
 }

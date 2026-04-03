@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, Link, useNavigate } from "react-router";
 import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X } from "lucide-react";
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../lib/auth";
@@ -41,10 +41,10 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         `}
       >
         <div className="p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link to="/app" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img src={logo} alt="Colibri" className="w-9 h-9 rounded-lg" />
             <span className="text-xl text-primary" style={{ fontWeight: 600 }}>Colibri</span>
-          </div>
+          </Link>
           <button
             onClick={onClose}
             className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors"

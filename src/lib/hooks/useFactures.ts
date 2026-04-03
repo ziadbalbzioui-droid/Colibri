@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "../auth";
+import { makeDeadline } from "./utils";
 
 export interface LigneRow {
   id?: string;
@@ -28,39 +29,43 @@ export function useFactures() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
+  const load = useCallback(async (staleCheck?: () => boolean) => {
+    if (!user) { setLoading(false); return; }
     setError(null);
+    setLoading(true);
+    const deadline = makeDeadline(5000);
     try {
-      const { data, error } = await supabase
-        .from("factures")
-        .select("*, lignes_facture(*)")
-        .eq("prof_id", user.id)
-        .order("date_emission", { ascending: false });
+      const { data, error } = await Promise.race([
+        supabase
+          .from("factures")
+          .select("*, lignes_facture(*)")
+          .eq("prof_id", user.id)
+          .order("date_emission", { ascending: false }),
+        deadline,
+      ]);
       if (error) throw error;
-      const rows = (data ?? []).map((f) => ({
-        ...f,
-        lignes: f.lignes_facture as LigneRow[],
-      }));
-      setFactures(rows);
+      const rows = (data ?? []).map((f) => ({ ...f, lignes: f.lignes_facture as LigneRow[] }));
+      if (!staleCheck?.()) setFactures(rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur chargement factures");
+      const msg = err instanceof Error ? err.message : "Erreur chargement factures";
+      console.error("[useFactures]", msg, err);
+      if (!staleCheck?.()) setError(msg);
     } finally {
-      setLoading(false);
+      if (!staleCheck?.()) setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!authLoading && !user) setLoading(false);
-  }, [authLoading, user]);
+    if (authLoading) return;
+    let stale = false;
+    load(() => stale);
+    return () => { stale = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id]);
 
   const createFacture = async (mois: string, lignes: LigneRow[]) => {
-    if (!user) return;
+    if (!user) throw new Error("Non connecté");
     const validLignes = lignes.filter((l) => l.eleve_nom && l.matiere);
     const brut = validLignes.reduce((s, l) => s + l.heures * l.tarif_heure, 0);
     const net = Math.round(brut * (1 - URSSAF));
@@ -68,12 +73,9 @@ export function useFactures() {
     const { data: facture, error: fe } = await supabase
       .from("factures")
       .insert({
-        prof_id: user.id,
-        mois,
+        prof_id: user.id, mois,
         date_emission: new Date().toISOString().split("T")[0],
-        statut: "en attente",
-        montant_brut: brut,
-        montant_net: net,
+        statut: "en attente", montant_brut: brut, montant_net: net,
       })
       .select()
       .single();
@@ -91,12 +93,14 @@ export function useFactures() {
   };
 
   const markPaid = async (id: string) => {
-    await supabase.from("factures").update({ statut: "payée" }).eq("id", id);
+    const { error } = await supabase.from("factures").update({ statut: "payée" }).eq("id", id);
+    if (error) throw error;
     setFactures((prev) => prev.map((f) => f.id === id ? { ...f, statut: "payée" } : f));
   };
 
   const deleteFacture = async (id: string) => {
-    await supabase.from("factures").delete().eq("id", id);
+    const { error } = await supabase.from("factures").delete().eq("id", id);
+    if (error) throw error;
     setFactures((prev) => prev.filter((f) => f.id !== id));
   };
 

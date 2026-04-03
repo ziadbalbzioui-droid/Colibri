@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { FileText, Download, CheckCircle2, Clock, Plus, X, ChevronDown, Euro, Users, BookOpen, Loader2 } from "lucide-react";
+import { LoadingGuard } from "./LoadingGuard";
 import { useFactures } from "../../lib/hooks/useFactures";
 import { useAuth } from "../../lib/auth";
 import type { FactureRow, LigneRow } from "../../lib/hooks/useFactures";
@@ -134,16 +135,42 @@ function FacturePreview({ facture, onClose, profInfo }: {
   );
 }
 
-const MOIS_DISPONIBLES = ["Mars 2026", "Février 2026", "Janvier 2026", "Décembre 2025", "Novembre 2025", "Octobre 2025"];
+// Fonction pour générer la liste des mois depuis l'inscription
+function getMoisDisponibles(dateInscriptionStr: string | null | undefined): string[] {
+  const moisNoms = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const now = new Date();
+  
+  if (!dateInscriptionStr) {
+    return [`${moisNoms[now.getMonth()]} ${now.getFullYear()}`];
+  }
+
+  const dateInscription = new Date(dateInscriptionStr);
+  const result: string[] = [];
+  let current = new Date(now.getFullYear(), now.getMonth(), 1);
+  const limit = new Date(dateInscription.getFullYear(), dateInscription.getMonth(), 1);
+
+  let count = 0;
+  while (current >= limit && count < 24) {
+    result.push(`${moisNoms[current.getMonth()]} ${current.getFullYear()}`);
+    current.setMonth(current.getMonth() - 1);
+    count++;
+  }
+  return result;
+}
+
 const emptyLigne: LigneRow = { eleve_nom: "", matiere: "", heures: 1, tarif_heure: 25 };
 
 export function Factures() {
-  const { factures, loading, error, createFacture } = useFactures();
+  const { factures, loading, error, reload, createFacture } = useFactures();
   const { profile } = useAuth();
+
+  const moisDisponibles = useMemo(() => {
+    return getMoisDisponibles(profile?.created_at);
+  }, [profile?.created_at]);
 
   const [preview, setPreview] = useState<FactureRow | null>(null);
   const [showGenerate, setShowGenerate] = useState(false);
-  const [genMois, setGenMois] = useState(MOIS_DISPONIBLES[0]);
+  const [genMois, setGenMois] = useState(moisDisponibles[0] || "");
   const [genLignes, setGenLignes] = useState<LigneRow[]>([{ ...emptyLigne }]);
   const [genSuccess, setGenSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -175,25 +202,14 @@ export function Factures() {
     setShowGenerate(false);
     setGenSuccess(false);
     setGenLignes([{ ...emptyLigne }]);
-    setGenMois(MOIS_DISPONIBLES[0]);
+    setGenMois(moisDisponibles[0]);
   }
 
   const moisAvecFacture = new Set(factures.map((f) => f.mois));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">{error}</div>;
-  }
-
   return (
-    <div className="max-w-5xl mx-auto">
+    <LoadingGuard loading={loading} error={error} onRetry={reload}>
+    <div className={`max-w-5xl mx-auto ${!profile?.siret ? "opacity-50 pointer-events-none select-none" : ""}`}>
       <div className="mb-6">
         <h1 className="mb-1">Factures</h1>
         <p className="text-muted-foreground" style={{ fontSize: 14 }}>
@@ -239,7 +255,7 @@ export function Factures() {
           );
         })}
 
-        {MOIS_DISPONIBLES.filter((m) => !moisAvecFacture.has(m)).map((m) => (
+        {moisDisponibles.filter((m) => !moisAvecFacture.has(m)).map((m) => (
           <div key={m} className="bg-white border border-dashed border-border rounded-xl p-5 flex items-center gap-5">
             <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-muted-foreground" />
@@ -297,7 +313,7 @@ export function Factures() {
                       onChange={(e) => setGenMois(e.target.value)}
                       className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none appearance-none"
                     >
-                      {MOIS_DISPONIBLES.map((m) => <option key={m}>{m}</option>)}
+                      {moisDisponibles.map((m) => <option key={m}>{m}</option>)}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
@@ -402,5 +418,6 @@ export function Factures() {
         </div>
       )}
     </div>
+    </LoadingGuard>
   );
 }

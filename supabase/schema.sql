@@ -21,6 +21,32 @@ create table if not exists public.profiles (
   adresse             text,
   iban                text,
   prenom_enfant text,
+  -- onboarding prof
+  nom_entreprise           text,
+  onboarding_complete      boolean not null default false,
+  cgu_accepted             boolean not null default false,
+  mandat_accepted          boolean not null default false,
+  competence_accepted      boolean not null default false,
+  acceptances_at           timestamptz,
+  stripe_account_id        text,
+  stripe_onboarding_complete boolean not null default false,
+  -- onboarding parent – état civil
+  civilite                     text check (civilite in ('M.', 'Mme')),
+  nom_naissance                text,
+  nom_usage                    text,
+  date_naissance               date,
+  lieu_naissance_cp            text,
+  lieu_naissance_ville         text,
+  lieu_naissance_pays          text,
+  adresse_postale              text,
+  -- onboarding parent – légal
+  parent_cgu_accepted          boolean not null default false,
+  parent_mandat_urssaf_accepted boolean not null default false,
+  parent_cgu_accepted_at       timestamptz,
+  parent_mandat_accepted_at    timestamptz,
+  -- onboarding parent – urssaf
+  urssaf_status                text check (urssaf_status in ('none', 'activation_pending', 'active')),
+  urssaf_id                    text,
   created_at    timestamptz not null default now()
 );
 
@@ -28,13 +54,15 @@ create table if not exists public.profiles (
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, role, prenom, nom, email)
+  insert into public.profiles (id, role, prenom, nom, email, telephone, etablissement)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'role', 'prof'),
     coalesce(new.raw_user_meta_data->>'prenom', ''),
     coalesce(new.raw_user_meta_data->>'nom', ''),
-    new.email
+    new.email,
+    new.raw_user_meta_data->>'telephone',
+    new.raw_user_meta_data->>'etablissement'
   )
   on conflict (id) do nothing;
   return new;
@@ -180,7 +208,9 @@ end $$;
 
 -- Profiles: own row only
 create policy "profiles: read own"   on public.profiles for select using (auth.uid() = id);
-create policy "profiles: update own" on public.profiles for update using (auth.uid() = id);
+create policy "profiles: update own" on public.profiles for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 -- Eleves: prof owns their students; parent can read linked students
 create policy "eleves: prof crud" on public.eleves for all
@@ -249,6 +279,9 @@ create policy "parent_eleve: parent read" on public.parent_eleve for select
   using (auth.uid() = parent_id);
 
 -- ─── INDEXES ─────────────────────────────────────────────────
+-- (colonnes onboarding déjà dans CREATE TABLE ci-dessus)
+
+-- ─── INDEXES ─────────────────────────────────────────────────
 create index if not exists idx_eleves_prof_id         on public.eleves         (prof_id);
 create index if not exists idx_cours_prof_date         on public.cours          (prof_id, date desc);
 create index if not exists idx_cours_eleve_id          on public.cours          (eleve_id);
@@ -257,3 +290,40 @@ create index if not exists idx_lignes_facture_id       on public.lignes_facture 
 create index if not exists idx_paps_active_created     on public.paps_annonces  (active, created_at desc);
 create index if not exists idx_parent_eleve_parent_id  on public.parent_eleve   (parent_id);
 create index if not exists idx_parent_eleve_eleve_id   on public.parent_eleve   (eleve_id);
+
+-- ─── RECAP MENSUEL ───────────────────────────────────────────
+create table if not exists public.recap_mensuel (
+  id         uuid primary key default uuid_generate_v4(),
+  prof_id    uuid not null references public.profiles(id) on delete cascade,
+  eleve_id   uuid not null references public.eleves(id) on delete cascade,
+  mois       int not null check (mois between 1 and 12),
+  annee      int not null,
+  statut     text not null default 'en_cours'
+             check (statut in ('en_cours', 'en_attente_parent', 'valide')),
+  created_at timestamptz not null default now(),
+  unique (prof_id, eleve_id, mois, annee)
+);
+
+alter table public.cours add column if not exists recap_id uuid references public.recap_mensuel(id) on delete set null;
+
+alter table public.recap_mensuel enable row level security;
+
+do $$ begin
+  drop policy if exists "recap_mensuel: prof crud"    on public.recap_mensuel;
+  drop policy if exists "recap_mensuel: parent read"  on public.recap_mensuel;
+end $$;
+
+create policy "recap_mensuel: prof crud" on public.recap_mensuel for all
+  using (auth.uid() = prof_id)
+  with check (auth.uid() = prof_id);
+
+create policy "recap_mensuel: parent read" on public.recap_mensuel for select
+  using (
+    exists (
+      select 1 from public.parent_eleve pe
+      where pe.eleve_id = recap_mensuel.eleve_id and pe.parent_id = auth.uid()
+    )
+  );
+
+create index if not exists idx_recap_mensuel_prof  on public.recap_mensuel (prof_id);
+create index if not exists idx_recap_mensuel_eleve on public.recap_mensuel (eleve_id);

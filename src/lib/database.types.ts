@@ -2,6 +2,7 @@ export type UserRole = "prof" | "parent";
 export type EleveStatut = "actif" | "en attente" | "en pause" | "terminé";
 export type CoursStatut = "payé" | "en attente" | "planifié";
 export type FactureStatut = "payée" | "en attente";
+export type RecapStatut = "en_cours" | "en_attente_parent" | "valide";
 
 export interface Database {
   public: {
@@ -54,7 +55,7 @@ export interface Database {
 }
 
 export interface Profile {
-  id: string; // matches auth.users.id
+  id: string;
   role: UserRole;
   prenom: string;
   nom: string;
@@ -65,10 +66,36 @@ export interface Profile {
   niveau_etudes?: string;
   matieres_enseignees?: string;
   siret?: string;
+  nom_entreprise?: string;
   adresse?: string;
   iban?: string;
   // parent-specific
   prenom_enfant?: string;
+  // onboarding
+  onboarding_complete?: boolean;
+  cgu_accepted?: boolean;
+  mandat_accepted?: boolean;
+  competence_accepted?: boolean;
+  acceptances_at?: string;
+  stripe_account_id?: string;
+  stripe_onboarding_complete?: boolean;
+  // parent onboarding – état civil
+  civilite?: "M." | "Mme";
+  nom_naissance?: string;
+  nom_usage?: string;
+  date_naissance?: string;
+  lieu_naissance_cp?: string;
+  lieu_naissance_ville?: string;
+  lieu_naissance_pays?: string;
+  adresse_postale?: string;
+  // parent onboarding – légal
+  parent_cgu_accepted?: boolean;
+  parent_mandat_urssaf_accepted?: boolean;
+  parent_cgu_accepted_at?: string;
+  parent_mandat_accepted_at?: string;
+  // parent onboarding – urssaf
+  urssaf_status?: "none" | "activation_pending" | "active";
+  urssaf_id?: string;
   created_at: string;
 }
 
@@ -102,6 +129,17 @@ export interface Cours {
   duree_heures: number;
   montant: number;
   statut: CoursStatut;
+  recap_id: string | null;
+  created_at: string;
+}
+
+export interface RecapMensuel {
+  id: string;
+  prof_id: string;
+  eleve_id: string;
+  mois: number;
+  annee: number;
+  statut: RecapStatut;
   created_at: string;
 }
 

@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Search, Plus, X, Clock, Euro, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Plus, X, Clock, Euro, ChevronRight, AlertCircle, Loader2, Copy } from "lucide-react";
 import { useEleves } from "../../lib/hooks/useEleves";
 import type { EleveRow } from "../../lib/hooks/useEleves";
+import { useAuth } from "../../lib/auth";
+import { LoadingGuard } from "./LoadingGuard";
 
 const TODAY = new Date();
 
@@ -56,7 +58,9 @@ function RegularityGraph({ heures }: { heures: number[] }) {
 }
 
 export function Eleves() {
-  const { eleves, loading, error, addEleve, updateNotes, updateStatut, updateTags } = useEleves();
+  const { profile } = useAuth();
+  const { eleves, loading, error, reload, addEleve, updateNotes, updateStatut, updateTags } = useEleves();
+  const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -106,19 +110,8 @@ export function Eleves() {
     if (eleve) await updateTags(id, eleve.tags.filter((t: string) => t !== tag));
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">{error}</div>;
-  }
-
   return (
+    <LoadingGuard loading={loading} error={error} onRetry={reload}>
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -127,7 +120,9 @@ export function Eleves() {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity"
+          disabled={!hasSiret}
+          title={!hasSiret ? "Renseignez votre SIRET pour débloquer cette action" : undefined}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" />
           Ajouter un élève
@@ -231,23 +226,11 @@ export function Eleves() {
                   <p className="text-muted-foreground mt-0.5" style={{ fontSize: 14 }}>
                     {selectedEleve.niveau} · {selectedEleve.matiere}
                   </p>
-                  <select
-                    value={selectedEleve.statut}
-                    onChange={(e) => updateStatut(selectedEleve.id, e.target.value as EleveRow["statut"])}
-                    className={`inline-flex mt-2 px-2.5 py-0.5 rounded-full text-sm border-none outline-none cursor-pointer ${statutColors[selectedEleve.statut]}`}
-                    style={{ fontSize: 13 }}
-                  >
-                    <option value="actif">actif</option>
-                    <option value="en attente">en attente</option>
-                    <option value="en pause">en pause</option>
-                    <option value="terminé">terminé</option>
-                  </select>
                 </div>
                 <button onClick={() => setSelectedId(null)} className="p-1.5 rounded-lg hover:bg-muted">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-secondary rounded-xl p-4">
                   <div className="flex items-center gap-1.5 text-muted-foreground mb-1" style={{ fontSize: 12 }}>
@@ -263,7 +246,7 @@ export function Eleves() {
                     <Euro className="w-3.5 h-3.5" /> Total payé
                   </div>
                   <p style={{ fontSize: 22, fontWeight: 600 }}>{selectedEleve.total_paye.toFixed(0)} €</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 12 }}>CI : {(selectedEleve.total_paye * 0.5).toFixed(0)} €</p>
+                  <p className="text-muted-foreground" style={{ fontSize: 12 }}>{selectedEleve.total_paye > 0 ? `${(selectedEleve.total_paye / (selectedEleve.total_heures || 1)).toFixed(0)} €/h moy.` : ""}</p>
                 </div>
               </div>
 
@@ -314,6 +297,46 @@ export function Eleves() {
                   style={{ fontSize: 13 }}
                 />
               </div>
+
+                  <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-primary font-semibold" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Code d'accès Parent
+                      </div>
+                      <div className="font-mono text-xl font-bold text-foreground mt-1 tracking-widest">
+                        {(selectedEleve as any).code_invitation || "NON GÉNÉRÉ"}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if ((selectedEleve as any).code_invitation) {
+                          navigator.clipboard.writeText((selectedEleve as any).code_invitation);
+                        }
+                      }}
+                      disabled={!(selectedEleve as any).code_invitation}
+                      className="p-2.5 bg-white border border-border rounded-lg shadow-sm hover:bg-muted transition-colors disabled:opacity-50"
+                      title="Copier le code"
+                    >
+                      <Copy className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const code = (selectedEleve as any).code_invitation;
+                      if (code) {
+                        const link = `${window.location.origin}/signup?role=parent&code=${code}`;
+                        navigator.clipboard.writeText(link);
+                      }
+                    }}
+                    disabled={!(selectedEleve as any).code_invitation}
+                    className="w-full flex items-center justify-center gap-2 bg-white border border-primary/30 text-primary text-sm font-medium py-2 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copier le lien d'inscription
+                  </button>
+                </div>
+
             </div>
           </div>
         </div>
@@ -370,19 +393,7 @@ export function Eleves() {
                     className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Statut</label>
-                  <select
-                    value={form.statut}
-                    onChange={(e) => setForm({ ...form, statut: e.target.value as EleveRow["statut"] })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                  >
-                    <option value="actif">Actif</option>
-                    <option value="en attente">En attente</option>
-                    <option value="en pause">En pause</option>
-                    <option value="terminé">Terminé</option>
-                  </select>
-                </div>
+
               </div>
             </div>
             {addError && (
@@ -405,5 +416,6 @@ export function Eleves() {
         </div>
       )}
     </div>
+    </LoadingGuard>
   );
 }

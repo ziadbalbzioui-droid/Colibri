@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, Euro, Users, BookOpen, Trophy, Flame, AlertCircle, Plus, CheckCircle2, X, Loader2 } from "lucide-react";
+import { Euro, Users, BookOpen, Trophy, Flame, AlertCircle, Plus, CheckCircle2, X, Loader2 } from "lucide-react";
+import { LoadingGuard } from "./LoadingGuard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useEleves } from "../../lib/hooks/useEleves";
 import { useCours } from "../../lib/hooks/useCours";
@@ -48,8 +49,10 @@ function SuccessState({ message, onClose }: { message: string; onClose: () => vo
 
 export function Dashboard() {
   const { profile } = useAuth();
-  const { eleves, addEleve } = useEleves();
-  const { cours, addCours } = useCours();
+  const { eleves, loading: elevesLoading, error: elevesError, reload: reloadEleves, addEleve } = useEleves();
+  const { cours, loading: coursLoading, error: coursError, reload: reloadCours, addCours } = useCours();
+  const dataLoading = elevesLoading || coursLoading;
+  const dataError = elevesError ?? coursError;
 
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [success, setSuccess] = useState(false);
@@ -131,7 +134,6 @@ export function Dashboard() {
 
   const urssaf = Math.round(brutThisMonth * URSSAF_RATE);
   const net = brutThisMonth - urssaf;
-  const creditImpot = Math.round(brutThisMonth * 0.5);
 
   // Monthly chart — last 6 months
   const monthlyData = useMemo(() => {
@@ -194,9 +196,11 @@ export function Dashboard() {
   ];
 
   const prenomAffiche = profile?.prenom ?? "Prof";
+  const hasSiret = !!profile?.siret;
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <LoadingGuard loading={dataLoading} error={dataError} onRetry={() => { reloadEleves(); reloadCours(); }}>
+    <div className={`max-w-6xl mx-auto ${!hasSiret ? "opacity-50 pointer-events-none select-none" : ""}`}>
       <div className="mb-6">
         <h1>Bonjour, {prenomAffiche} 👋</h1>
         <p className="text-muted-foreground mt-1">Vue d'ensemble de votre activité</p>
@@ -207,8 +211,10 @@ export function Dashboard() {
         {quickActions.map((action) => (
           <button
             key={action.key}
-            onClick={() => openModal(action.key)}
-            className="flex items-center gap-4 bg-white border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-sm transition-all text-left group"
+            onClick={() => hasSiret && openModal(action.key)}
+            disabled={!hasSiret}
+            title={!hasSiret ? "Renseignez votre SIRET pour débloquer cette action" : undefined}
+            className="flex items-center gap-4 bg-white border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-sm transition-all text-left group disabled: disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:shadow-none"
           >
             <div className={`w-11 h-11 rounded-xl ${action.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
               <action.icon className="w-5 h-5" />
@@ -238,8 +244,8 @@ export function Dashboard() {
         ))}
       </div>
 
-      {/* Revenue breakdown + Crédit d'impôt */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      {/* Revenue breakdown */}
+      <div className="mb-6">
         <div className="bg-white rounded-xl p-6 border border-border">
           <h3 className="mb-5">Décomposition des revenus</h3>
           {brutThisMonth === 0 ? (
@@ -273,26 +279,6 @@ export function Dashboard() {
               </div>
             </div>
           )}
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-border flex flex-col">
-          <h3 className="mb-2">Gain généré pour les familles</h3>
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
-              <TrendingUp className="w-7 h-7 text-green-600" />
-            </div>
-            <p style={{ fontSize: 36, fontWeight: 700 }} className="text-green-600">
-              {creditImpot.toLocaleString("fr-FR")} €
-            </p>
-            <p className="text-muted-foreground mt-1" style={{ fontSize: 13 }}>
-              économisés par vos élèves ce mois
-            </p>
-          </div>
-          <div className="mt-auto pt-4 border-t border-border">
-            <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-              Crédit d'impôt 50% (Art. 199 sexdecies) — coût réel pour les familles : <strong>{(brutThisMonth - creditImpot).toLocaleString("fr-FR")} €</strong>.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -482,5 +468,6 @@ export function Dashboard() {
         </ModalWrapper>
       )}
     </div>
+    </LoadingGuard>
   );
 }

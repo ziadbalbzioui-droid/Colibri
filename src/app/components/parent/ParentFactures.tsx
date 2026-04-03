@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, AlertCircle, X, CreditCard, Building2, Info, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, X, CreditCard, Building2, Loader2 } from "lucide-react";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { FactureRow } from "../../../lib/hooks/useFactures";
 
@@ -19,7 +19,6 @@ export function ParentFactures() {
   const enAttente = factures
     .filter((f) => f.statut === "en attente")
     .reduce((s, f) => s + f.montant_brut, 0);
-  const creditImpot = Math.round((totalAnnee + enAttente) * 0.5);
 
   async function handlePay() {
     if (!payModal) return;
@@ -51,25 +50,10 @@ export function ParentFactures() {
         <p className="text-muted-foreground text-sm mt-1">Suivez et payez les factures</p>
       </div>
 
-      {/* Crédit d'impôt callout */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 flex gap-4">
-        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-          <Info className="w-5 h-5 text-blue-600" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-blue-900 text-sm">Crédit d'impôt — Art. 199 sexdecies CGI</h3>
-          <p className="text-sm text-blue-700 mt-1">
-            Vous récupérez <strong>50% des sommes payées</strong> sous forme de crédit d'impôt.
-            Pour l'année en cours, votre crédit estimé est de <strong>{creditImpot}€</strong>.
-          </p>
-        </div>
-      </div>
-
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {[
           { label: "Total payé (année)", value: `${totalAnnee}€`, color: "text-green-600" },
-          { label: "Crédit d'impôt estimé", value: `${creditImpot}€`, color: "text-blue-600" },
           { label: "En attente", value: `${enAttente}€`, color: enAttente > 0 ? "text-amber-600" : "text-muted-foreground" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border border-border p-4 text-center">
@@ -104,7 +88,7 @@ export function ParentFactures() {
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">
                   <p className="text-sm font-semibold text-gray-900">{f.montant_brut}€</p>
-                  <p className="text-xs text-muted-foreground">→ {Math.round(f.montant_brut * 0.5)}€ après CI</p>
+                  <p className="text-xs text-muted-foreground">{f.lignes.reduce((s, l) => s + l.heures, 0)}h de cours</p>
                 </div>
                 <div className="shrink-0">
                   {f.statut === "en attente" ? (
@@ -161,10 +145,6 @@ export function ParentFactures() {
                   <div className="flex justify-between text-sm border-t border-border pt-2.5">
                     <span className="font-medium">Montant à payer</span>
                     <span className="font-bold text-xl">{payModal.montant_brut}€</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2">
-                    <span>Remboursement crédit d'impôt (50%)</span>
-                    <span className="font-semibold">+ {Math.round(payModal.montant_brut * 0.5)}€</span>
                   </div>
                 </div>
 

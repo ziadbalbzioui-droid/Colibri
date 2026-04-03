@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2 } from "lucide-react";
+import { Navigate } from "react-router";
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../lib/auth";
+import { LoadingGuard } from "./LoadingGuard";
 
 export function Profil() {
-  const { profile, updateProfile, loading } = useAuth();
+  const { user, profile, updateProfile, loading } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -61,13 +63,8 @@ export function Profil() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
+  if (loading) return <LoadingGuard loading>{null}</LoadingGuard>;
+  if (!user || !profile) return <Navigate to="/" replace />;
 
   const inputClass = "w-full px-4 py-2.5 bg-muted rounded-lg outline-none focus:ring-2 focus:ring-primary/20";
   const labelClass = "block mb-1.5 text-muted-foreground";

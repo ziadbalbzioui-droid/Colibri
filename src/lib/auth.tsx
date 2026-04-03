@@ -3,6 +3,8 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
+  useCallback,
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
@@ -25,7 +27,7 @@ interface AuthContextValue {
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ error: string | null; role: UserRole | null }>;
+  ) => Promise<{ error: string | null; role: UserRole | null; onboarding_complete: boolean | null }>;
   signInWithGoogle: (role: UserRole) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<{ error: string | null }>;
@@ -33,50 +35,108 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Pure module-level fetch — no closure drift, no re-creation on render */
+async function fetchProfileFromDB(uid: string): Promise<Profile | null> {
+  console.log(`[DEBUG - DB] 📡 Lancement de la requête Supabase pour l'UID: ${uid}...`);
+  const t0 = performance.now();
+  
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", uid)
+    .maybeSingle();
+    
+  const duration = Math.round(performance.now() - t0);
+  
+  return data ?? null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (uid: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", uid)
-      .maybeSingle();
-    setProfile(data ?? null);
-  };
+  const initialised = useRef(false);
+  const profileFetchedFor = useRef<string | null>(null);
+
+  const applySession = useCallback(async (
+    event: string,
+    session: Session | null,
+  ) => {
+    console.log(`\n[DEBUG - EVENT] 🔔 Supabase a déclenché l'événement : ${event}`);
+    console.log(`[DEBUG - STATE] 👤 Utilisateur présent dans la session ? ${!!session?.user}`);
+
+    setSession(session);
+
+    setUser((prev) => {
+      if (prev?.id === session?.user?.id && prev?.email === session?.user?.email) return prev;
+      return session?.user ?? null;
+    });
+
+    const shouldFetchProfile =
+      session?.user &&
+      (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+      profileFetchedFor.current !== session.user.id;
+      
+    console.log(`[DEBUG - LOGIC] 🤔 Doit-on fetcher le profil ? ${!!shouldFetchProfile}`);
+
+    if (shouldFetchProfile && session?.user) {
+      profileFetchedFor.current = session.user.id;
+      
+      try {
+        const p = await fetchProfileFromDB(session.user.id);
+        
+        
+        const pendingRole = localStorage.getItem("colibri_pending_role") as UserRole | null;
+        if (pendingRole && event === "SIGNED_IN") {
+          localStorage.removeItem("colibri_pending_role");
+          const { error: ue } = await (supabase as any)
+            .from("profiles")
+            .update({ role: pendingRole })
+            .eq("id", session.user.id);
+          if (ue) console.error("[auth] update role error:", ue.message);
+          setProfile(p ? { ...p, role: pendingRole } : null);
+        } else {
+          setProfile(p);
+        }
+      } finally {
+        if (!initialised.current) {
+          initialised.current = true;
+          setLoading(false);
+        }
+      }
+      return; 
+    } 
+    
+    if (!session) {
+      profileFetchedFor.current = null;
+      setProfile(null);
+    }
+
+    if (!initialised.current) {
+      initialised.current = true;
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id).finally(() => setLoading(false));
-      else setLoading(false);
-    }).catch(() => setLoading(false));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(applySession);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-          // Après OAuth Google : appliquer le rôle sélectionné avant la redirection
-          const pendingRole = localStorage.getItem("colibri_pending_role") as UserRole | null;
-          if (pendingRole && event === "SIGNED_IN") {
-            localStorage.removeItem("colibri_pending_role");
-            await supabase.from("profiles").update({ role: pendingRole }).eq("id", session.user.id);
-            setProfile((p) => (p ? { ...p, role: pendingRole } : null));
-          }
-        } else {
-          setProfile(null);
-        }
-      },
-    );
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session && !initialised.current) {
+        initialised.current = true;
+        setLoading(false);
+      }
+    }).catch((err) => {
+      if (!initialised.current) {
+        initialised.current = true;
+        setLoading(false);
+      }
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [applySession]);
 
   const signUp = async (
     email: string,
@@ -89,22 +149,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { role, prenom, nom, ...extra },
-      },
+      options: {emailRedirectTo: `${window.location.origin}/onboarding`, data: { role, prenom, nom, ...extra } },
     });
     if (error) return { error: error.message };
     return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) return { error: error.message, role: null };
-    const role = (data.user.user_metadata?.role as UserRole) ?? null;
-    return { error: null, role };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message, role: null, onboarding_complete: null };
+    profileFetchedFor.current = data.user.id; 
+    const p = await fetchProfileFromDB(data.user.id);
+    setProfile(p);
+    return {
+      error: null,
+      role: (p?.role as UserRole) ?? null,
+      onboarding_complete: p?.onboarding_complete ?? null,
+    };
   };
 
   const signInWithGoogle = async (role: UserRole) => {
@@ -118,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    profileFetchedFor.current = null;
     setUser(null);
     setProfile(null);
     setSession(null);
@@ -126,11 +188,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: "Non connecté" };
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("profiles")
       .update(updates)
       .eq("id", user.id);
-    if (error) return { error: error.message };
+    if (error) {
+      console.error("[updateProfile] error:", error.message, error);
+      return { error: error.message };
+    }
     setProfile((p) => (p ? { ...p, ...updates } : null));
     return { error: null };
   };
