@@ -63,7 +63,6 @@ export function Welcome() {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
-
     try {
       if (mode === "connexion") {
         const { error } = await signIn(email, password);
@@ -73,10 +72,10 @@ export function Welcome() {
           setErrorMsg("Les mots de passe ne correspondent pas.");
           return;
         }
-        const codeProf = codeFromUrl || sessionStorage.getItem("colibri_parent_code") || "";
-
+        console.log("Using code for parent sign-up:", codeFromUrl);
+                  
         const extra = role === "parent"
-          ? { prenom_enfant: prenomEnfant , code_invitation: codeProf }
+          ? { prenom_enfant: prenomEnfant , code_invitation: codeFromUrl}
           : { telephone, etablissement };
         const { error } = await signUp(email, password, role!, prenom, nom, extra);
         if (error) { setErrorMsg(error); return; }

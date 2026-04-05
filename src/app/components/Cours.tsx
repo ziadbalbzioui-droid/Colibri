@@ -11,6 +11,8 @@ import { LoadingGuard } from "./LoadingGuard";
 function StatusBadge({ statut }: { statut: RecapStatut }) {
   if (statut === "valide")
     return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Validé</span>;
+  if (statut === "en_attente_paiement")
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">En attente paiement</span>;
   if (statut === "en_attente_parent")
     return <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En attente parent</span>;
   return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">En cours</span>;
@@ -78,16 +80,10 @@ export function Cours() {
       if (c.statut !== "payé") map[key].allPaid = false;
     });
     return Object.entries(map).map(([mois, v]) => {
-      const eleveIds = [...new Set(v.coursList.map((c) => c.eleve_id).filter(Boolean) as string[])];
-      const monthRecaps = eleveIds.map((id) =>
-        recaps.find((r) => r.eleve_id === id && r.mois === v.moisNum && r.annee === v.anneeNum)
-      );
-      let recapStatut: RecapStatut = "en_cours";
-      if (eleveIds.length > 0 && monthRecaps.every((r) => r)) {
-        if (monthRecaps.every((r) => r!.statut === "valide")) recapStatut = "valide";
-        else if (monthRecaps.every((r) => r!.statut === "valide" || r!.statut === "en_attente_parent")) recapStatut = "en_attente_parent";
-      }
-      return { mois, ...v, recapStatut };
+      // Un seul recap par mois désormais
+      const recap = recaps.find((r) => r.mois === v.moisNum && r.annee === v.anneeNum);
+      const recapStatut: RecapStatut = recap?.statut ?? "en_cours";
+      return { mois, ...v, recapStatut, recapId: recap?.id ?? null };
     }).slice(0, 3);
   }, [cours, recaps]);
 
@@ -164,17 +160,13 @@ export function Cours() {
     if (!recapModal) return;
     setValidating(true);
     try {
-      const byEleve: Record<string, CoursRow[]> = {};
+      const coursParEleve: Record<string, string[]> = {};
       recapModal.coursList.forEach((c) => {
         if (!c.eleve_id) return;
-        if (!byEleve[c.eleve_id]) byEleve[c.eleve_id] = [];
-        byEleve[c.eleve_id].push(c);
+        if (!coursParEleve[c.eleve_id]) coursParEleve[c.eleve_id] = [];
+        coursParEleve[c.eleve_id].push(c.id);
       });
-      await Promise.all(
-        Object.entries(byEleve).map(([eleveId, items]) =>
-          validerMois(eleveId, recapModal.moisNum, recapModal.anneeNum, items.map((c) => c.id))
-        )
-      );
+      await validerMois(recapModal.moisNum, recapModal.anneeNum, coursParEleve);
       setRecapModal(null);
     } finally {
       setValidating(false);
@@ -183,28 +175,22 @@ export function Cours() {
 
   const selectedCoursItems = selectedDay ? (coursByDate[selectedDay] ?? []) : [];
 
-  // Lookup recap par eleve+mois pour les badges
-  const recapMap = useMemo(() => {
-    const map: Record<string, typeof recaps[0]> = {};
-    recaps.forEach((r) => {
-      map[`${r.eleve_id}-${r.annee}-${String(r.mois).padStart(2, "0")}`] = r;
-    });
-    return map;
-  }, [recaps]);
+  // Cours du mois sélectionné (pour l'expand des cartes)
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null); // "YYYY-MM"
 
-  // Groupement par Élève > Mois
-  const groupedCours = useMemo(() => {
-    const byEleve: Record<string, { nom: string; id: string | null; moisMap: Record<string, CoursRow[]> }> = {};
-    cours.forEach((c) => {
-      const key = c.eleve_id ?? c.eleve_nom;
-      if (!byEleve[key]) byEleve[key] = { nom: c.eleve_nom, id: c.eleve_id, moisMap: {} };
-      const [y, m] = c.date.split("-");
-      const moisKey = `${y}-${m.padStart(2, "0")}`;
-      if (!byEleve[key].moisMap[moisKey]) byEleve[key].moisMap[moisKey] = [];
-      byEleve[key].moisMap[moisKey].push(c);
+  const expandedCours = useMemo(() => {
+    if (!expandedMonth) return [];
+    return cours.filter((c) => c.date.startsWith(expandedMonth));
+  }, [cours, expandedMonth]);
+
+  const expandedByEleve = useMemo(() => {
+    const map: Record<string, CoursRow[]> = {};
+    expandedCours.forEach((c) => {
+      if (!map[c.eleve_nom]) map[c.eleve_nom] = [];
+      map[c.eleve_nom].push(c);
     });
-    return Object.values(byEleve);
-  }, [cours]);
+    return Object.entries(map);
+  }, [expandedCours]);
 
   // Le boolean qui détermine si le formulaire est valide
   const isFormValid = form.eleve_id !== "" && form.matiere.trim() !== "" && form.date !== "";
@@ -232,29 +218,39 @@ export function Cours() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         {monthlySummary.length === 0 ? (
           <div className="col-span-3 text-center text-muted-foreground py-6">Aucun cours enregistré</div>
-        ) : monthlySummary.map((m) => (
-          <div key={m.mois} className="bg-white rounded-xl p-5 border border-border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-muted-foreground" style={{ fontSize: 14 }}>{m.mois}</span>
-              <StatusBadge statut={m.recapStatut} />
-            </div>
-            <p className="text-2xl" style={{ fontWeight: 600 }}>{m.total.toLocaleString("fr-FR")} €</p>
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-4 text-muted-foreground" style={{ fontSize: 13 }}>
-                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{m.nbCours} cours</span>
-                <span className="flex items-center gap-1"><Euro className="w-3.5 h-3.5" />{(m.total / 2).toLocaleString("fr-FR")} € crédit</span>
+        ) : monthlySummary.map((m) => {
+          const moisKey = `${m.anneeNum}-${String(m.moisNum).padStart(2, "0")}`;
+          const isExpanded = expandedMonth === moisKey;
+          return (
+            <div
+              key={m.mois}
+              onClick={() => setExpandedMonth(isExpanded ? null : moisKey)}
+              className={`rounded-xl p-5 border cursor-pointer transition-colors ${
+                isExpanded ? "bg-primary/5 border-primary/30" : "bg-white border-border hover:bg-muted/30"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-muted-foreground" style={{ fontSize: 14 }}>{m.mois}</span>
+                <StatusBadge statut={m.recapStatut} />
               </div>
-              {m.recapStatut === "en_cours" && (
-                <button
-                  onClick={() => setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList })}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors shrink-0"
-                >
-                  Finir le mois
-                </button>
-              )}
+              <p className="text-2xl" style={{ fontWeight: 600 }}>{m.total.toLocaleString("fr-FR")} €</p>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-4 text-muted-foreground" style={{ fontSize: 13 }}>
+                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{m.nbCours} cours</span>
+                  <span className="flex items-center gap-1"><Euro className="w-3.5 h-3.5" />{(m.total / 2).toLocaleString("fr-FR")} € crédit</span>
+                </div>
+                {m.recapStatut === "en_cours" && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList }); }}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors shrink-0"
+                  >
+                    Finir le mois
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Calendar */}
@@ -338,56 +334,37 @@ export function Cours() {
         )}
       </div>
 
-      {/* Courses list — groupé par Élève > Mois */}
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-5 border-b border-border">
-          <h3>Tous les cours</h3>
-        </div>
-        {cours.length === 0 ? (
-          <p className="px-6 py-12 text-center text-muted-foreground">Aucun cours enregistré</p>
-        ) : groupedCours.map((eleve) => (
-          <div key={eleve.id ?? eleve.nom}>
-            {/* En-tête élève */}
-            <div className="px-6 py-3 bg-muted/50 border-b border-border">
-              <span style={{ fontWeight: 600 }}>{eleve.nom}</span>
-            </div>
-            {Object.entries(eleve.moisMap)
-              .sort(([a], [b]) => b.localeCompare(a))
-              .map(([moisKey, items]) => {
-                const [anneeStr, moisStr] = moisKey.split("-");
-                const recap = eleve.id ? recapMap[`${eleve.id}-${anneeStr}-${moisStr}`] : undefined;
-                const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
-                const totalM = items.reduce((s, c) => s + c.montant, 0);
-                return (
-                  <div key={moisKey}>
-                    {/* En-tête mois */}
-                    <div className="px-6 py-2.5 border-b border-border flex items-center justify-between">
-                      <span className="text-muted-foreground" style={{ fontSize: 13 }}>
-                        {MOIS[Number(moisStr) - 1]} {anneeStr}
-                        <span className="ml-3">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</span>
-                      </span>
-                      <StatusBadge statut={recap?.statut ?? "en_cours"} />
-                    </div>
-                    {/* Lignes cours */}
-                    <table className="w-full">
-                      <tbody>
-                        {items.map((c: CoursRow) => (
-                          <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                            <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.eleve_nom}</td>
-                            <td className="px-6 py-4 text-muted-foreground">{c.matiere}</td>
-                            <td className="px-6 py-4 text-muted-foreground">{formatDate(c.date)}</td>
-                            <td className="px-6 py-4 text-muted-foreground">{c.duree}</td>
-                            <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.montant} €</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
+      {/* Cours du mois sélectionné */}
+      {expandedMonth && (
+        <div className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="p-5 border-b border-border">
+            <h3>{MOIS[Number(expandedMonth.split("-")[1]) - 1]} {expandedMonth.split("-")[0]}</h3>
           </div>
-        ))}
-      </div>
+          {expandedCours.length === 0 ? (
+            <p className="px-6 py-10 text-center text-muted-foreground">Aucun cours ce mois-ci</p>
+          ) : (
+            expandedByEleve.map(([nom, items]) => (
+              <div key={nom}>
+                <div className="px-6 py-2.5 bg-muted/50 border-b border-border">
+                  <span style={{ fontWeight: 600 }}>{nom}</span>
+                </div>
+                <table className="w-full">
+                  <tbody>
+                    {items.map((c: CoursRow) => (
+                      <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="px-6 py-4 text-muted-foreground">{formatDate(c.date)}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{c.matiere}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{c.duree}</td>
+                        <td className="px-6 py-4" style={{ fontWeight: 500 }}>{c.montant} €</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Recap modal */}
       {recapModal && (

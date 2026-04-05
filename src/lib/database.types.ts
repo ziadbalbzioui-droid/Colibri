@@ -2,7 +2,7 @@ export type UserRole = "prof" | "parent";
 export type EleveStatut = "actif" | "en attente" | "en pause" | "terminé";
 export type CoursStatut = "payé" | "en attente" | "planifié";
 export type FactureStatut = "payée" | "en attente";
-export type RecapStatut = "en_cours" | "en_attente_parent" | "valide";
+export type RecapStatut = "en_cours" | "en_attente_parent" | "en_attente_paiement" | "valide";
 
 export interface Database {
   public: {
@@ -136,10 +136,17 @@ export interface Cours {
 export interface RecapMensuel {
   id: string;
   prof_id: string;
-  eleve_id: string;
   mois: number;
   annee: number;
   statut: RecapStatut;
+  created_at: string;
+}
+
+export interface RecapEleveValidation {
+  id: string;
+  recap_id: string;
+  eleve_id: string;
+  statut: "en_attente_parent" | "valide";
   created_at: string;
 }
 

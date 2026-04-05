@@ -1,6 +1,5 @@
 -- ============================================================
--- COLIBRI — Supabase Schema (idempotent — safe to re-run)
--- Run this in the Supabase SQL Editor (Dashboard > SQL Editor)
+-- COLIBRI — Supabase Schema (Fusion V2 + Onboarding Parent)
 -- ============================================================
 
 -- ─── Extensions ──────────────────────────────────────────────
@@ -86,7 +85,9 @@ create table if not exists public.eleves (
               check (statut in ('actif', 'en attente', 'en pause', 'terminé')),
   solde       numeric(10,2) not null default 0,
   notes       text not null default '',
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  -- AJOUT DE LA COLONNE CODE INVITATION
+  code_invitation text unique default upper(substring(md5(random()::text) from 1 for 8))
 );
 
 create table if not exists public.eleve_tags (
@@ -96,11 +97,25 @@ create table if not exists public.eleve_tags (
   unique (eleve_id, tag)
 );
 
+-- ─── RECAP MENSUEL (v2) ──────────────────────────────────────
+-- Création anticipée pour que la table cours puisse y faire référence
+create table if not exists public.recap_mensuel (
+  id         uuid primary key default uuid_generate_v4(),
+  prof_id    uuid not null references public.profiles(id) on delete cascade,
+  mois       int not null check (mois between 1 and 12),
+  annee      int not null,
+  statut     text not null default 'en_cours'
+             check (statut in ('en_cours', 'en_attente_parent', 'en_attente_paiement', 'valide')),
+  created_at timestamptz not null default now(),
+  unique (prof_id, mois, annee)
+);
+
 -- ─── COURS ───────────────────────────────────────────────────
 create table if not exists public.cours (
   id            uuid primary key default uuid_generate_v4(),
   prof_id       uuid not null references public.profiles(id) on delete cascade,
   eleve_id      uuid references public.eleves(id) on delete set null,
+  recap_id      uuid references public.recap_mensuel(id) on delete set null,
   eleve_nom     text not null,
   matiere       text not null,
   date          date not null,
@@ -112,10 +127,22 @@ create table if not exists public.cours (
   created_at    timestamptz not null default now()
 );
 
+-- Suivi de validation par élève (lié au recap_mensuel)
+create table if not exists public.recap_eleve_validation (
+  id         uuid primary key default uuid_generate_v4(),
+  recap_id   uuid not null references public.recap_mensuel(id) on delete cascade,
+  eleve_id   uuid not null references public.eleves(id) on delete cascade,
+  statut     text not null default 'en_attente_parent'
+             check (statut in ('en_attente_parent', 'valide')),
+  created_at timestamptz not null default now(),
+  unique (recap_id, eleve_id)
+);
+
 -- ─── FACTURES ────────────────────────────────────────────────
 create table if not exists public.factures (
   id            uuid primary key default uuid_generate_v4(),
   prof_id       uuid not null references public.profiles(id) on delete cascade,
+  parent_id     uuid references public.profiles(id) on delete set null,
   mois          text not null,
   date_emission date not null default current_date,
   statut        text not null default 'en attente'
@@ -161,169 +188,283 @@ create table if not exists public.parent_eleve (
   unique (parent_id, eleve_id)
 );
 
+-- ─── HELPER FUNCTIONS : Éviter la récursion RLS ─────────────
+-- security definer = s'exécute avec les droits du propriétaire,
+-- donc bypass le RLS des tables interrogées → pas de récursion.
+
+-- Utilisée par : recap_mensuel: parent read
+create or replace function public.parent_peut_lire_recap(p_recap_id uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1
+    from public.recap_eleve_validation rev
+    join public.parent_eleve pe on pe.eleve_id = rev.eleve_id
+    where rev.recap_id = p_recap_id
+      and pe.parent_id = auth.uid()
+  );
+$$;
+
+-- Utilisée par : recap_eleve_validation: prof crud
+-- Vérifie que le recap appartient au prof SANS lire recap_mensuel via RLS.
+create or replace function public.prof_owns_recap(p_recap_id uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1 from public.recap_mensuel
+    where id = p_recap_id and prof_id = auth.uid()
+  );
+$$;
+
+create or replace function public.parent_peut_lire_eleve(p_eleve_id uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1 from public.parent_eleve
+    where eleve_id = p_eleve_id and parent_id = auth.uid()
+  );
+$$;
+
+create or replace function public.prof_peut_lire_parent_eleve(p_eleve_id uuid)
+returns boolean
+language sql
+security definer
+stable
+as $$
+  select exists (
+    select 1 from public.eleves
+    where id = p_eleve_id and prof_id = auth.uid()
+  );
+$$;
+
 -- ─── ROW LEVEL SECURITY ──────────────────────────────────────
-alter table public.profiles       enable row level security;
-alter table public.eleves         enable row level security;
-alter table public.eleve_tags     enable row level security;
-alter table public.cours          enable row level security;
-alter table public.factures       enable row level security;
-alter table public.lignes_facture enable row level security;
-alter table public.paps_annonces  enable row level security;
-alter table public.parent_eleve   enable row level security;
+alter table public.profiles               enable row level security;
+alter table public.eleves                 enable row level security;
+alter table public.eleve_tags             enable row level security;
+alter table public.cours                  enable row level security;
+alter table public.factures               enable row level security;
+alter table public.lignes_facture         enable row level security;
+alter table public.paps_annonces          enable row level security;
+alter table public.parent_eleve           enable row level security;
+alter table public.recap_mensuel          enable row level security;
+alter table public.recap_eleve_validation enable row level security;
 
--- Drop existing policies before recreating (idempotent)
+-- Nettoyage des anciennes policies
 do $$ begin
-
-  -- profiles
   drop policy if exists "profiles: read own"   on public.profiles;
+  drop policy if exists "profiles: parent read prof" on public.profiles;
   drop policy if exists "profiles: update own" on public.profiles;
-
-  -- eleves
   drop policy if exists "eleves: prof crud"   on public.eleves;
   drop policy if exists "eleves: parent read" on public.eleves;
-
-  -- eleve_tags
   drop policy if exists "eleve_tags: prof crud" on public.eleve_tags;
-
-  -- cours
   drop policy if exists "cours: prof crud"   on public.cours;
   drop policy if exists "cours: parent read" on public.cours;
-
-  -- factures
   drop policy if exists "factures: prof crud" on public.factures;
-
-  -- lignes_facture
   drop policy if exists "lignes_facture: prof crud" on public.lignes_facture;
-
-  -- paps_annonces
   drop policy if exists "paps: read all active" on public.paps_annonces;
   drop policy if exists "paps: prof crud"       on public.paps_annonces;
   drop policy if exists "paps: prof update"     on public.paps_annonces;
   drop policy if exists "paps: prof delete"     on public.paps_annonces;
-
-  -- parent_eleve
   drop policy if exists "parent_eleve: parent read" on public.parent_eleve;
-
+  drop policy if exists "parent_eleve: prof read" on public.parent_eleve;
+  drop policy if exists "recap_mensuel: prof crud" on public.recap_mensuel;
+  drop policy if exists "recap_mensuel: parent read" on public.recap_mensuel;
+  drop policy if exists "recap_mensuel: parent paiement" on public.recap_mensuel;
+  drop policy if exists "recap_eleve_validation: prof crud" on public.recap_eleve_validation;
+  drop policy if exists "recap_eleve_validation: parent read" on public.recap_eleve_validation;
+  drop policy if exists "recap_eleve_validation: parent update" on public.recap_eleve_validation;
 end $$;
 
--- Profiles: own row only
+-- Profiles
 create policy "profiles: read own"   on public.profiles for select using (auth.uid() = id);
-create policy "profiles: update own" on public.profiles for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
-
--- Eleves: prof owns their students; parent can read linked students
-create policy "eleves: prof crud" on public.eleves for all
-  using (auth.uid() = prof_id)
-  with check (auth.uid() = prof_id);
-
-create policy "eleves: parent read" on public.eleves for select
-  using (
-    exists (
-      select 1 from public.parent_eleve pe
-      where pe.eleve_id = eleves.id and pe.parent_id = auth.uid()
-    )
-  );
-
--- Eleve tags: follow eleve access
-create policy "eleve_tags: prof crud" on public.eleve_tags for all
-  using (
-    exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
+-- Permet au parent de lire le profil du prof de ses enfants (pour afficher le nom du prof)
+create policy "profiles: parent read prof" on public.profiles for select using (
+  exists (
+    select 1
+    from public.eleves e
+    join public.parent_eleve pe on pe.eleve_id = e.id
+    where e.prof_id = profiles.id
+      and pe.parent_id = auth.uid()
   )
-  with check (
-    exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
-  );
+);
+create policy "profiles: update own" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 
--- Cours: prof owns; parent can read linked student's cours
-create policy "cours: prof crud" on public.cours for all
-  using (auth.uid() = prof_id)
-  with check (auth.uid() = prof_id);
+-- Eleves
+create policy "eleves: prof crud" on public.eleves for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
+create policy "eleves: parent read" on public.eleves for select using (
+  public.parent_peut_lire_eleve(id)
+);
 
-create policy "cours: parent read" on public.cours for select
-  using (
-    exists (
-      select 1 from public.parent_eleve pe
-      where pe.eleve_id = cours.eleve_id and pe.parent_id = auth.uid()
-    )
-  );
+-- Eleve_tags
+create policy "eleve_tags: prof crud" on public.eleve_tags for all using (
+  exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
+) with check (
+  exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
+);
 
--- Factures: prof owns
-create policy "factures: prof crud" on public.factures for all
-  using (auth.uid() = prof_id)
-  with check (auth.uid() = prof_id);
+-- Cours
+create policy "cours: prof crud" on public.cours for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
+create policy "cours: parent read" on public.cours for select using (
+  exists (select 1 from public.parent_eleve pe where pe.eleve_id = cours.eleve_id and pe.parent_id = auth.uid())
+);
 
--- Lignes facture: follow facture access
-create policy "lignes_facture: prof crud" on public.lignes_facture for all
-  using (
-    exists (select 1 from public.factures f where f.id = lignes_facture.facture_id and f.prof_id = auth.uid())
+-- Factures
+create policy "factures: prof crud" on public.factures for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
+
+-- Lignes facture
+create policy "lignes_facture: prof crud" on public.lignes_facture for all using (
+  exists (select 1 from public.factures f where f.id = lignes_facture.facture_id and f.prof_id = auth.uid())
+) with check (
+  exists (select 1 from public.factures f where f.id = lignes_facture.facture_id and f.prof_id = auth.uid())
+);
+
+-- PAPS
+create policy "paps: read all active" on public.paps_annonces for select using (active = true or auth.uid() = prof_id);
+create policy "paps: prof crud" on public.paps_annonces for insert with check (auth.uid() = prof_id);
+create policy "paps: prof update" on public.paps_annonces for update using (auth.uid() = prof_id);
+create policy "paps: prof delete" on public.paps_annonces for delete using (auth.uid() = prof_id);
+
+-- Parent-eleve
+create policy "parent_eleve: parent read" on public.parent_eleve for select using (auth.uid() = parent_id);
+create policy "parent_eleve: prof read" on public.parent_eleve for select using (
+  public.prof_peut_lire_parent_eleve(eleve_id)
+);
+
+-- Recap Mensuel (V2)
+create policy "recap_mensuel: prof crud" on public.recap_mensuel for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
+-- IMPORTANT: On utilise une fonction security definer pour éviter la récursion infinie.
+-- Sans ça : parent lit recap_eleve_validation → embed recap_mensuel → RLS recap_mensuel
+-- interroge recap_eleve_validation → RLS recap_eleve_validation s'évalue → boucle infinie.
+create policy "recap_mensuel: parent read" on public.recap_mensuel for select using (
+  public.parent_peut_lire_recap(id)
+);
+-- La transition recap_mensuel → 'en_attente_paiement' est désormais gérée
+-- automatiquement par le trigger check_all_parents_validated (voir ci-dessous).
+-- Le parent n'a plus besoin de policy UPDATE sur recap_mensuel.
+
+-- Recap Eleve Validation
+-- On utilise prof_owns_recap() (security definer) pour éviter la récursion :
+-- sans ça, cette policy FOR ALL lit recap_mensuel → déclenche recap_mensuel RLS
+-- → qui lit recap_eleve_validation → boucle infinie.
+create policy "recap_eleve_validation: prof crud" on public.recap_eleve_validation for all using (
+  public.prof_owns_recap(recap_id)
+) with check (
+  public.prof_owns_recap(recap_id)
+);
+create policy "recap_eleve_validation: parent read" on public.recap_eleve_validation for select using (
+  exists (
+    select 1 from public.parent_eleve pe
+    where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
   )
-  with check (
-    exists (select 1 from public.factures f where f.id = lignes_facture.facture_id and f.prof_id = auth.uid())
-  );
+);
+create policy "recap_eleve_validation: parent update" on public.recap_eleve_validation for update using (
+  statut = 'en_attente_parent' and
+  exists (
+    select 1 from public.parent_eleve pe
+    where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
+  )
+) with check (
+  statut = 'valide' and
+  exists (
+    select 1 from public.parent_eleve pe
+    where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
+  )
+);
 
--- PAPS: everyone logged-in can read active annonces; only owner can write
-create policy "paps: read all active" on public.paps_annonces for select
-  using (active = true or auth.uid() = prof_id);
 
-create policy "paps: prof crud" on public.paps_annonces for insert
-  with check (auth.uid() = prof_id);
-
-create policy "paps: prof update" on public.paps_annonces for update
-  using (auth.uid() = prof_id);
-
-create policy "paps: prof delete" on public.paps_annonces for delete
-  using (auth.uid() = prof_id);
-
--- Parent-eleve link: parent can read own links
-create policy "parent_eleve: parent read" on public.parent_eleve for select
-  using (auth.uid() = parent_id);
-
--- ─── INDEXES ─────────────────────────────────────────────────
--- (colonnes onboarding déjà dans CREATE TABLE ci-dessus)
 
 -- ─── INDEXES ─────────────────────────────────────────────────
 create index if not exists idx_eleves_prof_id         on public.eleves         (prof_id);
-create index if not exists idx_cours_prof_date         on public.cours          (prof_id, date desc);
-create index if not exists idx_cours_eleve_id          on public.cours          (eleve_id);
-create index if not exists idx_factures_prof_id        on public.factures       (prof_id);
-create index if not exists idx_lignes_facture_id       on public.lignes_facture (facture_id);
-create index if not exists idx_paps_active_created     on public.paps_annonces  (active, created_at desc);
-create index if not exists idx_parent_eleve_parent_id  on public.parent_eleve   (parent_id);
-create index if not exists idx_parent_eleve_eleve_id   on public.parent_eleve   (eleve_id);
+create index if not exists idx_cours_prof_date        on public.cours          (prof_id, date desc);
+create index if not exists idx_cours_eleve_id         on public.cours          (eleve_id);
+create index if not exists idx_factures_prof_id       on public.factures       (prof_id);
+create index if not exists idx_lignes_facture_id      on public.lignes_facture (facture_id);
+create index if not exists idx_paps_active_created    on public.paps_annonces  (active, created_at desc);
+create index if not exists idx_parent_eleve_parent_id on public.parent_eleve   (parent_id);
+create index if not exists idx_parent_eleve_eleve_id  on public.parent_eleve   (eleve_id);
+create index if not exists idx_recap_mensuel_prof     on public.recap_mensuel  (prof_id);
+create index if not exists idx_recap_validation_recap on public.recap_eleve_validation (recap_id);
+create index if not exists idx_recap_validation_eleve on public.recap_eleve_validation (eleve_id);
 
--- ─── RECAP MENSUEL ───────────────────────────────────────────
-create table if not exists public.recap_mensuel (
-  id         uuid primary key default uuid_generate_v4(),
-  prof_id    uuid not null references public.profiles(id) on delete cascade,
-  eleve_id   uuid not null references public.eleves(id) on delete cascade,
-  mois       int not null check (mois between 1 and 12),
-  annee      int not null,
-  statut     text not null default 'en_cours'
-             check (statut in ('en_cours', 'en_attente_parent', 'valide')),
-  created_at timestamptz not null default now(),
-  unique (prof_id, eleve_id, mois, annee)
-);
+-- ─── FONCTION RPC : Lier Parent-Élève ────────────────────────
+create or replace function public.lier_parent_eleve(code_secret text)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  v_eleve_id uuid;
+  v_parent_id uuid;
+begin
+  -- Vérification de la session
+  v_parent_id := auth.uid();
+  if v_parent_id is null then
+    raise exception 'Non autorisé : Utilisateur non connecté.';
+  end if;
 
-alter table public.cours add column if not exists recap_id uuid references public.recap_mensuel(id) on delete set null;
+  -- Recherche de l'élève via le code
+  select id into v_eleve_id from public.eleves where code_invitation = code_secret;
+  
+  if v_eleve_id is null then
+    raise exception 'Code d''invitation invalide ou introuvable.';
+  end if;
 
-alter table public.recap_mensuel enable row level security;
+  -- Création du lien
+  insert into public.parent_eleve (parent_id, eleve_id)
+  values (v_parent_id, v_eleve_id)
+  on conflict (parent_id, eleve_id) do nothing;
 
-do $$ begin
-  drop policy if exists "recap_mensuel: prof crud"    on public.recap_mensuel;
-  drop policy if exists "recap_mensuel: parent read"  on public.recap_mensuel;
-end $$;
+  return true;
+end;
+$$;
 
-create policy "recap_mensuel: prof crud" on public.recap_mensuel for all
-  using (auth.uid() = prof_id)
-  with check (auth.uid() = prof_id);
+-- ─── TRIGGER : Validation automatique du recap_mensuel ──────
+-- Quand tous les élèves d'un recap passent à 'valide',
+-- le recap_mensuel bascule automatiquement à 'en_attente_paiement'.
 
-create policy "recap_mensuel: parent read" on public.recap_mensuel for select
-  using (
-    exists (
-      select 1 from public.parent_eleve pe
-      where pe.eleve_id = recap_mensuel.eleve_id and pe.parent_id = auth.uid()
-    )
-  );
+create or replace function public.check_all_parents_validated()
+returns trigger as $$
+begin
+  -- On ne réagit que si la ligne vient de passer à 'valide'
+  if NEW.statut = 'valide' then
+    -- Vérifie s'il reste des lignes 'en_attente_parent' pour ce recap
+    if not exists (
+      select 1
+      from public.recap_eleve_validation
+      where recap_id = NEW.recap_id
+        and statut = 'en_attente_parent'
+    ) then
+      -- Tous les parents ont validé → on fait avancer le recap
+      update public.recap_mensuel
+      set statut = 'en_attente_paiement'
+      where id = NEW.recap_id
+        and statut = 'en_attente_parent';
+    end if;
+  end if;
 
-create index if not exists idx_recap_mensuel_prof  on public.recap_mensuel (prof_id);
-create index if not exists idx_recap_mensuel_eleve on public.recap_mensuel (eleve_id);
+  return NEW;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists trg_check_all_parents_validated on public.recap_eleve_validation;
+create trigger trg_check_all_parents_validated
+  after update on public.recap_eleve_validation
+  for each row
+  execute function public.check_all_parents_validated();
+
+-- ─── POLICY : Permettre aux parents d'ajouter un nouveau lien ──
+drop policy if exists "parent_eleve: parent insert" on public.parent_eleve;
+create policy "parent_eleve: parent insert" on public.parent_eleve for insert
+  with check (auth.uid() = parent_id);
+
+-- LE COUP DE PIED AU CACHE : On force l'API à relire la base de données
+NOTIFY pgrst, 'reload schema';

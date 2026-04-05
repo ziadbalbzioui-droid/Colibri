@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
-import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, Baby } from "lucide-react";
+import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, Baby, KeyRound, Plus, AlertCircle } from "lucide-react";
 import { useAuth } from "../../../lib/auth";
+import { useParentData } from "../../../lib/hooks/useParentData";
 
 export function ParentProfil() {
   const { profile, updateProfile } = useAuth();
+  const { children, ajouterCode } = useParentData();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [newCode, setNewCode] = useState("");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeSuccess, setCodeSuccess] = useState(false);
 
   const [form, setForm] = useState({
     prenom: "",
@@ -128,6 +134,84 @@ export function ParentProfil() {
             placeholder="Thomas"
             className={inputClass}
           />
+        </div>
+      </div>
+
+      {/* Professeurs liés */}
+      <div className="bg-white rounded-xl border border-border p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <KeyRound className="w-4 h-4 text-primary" />
+          <h3 className="font-semibold text-gray-900">Professeurs & matières</h3>
+        </div>
+
+        {children.length > 0 && (
+          <div className="space-y-2 mb-5">
+            {children.map((c) => (
+              <div key={c.id} className="flex items-center justify-between px-4 py-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{c.nom}</p>
+                  <p className="text-xs text-muted-foreground">{c.matiere} · {c.niveau}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">{c.prof_nom}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label className={labelClass}>Ajouter un nouveau professeur</label>
+          <p className="text-xs text-muted-foreground mb-3">
+            Saisissez le code d'invitation communiqué par le professeur pour lier une nouvelle matière.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newCode}
+              onChange={(e) => {
+                setNewCode(e.target.value.replace(/\s/g, "").toUpperCase());
+                setCodeError(null);
+                setCodeSuccess(false);
+              }}
+              placeholder="CODE PROF"
+              maxLength={20}
+              className="flex-1 px-4 py-2.5 bg-muted rounded-lg outline-none focus:ring-2 focus:ring-primary/20 text-sm font-mono tracking-widest uppercase text-center"
+            />
+            <button
+              onClick={async () => {
+                if (!newCode.trim()) return;
+                setCodeLoading(true);
+                setCodeError(null);
+                setCodeSuccess(false);
+                try {
+                  await ajouterCode(newCode);
+                  setNewCode("");
+                  setCodeSuccess(true);
+                  setTimeout(() => setCodeSuccess(false), 3000);
+                } catch (err) {
+                  setCodeError(err instanceof Error ? err.message : "Erreur");
+                } finally {
+                  setCodeLoading(false);
+                }
+              }}
+              disabled={!newCode.trim() || codeLoading}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 text-sm font-medium transition-colors"
+            >
+              {codeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Ajouter
+            </button>
+          </div>
+          {codeError && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {codeError}
+            </div>
+          )}
+          {codeSuccess && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              Professeur ajouté avec succès !
+            </div>
+          )}
         </div>
       </div>
 

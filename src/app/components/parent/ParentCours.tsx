@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { BookOpen, Clock, CheckCircle, CalendarDays, Loader2, AlertCircle } from "lucide-react";
+import { Link } from "react-router";
+import { BookOpen, Clock, CheckCircle, CalendarDays, Loader2, AlertCircle, X, FileText } from "lucide-react";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { CoursRow } from "../../../lib/hooks/useCours";
+import type { ValidationWithRecap } from "../../../lib/hooks/useParentData";
 
 const matiereStyle: Record<string, string> = {
   "Mathématiques": "bg-blue-50 text-blue-700 border-blue-100",
@@ -27,8 +29,43 @@ function formatDate(d: string) {
 }
 
 export function ParentCours() {
-  const { cours, loading } = useParentData();
+  const { cours, validations, validerRecap, loading } = useParentData();
   const [filter, setFilter] = useState<Filter>("tous");
+  const [recapModal, setRecapModal] = useState<ValidationWithRecap | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [validError, setValidError] = useState<string | null>(null);
+  const [validated, setValidated] = useState(false);
+
+  const pending = validations.filter((v) => v.statut === "en_attente_parent");
+
+  function moisLabel(v: ValidationWithRecap) {
+    return `${MOIS[v.recap_mensuel.mois - 1]} ${v.recap_mensuel.annee}`;
+  }
+
+  function coursDuRecap(v: ValidationWithRecap) {
+    const prefix = `${v.recap_mensuel.annee}-${String(v.recap_mensuel.mois).padStart(2, "0")}`;
+    return cours.filter((c) => c.eleve_id === v.eleve_id && c.date.startsWith(prefix));
+  }
+
+  async function handleValider() {
+    if (!recapModal) return;
+    setValidating(true);
+    setValidError(null);
+    try {
+      await validerRecap(recapModal.id, recapModal.recap_id);
+      setValidated(true);
+    } catch (err) {
+      setValidError(err instanceof Error ? err.message : "Une erreur est survenue");
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  function closeModal() {
+    setRecapModal(null);
+    setValidated(false);
+    setValidError(null);
+  }
 
   if (loading) {
     return (
@@ -57,6 +94,34 @@ export function ParentCours() {
         <h1 className="text-2xl font-bold text-gray-900">Cours</h1>
         <p className="text-muted-foreground text-sm mt-1">Historique et prochaines séances</p>
       </div>
+
+      {/* Mois en attente de validation */}
+      {pending.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-amber-800">
+            {pending.length === 1 ? "1 mois en attente de votre validation" : `${pending.length} mois en attente de validation`}
+          </p>
+          {pending.map((r) => {
+            const items = coursDuRecap(r);
+            const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
+            const totalM = items.reduce((s, c) => s + c.montant, 0);
+            return (
+              <div key={r.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-amber-100">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{moisLabel(r)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</p>
+                </div>
+                <button
+                  onClick={() => setRecapModal(r)}
+                  className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 font-medium shrink-0"
+                >
+                  Voir & Valider
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -126,6 +191,94 @@ export function ParentCours() {
           );
         })}
       </div>
+
+      {/* Modale de validation */}
+      {recapModal && (() => {
+        const items = coursDuRecap(recapModal);
+        const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
+        const totalM = items.reduce((s, c) => s + c.montant, 0);
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] flex flex-col">
+              {validated ? (
+                /* ── État succès ── */
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-lg mb-1">Mois validé !</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {moisLabel(recapModal)} a bien été validé. Le professeur en sera notifié.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <Link
+                      to="/parent/factures"
+                      className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 text-sm font-medium transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Voir mes factures
+                    </Link>
+                    <button
+                      onClick={closeModal}
+                      className="px-4 py-2.5 rounded-lg border border-border hover:bg-muted text-sm"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* ── État normal : détails + bouton valider ── */
+                <>
+                  <div className="flex items-center justify-between mb-5">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Valider {moisLabel(recapModal)}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</p>
+                    </div>
+                    <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-muted">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto flex-1 space-y-1.5 mb-5">
+                    {items.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between px-3 py-2.5 bg-muted rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{c.matiere}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(c.date)} · {c.duree}</p>
+                        </div>
+                        <span className="text-sm font-medium">{c.montant} €</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-border mb-4">
+                    <span className="text-sm font-semibold">Total</span>
+                    <span className="text-sm font-semibold">{totalM.toLocaleString("fr-FR")} €</span>
+                  </div>
+
+                  {validError && (
+                    <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">{validError}</p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted text-sm">
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleValider}
+                      disabled={validating}
+                      className="flex-1 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                    >
+                      {validating && <Loader2 className="w-4 h-4 animate-spin" />}
+                      Confirmer la validation
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

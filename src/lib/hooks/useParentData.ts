@@ -1,23 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../supabase";
 import { useAuth } from "../auth";
-import { makeDeadline } from "./utils";
 import type { CoursRow } from "./useCours";
 import type { FactureRow } from "./useFactures";
+import type { RecapEleveValidationRow } from "./useRecapMensuel";
+
+export interface ValidationWithRecap extends RecapEleveValidationRow {
+  recap_mensuel: { id: string; mois: number; annee: number; statut: string };
+}
 
 export interface ChildInfo {
   id: string;
   nom: string;
   niveau: string;
   matiere: string;
+  prof_id: string;
   prof_nom: string;
 }
 
 export function useParentData() {
   const { user, profile, loading: authLoading } = useAuth();
-  const [child, setChild] = useState<ChildInfo | null>(null);
+  const [children, setChildren] = useState<ChildInfo[]>([]);
   const [cours, setCours] = useState<CoursRow[]>([]);
   const [factures, setFactures] = useState<FactureRow[]>([]);
+  const [validations, setValidations] = useState<ValidationWithRecap[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,59 +31,110 @@ export function useParentData() {
     if (!user) { setLoading(false); return; }
     setError(null);
     setLoading(true);
-    const deadline = makeDeadline(5000);
+
     try {
-      // Récupère tous les élèves liés via la table de liaison (join interne)
-      const { data: elevesData, error: ee } = await Promise.race([
-        supabase
-          .from("eleves")
-          .select("*, parent_eleve!inner(parent_id), profiles!inner(prenom, nom)")
-          .eq("parent_eleve.parent_id", user.id),
-        deadline,
-      ]);
+      // ── Étape 1 : Récupérer les élèves (SANS embed profiles, pour éviter les erreurs RLS) ──
+      const { data: elevesRaw, error: ee } = await supabase
+        .from("eleves")
+        .select("*");
       if (ee) throw ee;
 
-      if (!elevesData || elevesData.length === 0) {
-        if (!staleCheck?.()) { setChild(null); setCours([]); setFactures([]); setLoading(false); }
+      const elevesData = (elevesRaw ?? []) as unknown as Array<{
+        id: string; nom: string; niveau: string; matiere: string; prof_id: string;
+      }>;
+
+      if (elevesData.length === 0) {
+        if (!staleCheck?.()) {
+          setChildren([]); setCours([]); setFactures([]); setValidations([]); setLoading(false);
+        }
         return;
       }
 
-      // On prend le premier élève lié
-      const eleveData = elevesData[0];
       const eleveIds = elevesData.map((e) => e.id);
-      const profProfile = eleveData.profiles as { prenom: string; nom: string };
+      const profIds = [...new Set(elevesData.map((e) => e.prof_id))];
 
-      if (!staleCheck?.()) setChild({
-        id: eleveData.id,
-        nom: eleveData.nom,
-        niveau: eleveData.niveau,
-        matiere: eleveData.matiere,
-        prof_nom: profProfile ? `${profProfile.prenom} ${profProfile.nom}` : "Professeur",
-      });
-
-      // Récupère les cours de tous les élèves liés
-      const [{ data: coursData, error: ce }, { data: facturesData, error: fe }] = await Promise.race([
-        Promise.all([
-          supabase
-            .from("cours")
-            .select("*")
-            .in("eleve_id", eleveIds)
-            .order("date", { ascending: false }),
-          supabase
-            .from("factures")
-            .select("*, lignes_facture(*)")
-            .eq("prof_id", eleveData.prof_id)
-            .order("date_emission", { ascending: false }),
-        ]),
-        deadline,
+      // ── Étape 2 : Récupérer les profils des profs + cours + recaps en parallèle ──
+      const [profsResult, coursResult, validationsResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, prenom, nom")
+          .in("id", profIds),
+        supabase
+          .from("cours")
+          .select("*")
+          .in("eleve_id", eleveIds)
+          .order("date", { ascending: false }),
+        // On ne fait PAS d'embed recap_mensuel ici — cela déclencherait une récursion
+        // infinie dans le RLS (recap_mensuel: parent read → recap_eleve_validation → ...).
+        // On fait deux requêtes séparées et on merge en mémoire.
+        supabase
+          .from("recap_eleve_validation")
+          .select("*")
+          .in("eleve_id", eleveIds),
       ]);
-      if (ce) throw ce;
-      if (fe) throw fe;
+
+      if (profsResult.error) console.warn("[useParentData] profiles error:", profsResult.error);
+      if (coursResult.error) throw coursResult.error;
+      if (validationsResult.error) throw validationsResult.error;
+
+      // Construire le map prof_id → nom
+      const profMap = new Map<string, string>();
+      ((profsResult.data ?? []) as unknown as Array<{ id: string; prenom: string; nom: string }>)
+        .forEach((p) => profMap.set(p.id, `${p.prenom} ${p.nom}`));
+
+      const childrenList: ChildInfo[] = elevesData.map((e) => ({
+        id: e.id,
+        nom: e.nom,
+        niveau: e.niveau,
+        matiere: e.matiere,
+        prof_id: e.prof_id,
+        prof_nom: profMap.get(e.prof_id) ?? "Professeur",
+      }));
+
+      // Récupérer les recap_mensuel séparément pour éviter la récursion RLS
+      const validationsRaw = (validationsResult.data ?? []) as Array<{ id: string; recap_id: string; eleve_id: string; statut: string }>;
+      const recapIds = [...new Set(validationsRaw.map((v) => v.recap_id))];
+
+      let recapMap = new Map<string, { id: string; mois: number; annee: number; statut: string }>();
+      if (recapIds.length > 0) {
+        const { data: recapsData, error: re } = await supabase
+          .from("recap_mensuel")
+          .select("id, mois, annee, statut")
+          .in("id", recapIds);
+        if (re) throw re;
+        (recapsData ?? []).forEach((r: any) => recapMap.set(r.id, r));
+      }
+
+      const validationsWithRecap: ValidationWithRecap[] = validationsRaw.map((v) => ({
+        id: v.id,
+        recap_id: v.recap_id,
+        eleve_id: v.eleve_id,
+        statut: v.statut as "en_attente_parent" | "valide",
+        recap_mensuel: recapMap.get(v.recap_id) ?? { id: v.recap_id, mois: 0, annee: 0, statut: "en_cours" },
+      }));
 
       if (!staleCheck?.()) {
-        setCours(coursData ?? []);
-        setFactures((facturesData ?? []).map((f) => ({ ...f, lignes: f.lignes_facture })));
+        setChildren(childrenList);
+        setCours(coursResult.data ?? []);
+        setValidations(validationsWithRecap);
       }
+
+      // ── Étape 3 : Factures (séparé car peut échouer si pas de policy parent) ──
+      try {
+        const { data: facturesData } = await supabase
+          .from("factures")
+          .select("*, lignes_facture(*)")
+          .in("prof_id", profIds)
+          .order("date_emission", { ascending: false });
+
+        if (!staleCheck?.()) {
+          setFactures((facturesData ?? []).map((f: any) => ({ ...f, lignes: f.lignes_facture })));
+        }
+      } catch {
+        // Les factures ne sont pas critiques — on continue sans
+        if (!staleCheck?.()) setFactures([]);
+      }
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur chargement données";
       console.error("[useParentData]", msg, err);
@@ -102,5 +159,33 @@ export function useParentData() {
     setFactures((prev) => prev.map((f) => f.id === id ? { ...f, statut: "payée" } : f));
   };
 
-  return { child, cours, factures, loading, error, reload: load, payFacture, profile };
+  const validerRecap = async (validationId: string, _recapId: string) => {
+    // Le parent met la ligne à 'valide'. Le trigger SQL gère la suite.
+    console.log("[validerRecap] Tentative validation:", { validationId, _recapId });
+
+    const { data, error: valErr, status } = await (supabase
+      .from("recap_eleve_validation") as any)
+      .update({ statut: "valide" })
+      .eq("id", validationId)
+      .select();
+
+    console.log("[validerRecap] Résultat:", { data, error: valErr, status });
+
+    if (valErr) throw valErr;
+
+    setValidations((prev) =>
+      prev.map((v) => v.id === validationId ? { ...v, statut: "valide" } : v)
+    );
+  };
+
+  const ajouterCode = async (code: string) => {
+    const { error } = await (supabase as any).rpc("lier_parent_eleve", { code_secret: code.trim().toUpperCase() });
+    if (error) throw new Error("Code invalide ou déjà utilisé. Vérifiez avec votre professeur.");
+    await load();
+  };
+
+  // Compat: expose `child` as first child
+  const child = children.length > 0 ? children[0] : null;
+
+  return { child, children, cours, factures, validations, loading, error, reload: load, payFacture, validerRecap, ajouterCode, profile };
 }

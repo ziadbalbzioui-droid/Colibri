@@ -11,7 +11,7 @@ function formatDate(d: string) {
 }
 
 export function ParentDashboard() {
-  const { child, cours, factures, loading, profile } = useParentData();
+  const { children, cours, factures, loading, profile } = useParentData();
   const navigate = useNavigate();
 
   if (loading) {
@@ -94,13 +94,13 @@ export function ParentDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Bonjour, {prenom}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {child
-              ? `Tableau de bord de suivi pour ${child.nom}`
+            {children.length > 0
+              ? `Tableau de bord de suivi`
               : "Tableau de bord parent"}
           </p>
         </div>
 
-        {!child ? (
+        {children.length === 0 ? (
           <div className="max-w-lg mx-auto text-center py-20">
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-amber-500" />
@@ -113,26 +113,30 @@ export function ParentDashboard() {
           </div>
         ) : (
           <>
-            {/* Child card */}
-            <div className="bg-gradient-to-r from-primary to-[#1565C0] rounded-2xl p-6 text-white mt-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0">
-                    {child.nom.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold">{child.nom}</h2>
-                    <p className="text-blue-100 text-sm">{child.niveau}</p>
-                    <p className="text-blue-100 text-xs mt-0.5">Prof : {child.prof_nom}</p>
+            {/* Children cards */}
+            <div className={`grid gap-4 mt-4 ${children.length > 1 ? "grid-cols-1 md:grid-cols-2" : ""}`}>
+              {children.map((child) => (
+                <div key={child.id} className="bg-gradient-to-r from-primary to-[#1565C0] rounded-2xl p-6 text-white">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0">
+                        {child.nom.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold">{child.nom}</h2>
+                        <p className="text-blue-100 text-sm">{child.niveau}</p>
+                        <p className="text-blue-100 text-xs mt-0.5">Prof : {child.prof_nom}</p>
+                      </div>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                      <p className="text-blue-100 text-xs mb-1">Matière</p>
+                      <span className="inline-block bg-white/20 text-xs px-2.5 py-0.5 rounded-full">
+                        {child.matiere}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right hidden sm:block">
-                  <p className="text-blue-100 text-xs mb-1">Matière</p>
-                  <span className="inline-block bg-white/20 text-xs px-2.5 py-0.5 rounded-full">
-                    {child.matiere}
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Stats */}

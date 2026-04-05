@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, X, Clock, Euro, ChevronRight, AlertCircle, Loader2, Copy } from "lucide-react";
 import { useEleves } from "../../lib/hooks/useEleves";
 import type { EleveRow } from "../../lib/hooks/useEleves";
 import { useAuth } from "../../lib/auth";
 import { LoadingGuard } from "./LoadingGuard";
+import { supabase } from "../../lib/supabase";
 
 const TODAY = new Date();
 
@@ -23,10 +24,11 @@ function formatDernierCours(dateStr: string): string {
 }
 
 const statutColors: Record<string, string> = {
-  actif: "bg-green-100 text-green-700",
+  "actif": "bg-green-100 text-green-700",
   "en attente": "bg-blue-100 text-blue-700",
+  "en attente parent": "bg-amber-100 text-amber-700",
   "en pause": "bg-amber-100 text-amber-700",
-  terminé: "bg-gray-100 text-gray-500",
+  "terminé": "bg-gray-100 text-gray-500",
 };
 
 const niveaux = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère S", "1ère ES", "Terminale S", "Terminale ES", "BTS", "Licence 1", "Licence 2", "Licence 3"];
@@ -68,6 +70,28 @@ export function Eleves() {
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [parentsMap, setParentsMap] = useState<Record<string, boolean>>({});
+  const [parentsLoaded, setParentsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function fetchParents() {
+      if (!eleves || eleves.length === 0) {
+        setParentsLoaded(true);
+        return;
+      }
+      const { data } = await supabase
+        .from("parent_eleve")
+        .select("eleve_id")
+        .in("eleve_id", eleves.map((e: EleveRow) => e.id));
+      if (data) {
+        const map: Record<string, boolean> = {};
+        data.forEach((d) => { map[d.eleve_id] = true; });
+        setParentsMap(map);
+      }
+      setParentsLoaded(true);
+    }
+    fetchParents();
+  }, [eleves]);
 
   const filtered = eleves.filter((e: EleveRow) =>
     e.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -189,9 +213,18 @@ export function Eleves() {
                   <td className="px-6 py-3 text-muted-foreground">{eleve.matiere}</td>
                   <td className="px-6 py-3" style={{ fontWeight: 500 }}>{eleve.tarif_heure} €</td>
                   <td className="px-6 py-3">
-                    <span className={`px-2.5 py-1 rounded-full ${statutColors[eleve.statut]}`} style={{ fontSize: 13 }}>
-                      {eleve.statut}
-                    </span>
+                    {(() => {
+                      const hasParent = parentsMap[eleve.id];
+                      let displayStatut = eleve.statut;
+                      if (parentsLoaded && !hasParent && eleve.statut === "actif") {
+                        displayStatut = "en attente parent";
+                      }
+                      return (
+                        <span className={`px-2.5 py-1 rounded-full ${statutColors[displayStatut] || "bg-gray-100 text-gray-700"}`} style={{ fontSize: 13 }}>
+                          {displayStatut}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-1.5">

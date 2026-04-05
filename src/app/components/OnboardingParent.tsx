@@ -664,14 +664,16 @@ export function OnboardingParent() {
   const prenom = profile?.prenom ?? user?.user_metadata?.prenom ?? "";
 
 const initialCode =
-    (location.state as { code?: string } | null)?.code ||
     user?.user_metadata?.code_invitation || 
-    sessionStorage.getItem("colibri_parent_code") ||
     "";
+  
+    console.log("Initial code from URL or metadata:", initialCode);
+
 
   // Step order: 1=Code d'accès, 2=État civil, 3=Légal, 4=URSSAF loading, 5=Activation, 6=Confirmation
   const getInitialStep = (): number => {
     if (profile?.urssaf_status === "activation_pending") return 5; 
+    if (initialCode == "") return 1; 
     return location.state?.skipToStep || 1;
   };
   const [step, setStep] = useState<number>(getInitialStep);
