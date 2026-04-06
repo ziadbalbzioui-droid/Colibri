@@ -18,6 +18,7 @@ function StatusBadge({ statut }: { statut: RecapStatut }) {
   return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">En cours</span>;
 }
 
+const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {
   "30min": 0.5, "1h": 1, "1h30": 1.5, "2h": 2, "2h30": 2.5, "3h": 3,
@@ -65,6 +66,8 @@ export function Cours() {
 
   // L'état est maintenant initialisé à vide au montage
   const [form, setForm] = useState(initialFormState);
+  const [matiereInput, setMatiereInput] = useState("");
+  const [showMatiereDropdown, setShowMatiereDropdown] = useState(false);
 
   const selectedEleve = eleves.find((e) => e.id === form.eleve_id);
 
@@ -122,7 +125,7 @@ export function Cours() {
     setForm({
       eleve_id: premierEleve.id,
       eleve_nom: premierEleve.nom,
-      matiere: premierEleve.matiere || "",
+      matiere: premierEleve.matiere ? premierEleve.matiere.split(",")[0].trim() : "",
       date: "",
       duree: "1h",
       tarif_heure: premierEleve.tarif_heure ?? 30,
@@ -150,7 +153,8 @@ export function Cours() {
         statut: form.statut,
       });
       setShowModal(false);
-      setForm(initialFormState); // On réinitialise proprement
+      setForm(initialFormState);
+      setMatiereInput("");
     } finally {
       setSaving(false);
     }
@@ -457,7 +461,7 @@ export function Cours() {
                       eleve_id: e.target.value, 
                       eleve_nom: elv?.nom ?? "", 
                       tarif_heure: elv?.tarif_heure ?? 30,
-                      matiere: elv?.matiere ?? form.matiere // Bonus: pré-remplit la matière selon l'élève
+                      matiere: elv?.matiere ? elv.matiere.split(",")[0].trim() : form.matiere
                     });
                   }}
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
@@ -469,12 +473,48 @@ export function Cours() {
 
               <div>
                 <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Matière</label>
-                <input
-                  value={form.matiere}
-                  onChange={(e) => setForm({ ...form, matiere: e.target.value })}
-                  placeholder="Mathématiques..."
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                />
+                <div className="relative">
+                  <input
+                    value={matiereInput || form.matiere}
+                    onChange={(e) => {
+                      setMatiereInput(e.target.value);
+                      setForm({ ...form, matiere: e.target.value });
+                      setShowMatiereDropdown(true);
+                    }}
+                    onFocus={() => setShowMatiereDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowMatiereDropdown(false), 150)}
+                    placeholder="Ex: Mathématiques..."
+                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
+                  />
+                  {showMatiereDropdown && (
+                    <ul className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                      {[
+                        ...(selectedEleve?.matiere
+                          ? selectedEleve.matiere.split(",").map((m) => m.trim()).filter(Boolean)
+                          : []
+                        ),
+                        ...MATIERES.filter((m) =>
+                          !selectedEleve?.matiere?.split(",").map((x) => x.trim()).includes(m)
+                        ),
+                      ]
+                        .filter((m) => m.toLowerCase().includes((matiereInput || form.matiere).toLowerCase()))
+                        .map((m) => (
+                          <li
+                            key={m}
+                            onMouseDown={() => {
+                              setForm({ ...form, matiere: m });
+                              setMatiereInput("");
+                              setShowMatiereDropdown(false);
+                            }}
+                            className="px-4 py-2.5 hover:bg-muted cursor-pointer"
+                            style={{ fontSize: 13 }}
+                          >
+                            {m}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

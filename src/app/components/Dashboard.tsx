@@ -8,7 +8,6 @@ import { useAuth } from "../../lib/auth";
 import type { EleveRow } from "../../lib/hooks/useEleves";
 import type { CoursRow } from "../../lib/hooks/useCours";
 
-const URSSAF_RATE = 0.211;
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {
   "30min": 0.5, "1h": 1, "1h30": 1.5, "2h": 2, "2h30": 2.5, "3h": 3,
@@ -132,9 +131,6 @@ export function Dashboard() {
     [coursThisMonth]
   );
 
-  const urssaf = Math.round(brutThisMonth * URSSAF_RATE);
-  const net = brutThisMonth - urssaf;
-
   // Monthly chart — last 6 months
   const monthlyData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -247,35 +243,28 @@ export function Dashboard() {
       {/* Revenue breakdown */}
       <div className="mb-6">
         <div className="bg-white rounded-xl p-6 border border-border">
-          <h3 className="mb-5">Décomposition des revenus</h3>
+          <h3 className="mb-5">L'impact Colibri</h3>
           {brutThisMonth === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-6">Aucun cours ce mois-ci</p>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between py-3 border-b border-border">
+              <div className="flex items-center justify-between py-3 border-b border-border opacity-70">
                 <div>
-                  <p style={{ fontWeight: 500 }}>Revenus bruts ce mois</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 13 }}>Total facturé aux familles</p>
+                  <p style={{ fontWeight: 500 }}>Revenus avant Colibri</p>
+                  <p className="text-muted-foreground" style={{ fontSize: 13 }}>Pour le même budget parent</p>
                 </div>
-                <p style={{ fontSize: 20, fontWeight: 600 }}>{brutThisMonth.toLocaleString("fr-FR")} €</p>
+                <p className="line-through text-muted-foreground" style={{ fontSize: 20, fontWeight: 600 }}>{(brutThisMonth / 2).toLocaleString("fr-FR")} €</p>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-border">
+              <div className="flex items-center justify-between py-3 bg-green-50 rounded-xl px-4 border border-green-100">
                 <div>
-                  <p className="text-red-500" style={{ fontWeight: 500 }}>— Charges URSSAF</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 13 }}>Auto-entrepreneur (21,1%)</p>
+                  <p className="text-green-700" style={{ fontWeight: 600 }}>Revenus bruts après Colibri</p>
+                  <p className="text-green-600" style={{ fontSize: 13 }}>Légal et déclaré</p>
                 </div>
-                <p className="text-red-500" style={{ fontSize: 20, fontWeight: 600 }}>− {urssaf.toLocaleString("fr-FR")} €</p>
-              </div>
-              <div className="flex items-center justify-between py-3 bg-green-50 rounded-xl px-4">
-                <div>
-                  <p className="text-green-700" style={{ fontWeight: 600 }}>Net réel</p>
-                  <p className="text-green-600" style={{ fontSize: 13 }}>Ce que vous empochez</p>
-                </div>
-                <p className="text-green-700" style={{ fontSize: 22, fontWeight: 700 }}>{net.toLocaleString("fr-FR")} €</p>
+                <p className="text-green-700" style={{ fontSize: 22, fontWeight: 700 }}>{brutThisMonth.toLocaleString("fr-FR")} €</p>
               </div>
               <div className="flex rounded-full overflow-hidden h-2 mt-2">
-                <div className="bg-green-400" style={{ width: `${(net / brutThisMonth) * 100}%` }} />
-                <div className="bg-red-300 flex-1" />
+                <div className="bg-gray-300" style={{ width: '50%' }} />
+                <div className="bg-green-400" style={{ width: '50%' }} />
               </div>
             </div>
           )}
@@ -303,69 +292,6 @@ export function Dashboard() {
           </ResponsiveContainer>
         </div>
       )}
-
-      {/* Mini ranking */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white rounded-xl p-5 border border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-amber-500" />
-            </div>
-            <p style={{ fontWeight: 500, fontSize: 14 }}>Élève le plus rentable</p>
-          </div>
-          {topEarner ? (
-            <>
-              <p style={{ fontWeight: 700, fontSize: 18 }}>{topEarner.nom}</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{topEarner.matiere}</p>
-              <div className="mt-3 pt-3 border-t border-border flex justify-between text-muted-foreground" style={{ fontSize: 13 }}>
-                <span>{topEarner.heures.toFixed(1)}h au total</span>
-                <span className="text-green-600" style={{ fontWeight: 500 }}>{topEarner.montant.toFixed(0)} €</span>
-              </div>
-            </>
-          ) : <p className="text-muted-foreground text-sm">Aucun cours encore</p>}
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-              <Flame className="w-4 h-4 text-blue-500" />
-            </div>
-            <p style={{ fontWeight: 500, fontSize: 14 }}>Plus de volume ce mois</p>
-          </div>
-          {mostActiveThisMonth ? (
-            <>
-              <p style={{ fontWeight: 700, fontSize: 18 }}>{mostActiveThisMonth.nom}</p>
-              <p className="text-muted-foreground" style={{ fontSize: 13 }}>{mostActiveThisMonth.matiere}</p>
-              <div className="mt-3 pt-3 border-t border-border" style={{ fontSize: 13 }}>
-                <span className="text-blue-600" style={{ fontWeight: 500 }}>{mostActiveThisMonth.heures.toFixed(1)}h ce mois</span>
-              </div>
-            </>
-          ) : <p className="text-muted-foreground text-sm">Aucun cours ce mois</p>}
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-amber-500" />
-            </div>
-            <p style={{ fontWeight: 500, fontSize: 14 }}>Inactifs depuis 2 sem.</p>
-          </div>
-          {inactifs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Tous vos élèves sont actifs ✓</p>
-          ) : (
-            <div className="space-y-3">
-              {inactifs.map((e) => (
-                <div key={e.nom} className="flex items-center justify-between">
-                  <p style={{ fontWeight: 500, fontSize: 14 }}>{e.nom}</p>
-                  <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full" style={{ fontSize: 12 }}>
-                    {e.since}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Modal: Déclarer un cours */}
       {activeModal === "cours" && (

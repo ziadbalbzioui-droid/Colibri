@@ -32,7 +32,8 @@ const statutColors: Record<string, string> = {
 };
 
 const niveaux = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère S", "1ère ES", "Terminale S", "Terminale ES", "BTS", "Licence 1", "Licence 2", "Licence 3"];
-const emptyForm = { nom: "", niveau: "2nde", matiere: "", tarif_heure: 25, statut: "actif" as EleveRow["statut"] };
+const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
+const emptyForm = { nom: "", niveau: "2nde", matieres: [] as string[], tarif_heure: 25, statut: "actif" as EleveRow["statut"] };
 
 function RegularityGraph({ heures }: { heures: number[] }) {
   const max = Math.max(...heures, 0.1);
@@ -68,6 +69,8 @@ export function Eleves() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [newTag, setNewTag] = useState("");
+  const [matiereInput, setMatiereInput] = useState("");
+  const [showMatiereDropdown, setShowMatiereDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [parentsMap, setParentsMap] = useState<Record<string, boolean>>({});
@@ -102,12 +105,12 @@ export function Eleves() {
   const selectedEleve = eleves.find((e: EleveRow) => e.id === selectedId) ?? null;
 
   async function handleAdd() {
-    if (!form.nom || !form.matiere) return;
+    if (!form.nom || form.matieres.length === 0) return;
     setSaving(true);
     setAddError(null);
     try {
       await addEleve(
-        { nom: form.nom, niveau: form.niveau, matiere: form.matiere, tarif_heure: form.tarif_heure, statut: form.statut },
+        { nom: form.nom, niveau: form.niveau, matiere: form.matieres.join(", "), tarif_heure: form.tarif_heure, statut: form.statut },
         []
       );
       setShowAdd(false);
@@ -395,26 +398,73 @@ export function Eleves() {
                   className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Niveau</label>
-                  <select
-                    value={form.niveau}
-                    onChange={(e) => setForm({ ...form, niveau: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                  >
-                    {niveaux.map((n) => <option key={n}>{n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Matière</label>
+              <div>
+                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Niveau</label>
+                <select
+                  value={form.niveau}
+                  onChange={(e) => setForm({ ...form, niveau: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
+                >
+                  {niveaux.map((n) => <option key={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Matières</label>
+                <div className="relative">
                   <input
-                    value={form.matiere}
-                    onChange={(e) => setForm({ ...form, matiere: e.target.value })}
-                    placeholder="Mathématiques..."
+                    value={matiereInput}
+                    onChange={(e) => { setMatiereInput(e.target.value); setShowMatiereDropdown(true); }}
+                    onFocus={() => setShowMatiereDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowMatiereDropdown(false), 150)}
+                    placeholder="Ex: Mathématiques..."
                     className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
                   />
+                  {showMatiereDropdown && (
+                    <ul className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                      {MATIERES
+                        .filter((m) => !form.matieres.includes(m) && m.toLowerCase().includes(matiereInput.toLowerCase()))
+                        .map((m) => (
+                          <li
+                            key={m}
+                            onMouseDown={() => {
+                              setForm({ ...form, matieres: [...form.matieres, m] });
+                              setMatiereInput("");
+                              setShowMatiereDropdown(false);
+                            }}
+                            className="px-4 py-2.5 hover:bg-muted cursor-pointer"
+                            style={{ fontSize: 13 }}
+                          >
+                            {m}
+                          </li>
+                        ))}
+                      {matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()) && !form.matieres.includes(matiereInput.trim()) && (
+                        <li
+                          onMouseDown={() => {
+                            setForm({ ...form, matieres: [...form.matieres, matiereInput.trim()] });
+                            setMatiereInput("");
+                            setShowMatiereDropdown(false);
+                          }}
+                          className="px-4 py-2.5 hover:bg-muted cursor-pointer text-primary"
+                          style={{ fontSize: 13 }}
+                        >
+                          Ajouter "{matiereInput.trim()}"
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </div>
+                {form.matieres.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {form.matieres.map((m) => (
+                      <span key={m} className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-lg" style={{ fontSize: 13 }}>
+                        {m}
+                        <button type="button" onClick={() => setForm({ ...form, matieres: form.matieres.filter((x) => x !== m) })} className="hover:text-red-500 ml-0.5">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -438,7 +488,7 @@ export function Eleves() {
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!form.nom || !form.matiere || saving}
+                disabled={!form.nom || form.matieres.length === 0 || saving}
                 className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
