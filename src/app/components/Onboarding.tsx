@@ -15,10 +15,6 @@ export function Onboarding() {
     return <LoadingGuard loading>{null}</LoadingGuard>;
   }
 
-  // Sécurité 2 : Si l'utilisateur a déjà fini, on le jette dehors s'il tente de forcer l'URL.
-  if (profile.onboarding_complete) {
-     return <Navigate to={profile.role === "prof" ? "/app" : "/parent"} replace />;
-  }
 
   // 🚨 L'AIGUILLEUR : On affiche le bon bloc selon le rôle
   return (

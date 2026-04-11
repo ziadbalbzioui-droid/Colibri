@@ -197,9 +197,9 @@ export function Dashboard() {
   return (
     <LoadingGuard loading={dataLoading} error={dataError} onRetry={() => { reloadEleves(); reloadCours(); }}>
     <div className={`max-w-6xl mx-auto ${!hasSiret ? "opacity-50 pointer-events-none select-none" : ""}`}>
-      <div className="mb-6">
-        <h1>Bonjour, {prenomAffiche} 👋</h1>
-        <p className="text-muted-foreground mt-1">Vue d'ensemble de votre activité</p>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Bonjour, {prenomAffiche}</h1>
+        <p className="text-slate-500 mt-1 text-sm">Vue d'ensemble de votre activité</p>
       </div>
 
       {/* Quick actions */}
@@ -210,7 +210,8 @@ export function Dashboard() {
             onClick={() => hasSiret && openModal(action.key)}
             disabled={!hasSiret}
             title={!hasSiret ? "Renseignez votre SIRET pour débloquer cette action" : undefined}
-            className="flex items-center gap-4 bg-white border border-border rounded-xl p-4 hover:border-primary/40 hover:shadow-sm transition-all text-left group disabled: disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:shadow-none"
+            className="flex items-center gap-4 bg-white border border-slate-100 rounded-2xl p-4 hover:border-primary/30 hover:shadow-md transition-all duration-200 text-left group disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.99]"
+          style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)" }}
           >
             <div className={`w-11 h-11 rounded-xl ${action.color} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
               <action.icon className="w-5 h-5" />
@@ -227,23 +228,23 @@ export function Dashboard() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl p-4 border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-muted-foreground" style={{ fontSize: 13 }}>{stat.label}</span>
-              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+          <div key={stat.label} className="bg-white rounded-2xl p-5 border border-slate-100" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)" }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-500 text-xs font-semibold uppercase tracking-wide">{stat.label}</span>
+              <div className="w-8 h-8 rounded-xl bg-primary/8 flex items-center justify-center">
                 <stat.icon className="w-4 h-4 text-primary" />
               </div>
             </div>
-            <p className="text-xl" style={{ fontWeight: 600 }}>{stat.value}</p>
-            <span className="text-muted-foreground" style={{ fontSize: 12 }}>{stat.change}</span>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">{stat.value}</p>
+            <span className="text-slate-400 text-xs mt-1 block">{stat.change}</span>
           </div>
         ))}
       </div>
 
       {/* Revenue breakdown */}
       <div className="mb-6">
-        <div className="bg-white rounded-xl p-6 border border-border">
-          <h3 className="mb-5">L'impact Colibri</h3>
+        <div className="bg-white rounded-2xl p-6 border border-slate-100" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)" }}>
+          <h3 className="mb-5 font-semibold text-slate-900 tracking-tight">L'impact Colibri</h3>
           {brutThisMonth === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-6">Aucun cours ce mois-ci</p>
           ) : (
@@ -273,8 +274,8 @@ export function Dashboard() {
 
       {/* Revenue chart */}
       {monthlyData.length > 0 && (
-        <div className="bg-white rounded-xl p-6 border border-border mb-6">
-          <h3 className="mb-6">Évolution des revenus</h3>
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 mb-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.04)" }}>
+          <h3 className="mb-6 font-semibold text-slate-900 tracking-tight">Évolution des revenus</h3>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={monthlyData}>
               <defs>

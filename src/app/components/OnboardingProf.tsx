@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { useState } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   CheckCircle, ChevronRight, Info, Loader2, AlertCircle,
   Building2, FileCheck, CreditCard, PartyPopper, Share2,
@@ -373,7 +373,9 @@ function Step5Confirmation({ prenom }: { prenom: string }) {
 // ─── Main Onboarding ──────────────────────────────────────────
 export function OnboardingProf() {
   const { user, profile, updateProfile } = useAuth();
-  const [step, setStep] = useState(2);
+  const [searchParams] = useSearchParams();
+  const initialStep = Math.max(2, Math.min(5, Number(searchParams.get("step")) || 2));
+  const [step, setStep] = useState(initialStep);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -414,7 +416,7 @@ export function OnboardingProf() {
     save({ onboarding_complete: true }, 5);
 
   const handleStripeSkip = () =>
-    save({ onboarding_complete: true }, 5);
+    setStep(5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E3F2FD] via-white to-[#F0F7FF] flex flex-col">

@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation, useSearchParams } from "react-router";
 import { useAuth } from "../../lib/auth";
 import { LoadingGuard } from "./LoadingGuard";
 
@@ -61,16 +61,25 @@ export function ParentGuard() {
 /** Protects /onboarding */
 export function OnboardingGuard() {
   const { user, profile, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const hasStepParam = searchParams.has("step");
 
   if (loading) return <LoadingGuard loading>{null}</LoadingGuard>;
   if (!user) return <Navigate to="/" replace />;
-  
-if (!profile) {
+
+  if (!profile) {
     return <LoadingGuard loading>{null}</LoadingGuard>;
   }
 
+  let isFullyOnboarded = profile.onboarding_complete;
+  console.log(profile.stripe_onboarding_complete)
+  if (profile.role === "prof") {
+    isFullyOnboarded = (profile.onboarding_complete && profile.siret && profile.stripe_onboarding_complete);
+  }
+
   // Si l'onboarding est déjà fait, on le renvoie à sa place
-  if (profile.onboarding_complete) {
+  // SAUF si un step spécifique est demandé (ex: retour depuis la bannière Stripe)
+  if (isFullyOnboarded) {
     return <Navigate to={profile.role === "prof" ? "/app" : "/parent"} replace />;
   }
 
