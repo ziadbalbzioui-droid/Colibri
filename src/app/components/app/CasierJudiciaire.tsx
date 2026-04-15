@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ChevronLeft, Upload, FileImage, CheckCircle2, Loader2, X, ShieldCheck } from "lucide-react";
-import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../lib/auth";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../lib/auth";
 
 export function CasierJudiciaire() {
   const { user, profile, updateProfile } = useAuth();

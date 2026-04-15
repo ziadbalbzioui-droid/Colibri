@@ -98,10 +98,86 @@ export function Tarifs() {
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 selection:bg-blue-100">
-      
+    <div className="relative min-h-screen flex flex-col font-sans text-slate-900 selection:bg-blue-100">
+
+      {/* FOND */}
+      <div className="fixed inset-0 -z-20 bg-[#f0f4f8]" />
+
+      {/* SVG VAGUES OBLIQUES */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <svg viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" className="absolute -inset-10 w-[calc(100%+80px)] h-[calc(100%+80px)]">
+          <defs>
+            <linearGradient id="wvA" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00F2FE" />
+              <stop offset="100%" stopColor="#0099E5" />
+            </linearGradient>
+            <linearGradient id="wvB" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4FACFE" />
+              <stop offset="100%" stopColor="#00F2FE" />
+            </linearGradient>
+            <linearGradient id="wvC" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#0052D4" />
+              <stop offset="50%" stopColor="#4364F7" />
+              <stop offset="100%" stopColor="#6FB1FC" />
+            </linearGradient>
+            <linearGradient id="wvD" x1="100%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stopColor="#00F2FE" />
+              <stop offset="50%" stopColor="#4FACFE" />
+              <stop offset="100%" stopColor="#0066CC" />
+            </linearGradient>
+            <linearGradient id="wvE" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#43E7E0" />
+              <stop offset="100%" stopColor="#0052D4" />
+            </linearGradient>
+          </defs>
+
+          <g>
+            <path fill="url(#wvA)" opacity="0.7" d="M-200,0 L400,0 C350,50 250,180 200,280 C150,380 50,420 -50,350 C-150,280 -200,150 -200,0 Z" />
+            <path fill="url(#wvB)" opacity="0.55" d="M-100,0 L500,0 L300,350 C250,420 150,480 50,430 C-50,380 -120,280 -150,180 L-100,0 Z" />
+            <path fill="url(#wvC)" opacity="0.65" d="M0,0 L550,0 L350,300 C280,400 180,350 100,400 C20,450 -80,380 -120,280 C-160,180 -80,80 0,0 Z" />
+          </g>
+
+          <g>
+            <path fill="url(#wvC)" opacity="0.45" d="M-100,200 C100,150 300,350 500,250 C700,150 850,300 950,200 L800,0 L-100,0 Z" />
+            <path fill="url(#wvA)" opacity="0.35" d="M-50,350 C150,280 350,450 550,350 C750,250 900,380 1050,300 L900,100 L-50,100 Z" />
+          </g>
+
+          <g>
+            <path fill="url(#wvD)" opacity="0.65" d="M1500,1100 C1240,1100 1000,1050 1040,850 C1100,700 1200,720 1260,620 C1320,520 1420,480 1500,550 C1580,620 1520,780 1500,1100 Z" />
+            <path fill="url(#wvE)" opacity="0.55" d="M1600,1150 C1200,1150 850,1050 940,800 C1000,650 1050,600 1140,550 C1200,470 1300,430 1400,480 C1500,530 1560,650 1580,750 C1600,850 1600,1000 1600,1150 Z" />
+            <path fill="url(#wvB)" opacity="0.6" d="M1500,1150 C1100,1150 800,1000 900,800 C950,700 1000,650 1100,600 C1180,500 1280,550 1360,500 C1440,450 1520,520 1560,620 C1600,720 1520,820 1500,1150 Z" />
+          </g>
+
+          <g>
+            <path fill="url(#wvA)" opacity="0.3" d="M1440,0 L1440,200 C1380,250 1280,180 1200,220 C1120,260 1080,180 1100,100 C1120,40 1200,0 1300,0 Z" />
+            <path fill="url(#wvE)" opacity="0.25" d="M1440,0 L1440,300 C1350,330 1250,250 1180,300 C1110,350 1050,280 1080,200 C1110,120 1200,60 1300,30 L1440,0 Z" />
+          </g>
+        </svg>
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute right-0 w-[45%] h-[65%]" style={{ top: '60%' }}>
+          <path fill="#00F2FE" opacity="0.5" d="M100,100 L100,25 Q92,20 82,32 Q68,48 58,65 Q50,80 45,92 Q42,100 100,100 Z" />
+          <path fill="#43E7E0" opacity="0.4" d="M100,100 L100,38 Q95,30 88,42 Q75,56 65,72 Q58,85 52,96 Q50,100 100,100 Z" />
+          <path fill="#4FACFE" opacity="0.45" d="M100,100 L100,48 Q96,42 90,52 Q80,64 72,78 Q65,90 60,98 Q58,100 100,100 Z" />
+        </svg>
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute left-0 w-[35%] h-[55%]" style={{ top: '80%' }}>
+          <path fill="#0052D4" opacity="0.35" d="M0,100 L0,28 Q8,22 18,34 Q32,52 42,68 Q50,82 55,94 Q58,100 0,100 Z" />
+          <path fill="#4FACFE" opacity="0.25" d="M0,100 L0,40 Q6,32 16,44 Q28,58 38,74 Q46,86 50,96 Q52,100 0,100 Z" />
+        </svg>
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute left-0 w-[50%] h-[60%]" style={{ top: '130%' }}>
+          <path fill="#00F2FE" opacity="0.45" d="M0,100 L0,30 Q10,22 22,35 Q36,52 46,68 Q54,82 58,94 Q60,100 0,100 Z" />
+          <path fill="#43E7E0" opacity="0.35" d="M0,100 L0,42 Q8,34 18,46 Q30,60 40,75 Q48,88 52,97 Q54,100 0,100 Z" />
+        </svg>
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute right-0 w-[40%] h-[55%]" style={{ top: '150%' }}>
+          <path fill="#0052D4" opacity="0.4" d="M100,0 L100,72 Q92,80 82,70 Q68,55 58,38 Q50,22 45,10 Q42,0 100,0 Z" />
+          <path fill="#4364F7" opacity="0.35" d="M100,8 L100,65 Q94,74 85,62 Q72,48 62,32 Q55,18 50,8 Q48,0 100,8 Z" />
+        </svg>
+      </div>
+
       {/* HEADER */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 h-20 flex items-center justify-between transition-all">
+      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 px-6 h-20 flex items-center justify-between shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all">
         <div className="flex-1 flex items-center">
           <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/")}>
             <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-700 transition-colors shadow-sm">

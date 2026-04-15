@@ -6,8 +6,8 @@ import {
   PartyPopper, Mail, RefreshCw, KeyRound,
 } from "lucide-react";
 import logo from "@/assets/colibri.png";
-import { useAuth } from "../../lib/auth";
-import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../../lib/auth";
+import { supabase } from "../../../lib/supabase";
 
 // ─── Step indicator ───────────────────────────────────────────
 function StepBar({ current }: { current: number }) {

@@ -6,8 +6,8 @@ import {
   Building2, FileCheck, CreditCard, PartyPopper, Share2,
 } from "lucide-react";
 import logo from "@/assets/colibri.png";
-import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../lib/auth";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../lib/auth";
 
 // ─── Step indicator ───────────────────────────────────────────
 function StepBar({ current }: { current: number }) {

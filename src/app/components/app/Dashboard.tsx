@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { Euro, Users, BookOpen, Trophy, Flame, AlertCircle, Plus, CheckCircle2, X, Loader2 } from "lucide-react";
-import { LoadingGuard } from "./LoadingGuard";
+import { LoadingGuard } from "../layout/LoadingGuard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useEleves } from "../../lib/hooks/useEleves";
-import { useCours } from "../../lib/hooks/useCours";
-import { useAuth } from "../../lib/auth";
-import type { EleveRow } from "../../lib/hooks/useEleves";
-import type { CoursRow } from "../../lib/hooks/useCours";
+import { useEleves } from "../../../lib/hooks/useEleves";
+import { useCours } from "../../../lib/hooks/useCours";
+import { useAuth } from "../../../lib/auth";
+import type { EleveRow } from "../../../lib/hooks/useEleves";
+import type { CoursRow } from "../../../lib/hooks/useCours";
 
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {

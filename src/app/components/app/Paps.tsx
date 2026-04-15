@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { MapPin, Clock, Plus, X, AlertTriangle, Euro, Loader2, Trash2 } from "lucide-react";
-import { LoadingGuard } from "./LoadingGuard";
-import { usePaps } from "../../lib/hooks/usePaps";
-import { useAuth } from "../../lib/auth";
-import type { AnnonceRow } from "../../lib/hooks/usePaps";
+import { LoadingGuard } from "../layout/LoadingGuard";
+import { usePaps } from "../../../lib/hooks/usePaps";
+import { useAuth } from "../../../lib/auth";
+import type { AnnonceRow } from "../../../lib/hooks/usePaps";
 
 const MATIERES_FILTER = ["Toutes", "Mathématiques", "Physique-Chimie", "SVT", "Français", "Anglais", "Histoire-Géo", "SES", "Philosophie", "Informatique"];
 const NIVEAUX_FILTER = ["Tous", "Collège", "Lycée", "Terminale", "BTS", "Licence"];

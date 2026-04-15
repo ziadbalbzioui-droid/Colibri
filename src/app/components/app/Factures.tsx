@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { FileText, Download, CheckCircle2, Clock, Plus, X, ChevronDown, Euro, Users, BookOpen, Loader2 } from "lucide-react";
-import { LoadingGuard } from "./LoadingGuard";
-import { useFactures } from "../../lib/hooks/useFactures";
-import { useAuth } from "../../lib/auth";
-import type { FactureRow, LigneRow } from "../../lib/hooks/useFactures";
+import { LoadingGuard } from "../layout/LoadingGuard";
+import { useFactures } from "../../../lib/hooks/useFactures";
+import { useAuth } from "../../../lib/auth";
+import type { FactureRow, LigneRow } from "../../../lib/hooks/useFactures";
 
 const URSSAF = 0.211;
 

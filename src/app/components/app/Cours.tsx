@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { CalendarDays, Euro, Clock, Plus, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { useCours } from "../../lib/hooks/useCours";
-import { useEleves } from "../../lib/hooks/useEleves";
-import { useAuth } from "../../lib/auth";
-import { useRecapMensuel } from "../../lib/hooks/useRecapMensuel";
-import type { CoursRow } from "../../lib/hooks/useCours";
-import type { RecapStatut } from "../../lib/database.types";
-import { LoadingGuard } from "./LoadingGuard";
+import { useCours } from "../../../lib/hooks/useCours";
+import { useEleves } from "../../../lib/hooks/useEleves";
+import { useAuth } from "../../../lib/auth";
+import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
+import type { CoursRow } from "../../../lib/hooks/useCours";
+import type { RecapStatut } from "../../../lib/database.types";
+import { LoadingGuard } from "../layout/LoadingGuard";
 
 function StatusBadge({ statut }: { statut: RecapStatut }) {
   if (statut === "valide")

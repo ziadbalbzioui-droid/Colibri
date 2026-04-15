@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, X, Clock, Euro, ChevronRight, AlertCircle, Loader2, Copy } from "lucide-react";
-import { useEleves } from "../../lib/hooks/useEleves";
-import type { EleveRow } from "../../lib/hooks/useEleves";
-import { useAuth } from "../../lib/auth";
-import { LoadingGuard } from "./LoadingGuard";
-import { supabase } from "../../lib/supabase";
+import { useEleves } from "../../../lib/hooks/useEleves";
+import type { EleveRow } from "../../../lib/hooks/useEleves";
+import { useAuth } from "../../../lib/auth";
+import { LoadingGuard } from "../layout/LoadingGuard";
+import { supabase } from "../../../lib/supabase";
 
 const TODAY = new Date();
 

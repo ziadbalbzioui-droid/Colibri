@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X, Building2, AlertTriangle, ShieldCheck, ChevronRight } from "lucide-react";
 import { Navigate, useNavigate } from "react-router";
 import logo from "@/assets/colibri.png";
-import { useAuth } from "../../lib/auth";
-import { LoadingGuard } from "./LoadingGuard";
+import { useAuth } from "../../../lib/auth";
+import { LoadingGuard } from "../layout/LoadingGuard";
 
 const MATIERES = [
   "Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol",

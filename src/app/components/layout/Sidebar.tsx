@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from "react-router";
 import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X } from "lucide-react";
 import logo from "@/assets/colibri.png";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 
 const navItems = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
