@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ChevronLeft, Loader2 } from "lucide-react";
-import { useCours } from "../../lib/hooks/useCours";
-import { useRecapMensuel } from "../../lib/hooks/useRecapMensuel";
+import { useCours } from "../../../lib/hooks/useCours";
+import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
 
 const MOIS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",

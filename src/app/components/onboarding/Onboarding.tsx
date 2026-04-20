@@ -1,6 +1,6 @@
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 import { Navigate } from "react-router";
-import { LoadingGuard } from "../components/LoadingGuard";
+import { LoadingGuard } from "../layout/LoadingGuard";
 
 // Importe tes sous-composants (adapte les chemins selon ton arborescence)
 import { OnboardingParent } from "./OnboardingParent";

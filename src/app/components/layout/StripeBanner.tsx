@@ -1,6 +1,6 @@
 import { AlertTriangle, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 
 export function StripeBanner() {
   const { profile } = useAuth();

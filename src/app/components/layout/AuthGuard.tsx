@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from "react-router";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "./LoadingGuard";
 
 /** Protects /app routes (Profs only) */

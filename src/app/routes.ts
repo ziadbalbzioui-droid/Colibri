@@ -1,27 +1,25 @@
 import { createBrowserRouter } from "react-router";
-import { Welcome } from "./components/Welcome";
-import { Tarifs } from "./components/Tarifs";
-import { Mission } from "./components/Mission";
-import { EcolesPartenaires } from "./components/Ecolespartenaires";
-import { AuthGuard, ParentGuard, OnboardingGuard } from "./components/AuthGuard";
-import { Layout } from "./components/Layout";
-import { Dashboard } from "./components/Dashboard";
-import { Eleves } from "./components/Eleves";
-import { Cours } from "./components/Cours";
-import { RecapMensuel } from "./components/RecapMensuel";
-import { Profil } from "./components/Profil";
-import { Paps } from "./components/Paps";
-import { Factures } from "./components/Factures";
-import { Aide } from "./components/Aide";
-import { CasierJudiciaire } from "./components/CasierJudiciaire";
-import { ParentLayout } from "./components/ParentLayout";
+import { Welcome } from "./components/pages/Welcome";
+import { Tarifs } from "./components/pages/Tarifs";
+import { Mission } from "./components/pages/Mission";
+import { EcolesPartenaires } from "./components/pages/Ecolespartenaires";
+import { AuthGuard, ParentGuard, OnboardingGuard } from "./components/layout/AuthGuard";
+import { Layout } from "./components/layout/Layout";
+import { ParentLayout } from "./components/layout/ParentLayout";
+import { Dashboard } from "./components/app/Dashboard";
+import { Eleves } from "./components/app/Eleves";
+import { Cours } from "./components/app/Cours";
+import { RecapMensuel } from "./components/app/RecapMensuel";
+import { Profil } from "./components/app/Profil";
+import { Paps } from "./components/app/Paps";
+import { Factures } from "./components/app/Factures";
+import { Aide } from "./components/app/Aide";
+import { CasierJudiciaire } from "./components/app/CasierJudiciaire";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
 import { ParentCours } from "./components/parent/ParentCours";
 import { ParentFactures } from "./components/parent/ParentFactures";
 import { ParentProfil } from "./components/parent/ParentProfil";
-
-// Import de l'Aiguilleur unique
-import { Onboarding } from "./components/Onboarding";
+import { Onboarding } from "./components/onboarding/Onboarding";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Welcome },
@@ -33,7 +31,6 @@ export const router = createBrowserRouter([
     path: "/onboarding",
     Component: OnboardingGuard,
     children: [
-      // L'Aiguilleur prend en charge la distribution selon le rôle
       { index: true, Component: Onboarding },
     ],
   },
