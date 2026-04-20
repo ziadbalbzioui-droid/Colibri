@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, X, Clock, Euro, ChevronRight, AlertCircle, Loader2, Copy } from "lucide-react";
+import { Search, Plus, X, ChevronRight } from "lucide-react";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import { useAuth } from "../../../lib/auth";
@@ -23,46 +23,30 @@ function formatDernierCours(dateStr: string): string {
   return `Il y a ${Math.floor(days / 30)}mois`;
 }
 
-const statutColors: Record<string, string> = {
-  "actif": "bg-green-100 text-green-700",
-  "en attente": "bg-blue-100 text-blue-700",
-  "en attente parent": "bg-amber-100 text-amber-700",
-  "en pause": "bg-amber-100 text-amber-700",
-  "terminé": "bg-gray-100 text-gray-500",
-};
-
 const niveaux = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère S", "1ère ES", "Terminale S", "Terminale ES", "BTS", "Licence 1", "Licence 2", "Licence 3"];
 const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
 const emptyForm = { nom: "", niveau: "2nde", matieres: [] as string[], tarif_heure: 25, statut: "actif" as EleveRow["statut"] };
 
-function RegularityGraph({ heures }: { heures: number[] }) {
-  const max = Math.max(...heures, 0.1);
-  const labels = ["S-8", "S-7", "S-6", "S-5", "S-4", "S-3", "S-2", "S-1"];
-  return (
-    <div>
-      <div className="flex items-end gap-1.5" style={{ height: 56 }}>
-        {heures.map((h, i) => {
-          const barH = Math.round((h / max) * 48);
-          const color = h === 0 ? "bg-gray-200" : h >= 2 ? "bg-green-400" : "bg-amber-300";
-          return (
-            <div key={i} className="flex-1 flex flex-col justify-end">
-              <div className={`${color} rounded-sm w-full`} style={{ height: barH || 3 }} title={`${h}h`} />
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex gap-1.5 mt-1">
-        {labels.map((l) => (
-          <div key={l} className="flex-1 text-center text-muted-foreground" style={{ fontSize: 9 }}>{l}</div>
-        ))}
-      </div>
-    </div>
-  );
+const S = {
+  card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
+  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#64748B" } as React.CSSProperties,
+  badge: (bg: string, color: string) => ({ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: bg, color } as React.CSSProperties),
+  btnPrimary: { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: "#2E6BEA", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" } as React.CSSProperties,
+  btnGhost: { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: "transparent", color: "#334155", fontSize: 13, fontWeight: 600, border: "1px solid #E2E8F0", cursor: "pointer" } as React.CSSProperties,
+  input: { width: "100%", padding: "10px 14px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F1F5F9", fontFamily: "inherit", fontSize: 13, color: "#0F172A", outline: "none" } as React.CSSProperties,
+  label: { display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 } as React.CSSProperties,
+};
+
+function StatutBadge({ statut }: { statut: string }) {
+  if (statut === "actif") return <span style={S.badge("#ECFDF5", "#065F46")}>actif</span>;
+  if (statut === "en pause") return <span style={S.badge("#FFFBEB", "#92400E")}>en pause</span>;
+  if (statut === "en attente") return <span style={S.badge("#EFF6FF", "#1E3A8A")}>en attente</span>;
+  return <span style={S.badge("#F1F5F9", "#64748B")}>{statut}</span>;
 }
 
 export function Eleves() {
   const { profile } = useAuth();
-  const { eleves, loading, error, reload, addEleve, updateNotes, updateStatut, updateTags } = useEleves();
+  const { eleves, loading, error, reload, addEleve, updateNotes, updateTags } = useEleves();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -70,28 +54,15 @@ export function Eleves() {
   const [form, setForm] = useState(emptyForm);
   const [newTag, setNewTag] = useState("");
   const [matiereInput, setMatiereInput] = useState("");
-  const [showMatiereDropdown, setShowMatiereDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [parentsMap, setParentsMap] = useState<Record<string, boolean>>({});
-  const [parentsLoaded, setParentsLoaded] = useState(false);
 
   useEffect(() => {
     async function fetchParents() {
-      if (!eleves || eleves.length === 0) {
-        setParentsLoaded(true);
-        return;
-      }
-      const { data } = await supabase
-        .from("parent_eleve")
-        .select("eleve_id")
-        .in("eleve_id", eleves.map((e: EleveRow) => e.id));
-      if (data) {
-        const map: Record<string, boolean> = {};
-        data.forEach((d) => { map[d.eleve_id] = true; });
-        setParentsMap(map);
-      }
-      setParentsLoaded(true);
+      if (!eleves || eleves.length === 0) return;
+      const { data } = await supabase.from("parent_eleve").select("eleve_id").in("eleve_id", eleves.map((e: EleveRow) => e.id));
+      if (data) { const map: Record<string, boolean> = {}; data.forEach((d) => { map[d.eleve_id] = true; }); setParentsMap(map); }
     }
     fetchParents();
   }, [eleves]);
@@ -106,29 +77,19 @@ export function Eleves() {
 
   async function handleAdd() {
     if (!form.nom || form.matieres.length === 0) return;
-    setSaving(true);
-    setAddError(null);
+    setSaving(true); setAddError(null);
     try {
-      await addEleve(
-        { nom: form.nom, niveau: form.niveau, matiere: form.matieres.join(", "), tarif_heure: form.tarif_heure, statut: form.statut },
-        []
-      );
-      setShowAdd(false);
-      setForm(emptyForm);
+      await addEleve({ nom: form.nom, niveau: form.niveau, matiere: form.matieres.join(", "), tarif_heure: form.tarif_heure, statut: form.statut }, []);
+      setShowAdd(false); setForm(emptyForm);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Erreur lors de l'ajout");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
   async function handleAddTag(id: string, tag: string) {
-    const t = tag.trim();
-    if (!t) return;
+    const t = tag.trim(); if (!t) return;
     const eleve = eleves.find((e: EleveRow) => e.id === id);
-    if (eleve && !eleve.tags.includes(t)) {
-      await updateTags(id, [...eleve.tags, t]);
-    }
+    if (eleve && !eleve.tags.includes(t)) await updateTags(id, [...eleve.tags, t]);
     setNewTag("");
   }
 
@@ -139,366 +100,195 @@ export function Eleves() {
 
   return (
     <LoadingGuard loading={loading} error={error} onRetry={reload}>
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1>Élèves</h1>
-          <p className="text-muted-foreground mt-1">{eleves.length} élèves enregistrés</p>
-        </div>
-        <button
-          onClick={() => setShowAdd(true)}
-          disabled={!hasSiret}
-          title={!hasSiret ? "Renseignez votre SIRET pour débloquer cette action" : undefined}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Plus className="w-4 h-4" />
-          Ajouter un élève
-        </button>
-      </div>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Rechercher un élève, matière, tag..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-muted rounded-lg border-none outline-none"
-            />
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 28 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A" }}>Élèves</h1>
+            <p style={{ color: "#64748B", marginTop: 4, fontSize: 13 }}>{eleves.length} élève{eleves.length !== 1 ? "s" : ""} enregistré{eleves.length !== 1 ? "s" : ""}</p>
           </div>
+          <button style={{ ...S.btnPrimary, opacity: hasSiret ? 1 : 0.4 }} onClick={() => hasSiret && setShowAdd(true)} disabled={!hasSiret}>
+            <Plus className="w-4 h-4" />Ajouter un élève
+          </button>
         </div>
 
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Nom</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Niveau</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Matière</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Tarif/h</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Statut</th>
-              <th className="text-left px-6 py-3 text-muted-foreground" style={{ fontSize: 13, fontWeight: 500 }}>Dernier cours</th>
-              <th className="px-6 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
+        {/* Table card */}
+        <div style={{ ...S.card, overflow: "hidden" }}>
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid #E2E8F0" }}>
+            <div style={{ position: "relative", maxWidth: 320 }}>
+              <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#94A3B8" }} />
+              <input
+                style={{ ...S.input, paddingLeft: 36 }}
+                placeholder="Rechercher un élève, matière, tag..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                  {eleves.length === 0 ? "Ajoutez votre premier élève" : "Aucun résultat"}
-                </td>
+                {["Nom", "Niveau", "Matière", "Tarif/h", "Statut", "Dernier cours", ""].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#64748B", background: "#F8FAFC" }}>{h}</th>
+                ))}
               </tr>
-            ) : filtered.map((eleve: EleveRow) => {
-              const inactive = eleve.statut === "actif" && daysSince(eleve.dernier_cours) >= 14;
-              return (
-                <tr
-                  key={eleve.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => setSelectedId(eleve.id)}
-                >
-                  <td className="px-6 py-3">
-                    <div style={{ fontWeight: 500 }}>{eleve.nom}</div>
-                    {eleve.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {eleve.tags.slice(0, 2).map((tag: string) => (
-                          <span key={tag} className="bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded" style={{ fontSize: 11 }}>
-                            {tag}
-                          </span>
-                        ))}
-                        {eleve.tags.length > 2 && (
-                          <span className="text-muted-foreground" style={{ fontSize: 11 }}>+{eleve.tags.length - 2}</span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-3 text-muted-foreground">{eleve.niveau}</td>
-                  <td className="px-6 py-3 text-muted-foreground">{eleve.matiere}</td>
-                  <td className="px-6 py-3" style={{ fontWeight: 500 }}>{eleve.tarif_heure} €</td>
-                  <td className="px-6 py-3">
-                    {(() => {
-                      const hasParent = parentsMap[eleve.id];
-                      let displayStatut = eleve.statut;
-                      if (parentsLoaded && !hasParent && eleve.statut === "actif") {
-                        displayStatut = "en attente parent";
-                      }
-                      return (
-                        <span className={`px-2.5 py-1 rounded-full ${statutColors[displayStatut] || "bg-gray-100 text-gray-700"}`} style={{ fontSize: 13 }}>
-                          {displayStatut}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-6 py-3">
-                    <div className="flex items-center gap-1.5">
-                      {inactive && <AlertCircle className="w-3.5 h-3.5 text-amber-500" />}
-                      <span className={inactive ? "text-amber-600" : "text-muted-foreground"} style={{ fontSize: 13 }}>
-                        {formatDernierCours(eleve.dernier_cours)}
-                      </span>
+            </thead>
+            <tbody>
+              {filtered.map((e: EleveRow) => {
+                const inactive = e.statut === "actif" && daysSince(e.dernier_cours ?? "") >= 14;
+                return (
+                  <tr key={e.id} style={{ cursor: "pointer" }} onClick={() => setSelectedId(e.id)}
+                    onMouseEnter={(ev) => (ev.currentTarget.style.background = "#F8FAFC")}
+                    onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{e.nom}</div>
+                      {e.tags.length > 0 && (
+                        <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                          {e.tags.slice(0, 2).map((t: string) => (
+                            <span key={t} style={{ fontSize: 10, background: "#EFF6FF", color: "#1E3A8A", padding: "1px 6px", borderRadius: 99 }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.niveau}</td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.matiere}</td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{e.tarif_heure} €</td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}><StatutBadge statut={e.statut === "actif" && !parentsMap[e.id] ? "en attente" : e.statut} /></td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: inactive ? "#92400E" : "#64748B" }}>{formatDernierCours(e.dernier_cours ?? "")}</td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}><ChevronRight style={{ width: 14, height: 14, color: "#94A3B8" }} /></td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", fontSize: 13, color: "#94A3B8" }}>Aucun élève trouvé.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Drawer */}
+        {selectedEleve && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setSelectedId(null)}>
+            <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: 440, background: "#fff", boxShadow: "-4px 0 32px rgba(15,23,42,.12)", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div>
+                    <h2 style={{ fontWeight: 700, fontSize: 18, color: "#0F172A" }}>{selectedEleve.nom}</h2>
+                    <p style={{ color: "#64748B", fontSize: 13, marginTop: 2 }}>{selectedEleve.niveau} · {selectedEleve.matiere}</p>
+                  </div>
+                  <button onClick={() => setSelectedId(null)} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8 }}><X style={{ width: 16, height: 16, color: "#94A3B8" }} /></button>
+                </div>
+
+                {/* Stats */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+                  {[{ label: "Total heures", val: `${selectedEleve.total_heures ?? 0}h` }, { label: "Total payé", val: `${selectedEleve.total_paye ?? 0} €` }].map((s) => (
+                    <div key={s.label} style={{ background: "#F1F5F9", borderRadius: 12, padding: 16 }}>
+                      <div style={S.eyebrow}>{s.label}</div>
+                      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{s.val}</div>
                     </div>
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Detail panel */}
-      {selectedEleve && (
-        <div className="fixed inset-0 z-40" onClick={() => setSelectedId(null)}>
-          <div
-            className="absolute right-0 top-0 h-full bg-white shadow-2xl overflow-y-auto"
-            style={{ width: 460 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 style={{ fontWeight: 600 }}>{selectedEleve.nom}</h2>
-                  <p className="text-muted-foreground mt-0.5" style={{ fontSize: 14 }}>
-                    {selectedEleve.niveau} · {selectedEleve.matiere}
-                  </p>
-                </div>
-                <button onClick={() => setSelectedId(null)} className="p-1.5 rounded-lg hover:bg-muted">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-secondary rounded-xl p-4">
-                  <div className="flex items-center gap-1.5 text-muted-foreground mb-1" style={{ fontSize: 12 }}>
-                    <Clock className="w-3.5 h-3.5" /> Total heures
-                  </div>
-                  <p style={{ fontSize: 22, fontWeight: 600 }}>{selectedEleve.total_heures.toFixed(1)}h</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 12 }}>
-                    ~{(selectedEleve.heures_par_semaine.reduce((a: number, b: number) => a + b, 0) / 8).toFixed(1)}h/sem.
-                  </p>
-                </div>
-                <div className="bg-secondary rounded-xl p-4">
-                  <div className="flex items-center gap-1.5 text-muted-foreground mb-1" style={{ fontSize: 12 }}>
-                    <Euro className="w-3.5 h-3.5" /> Total payé
-                  </div>
-                  <p style={{ fontSize: 22, fontWeight: 600 }}>{selectedEleve.total_paye.toFixed(0)} €</p>
-                  <p className="text-muted-foreground" style={{ fontSize: 12 }}>{selectedEleve.total_paye > 0 ? `${(selectedEleve.total_paye / (selectedEleve.total_heures || 1)).toFixed(0)} €/h moy.` : ""}</p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <p style={{ fontSize: 13, fontWeight: 500 }} className="mb-3">Régularité (8 dernières semaines)</p>
-                <RegularityGraph heures={selectedEleve.heures_par_semaine} />
-              </div>
-
-              <div className="mb-6">
-                <p style={{ fontSize: 13, fontWeight: 500 }} className="mb-2">Tags</p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {selectedEleve.tags.map((tag: string) => (
-                    <span key={tag} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2.5 py-1 rounded-lg" style={{ fontSize: 13 }}>
-                      {tag}
-                      <button onClick={() => handleRemoveTag(selectedEleve.id, tag)} className="hover:text-red-500 ml-0.5">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(selectedEleve.id, newTag); }}
-                    placeholder="Ajouter un tag..."
-                    className="flex-1 px-3 py-1.5 bg-muted rounded-lg outline-none"
-                    style={{ fontSize: 13 }}
-                  />
-                  <button
-                    onClick={() => handleAddTag(selectedEleve.id, newTag)}
-                    className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
-                    style={{ fontSize: 13 }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
 
-              <div>
-                <p style={{ fontSize: 13, fontWeight: 500 }} className="mb-2">Notes privées</p>
-                <textarea
-                  value={selectedEleve.notes}
-                  onChange={(e) => updateNotes(selectedEleve.id, e.target.value)}
-                  placeholder="Notes privées sur cet élève..."
-                  rows={4}
-                  className="w-full px-4 py-3 bg-muted rounded-lg outline-none resize-none"
-                  style={{ fontSize: 13 }}
-                />
-              </div>
-
-                  <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-primary font-semibold" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Code d'accès Parent
-                      </div>
-                      <div className="font-mono text-xl font-bold text-foreground mt-1 tracking-widest">
-                        {(selectedEleve as any).code_invitation || "NON GÉNÉRÉ"}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if ((selectedEleve as any).code_invitation) {
-                          navigator.clipboard.writeText((selectedEleve as any).code_invitation);
-                        }
-                      }}
-                      disabled={!(selectedEleve as any).code_invitation}
-                      className="p-2.5 bg-white border border-border rounded-lg shadow-sm hover:bg-muted transition-colors disabled:opacity-50"
-                      title="Copier le code"
-                    >
-                      <Copy className="w-5 h-5 text-muted-foreground" />
-                    </button>
+                {/* Tags */}
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 10 }}>Tags</h3>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                    {selectedEleve.tags.map((t: string) => (
+                      <span key={t} style={{ ...S.badge("#EFF6FF", "#1E3A8A"), cursor: "pointer" }} onClick={() => handleRemoveTag(selectedEleve.id, t)}>
+                        {t} <X style={{ width: 10, height: 10 }} />
+                      </span>
+                    ))}
+                    {selectedEleve.tags.length === 0 && <span style={{ fontSize: 12, color: "#94A3B8" }}>Aucun tag</span>}
                   </div>
-                  <button
-                    onClick={() => {
-                      const code = (selectedEleve as any).code_invitation;
-                      if (code) {
-                        const link = `${window.location.origin}/signup?role=parent&code=${code}`;
-                        navigator.clipboard.writeText(link);
-                      }
-                    }}
-                    disabled={!(selectedEleve as any).code_invitation}
-                    className="w-full flex items-center justify-center gap-2 bg-white border border-primary/30 text-primary text-sm font-medium py-2 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    Copier le lien d'inscription
-                  </button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input style={{ ...S.input, flex: 1 }} placeholder="Nouveau tag..." value={newTag} onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddTag(selectedEleve.id, newTag)} />
+                    <button style={S.btnGhost} onClick={() => handleAddTag(selectedEleve.id, newTag)}>+</button>
+                  </div>
                 </div>
 
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add modal */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3>Ajouter un élève</h3>
-              <button onClick={() => { setShowAdd(false); setAddError(null); }} className="p-1.5 rounded-lg hover:bg-muted">
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Nom complet</label>
-                <input
-                  value={form.nom}
-                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                  placeholder="Jean Dupont"
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                />
-              </div>
-              <div>
-                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Niveau</label>
-                <select
-                  value={form.niveau}
-                  onChange={(e) => setForm({ ...form, niveau: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                >
-                  {niveaux.map((n) => <option key={n}>{n}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Matières</label>
-                <div className="relative">
-                  <input
-                    value={matiereInput}
-                    onChange={(e) => { setMatiereInput(e.target.value); setShowMatiereDropdown(true); }}
-                    onFocus={() => setShowMatiereDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowMatiereDropdown(false), 150)}
-                    placeholder="Ex: Mathématiques..."
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
+                {/* Notes */}
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 8 }}>Notes privées</h3>
+                  <textarea
+                    style={{ ...S.input, resize: "none", height: 96 }}
+                    defaultValue={selectedEleve.notes ?? ""}
+                    placeholder="Notes privées sur cet élève..."
+                    onBlur={(e) => updateNotes(selectedEleve.id, e.target.value)}
                   />
-                  {showMatiereDropdown && (
-                    <ul className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
-                      {MATIERES
-                        .filter((m) => !form.matieres.includes(m) && m.toLowerCase().includes(matiereInput.toLowerCase()))
-                        .map((m) => (
-                          <li
-                            key={m}
-                            onMouseDown={() => {
-                              setForm({ ...form, matieres: [...form.matieres, m] });
-                              setMatiereInput("");
-                              setShowMatiereDropdown(false);
-                            }}
-                            className="px-4 py-2.5 hover:bg-muted cursor-pointer"
-                            style={{ fontSize: 13 }}
-                          >
-                            {m}
-                          </li>
-                        ))}
-                      {matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()) && !form.matieres.includes(matiereInput.trim()) && (
-                        <li
-                          onMouseDown={() => {
-                            setForm({ ...form, matieres: [...form.matieres, matiereInput.trim()] });
-                            setMatiereInput("");
-                            setShowMatiereDropdown(false);
-                          }}
-                          className="px-4 py-2.5 hover:bg-muted cursor-pointer text-primary"
-                          style={{ fontSize: 13 }}
-                        >
-                          Ajouter "{matiereInput.trim()}"
-                        </li>
-                      )}
-                    </ul>
+                </div>
+
+                {/* Code parent */}
+                <div style={{ background: "#EFF6FF", border: "1px solid #C7D8FB", borderRadius: 12, padding: 16 }}>
+                  <div style={{ ...S.eyebrow, color: "#1E3A8A", marginBottom: 8 }}>Code d'accès Parent</div>
+                  <div style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, letterSpacing: ".2em", color: "#0F172A" }}>
+                    COL-{selectedEleve.code_parent ?? selectedEleve.id.slice(0, 6).toUpperCase()}
+                  </div>
+                  {parentsMap[selectedEleve.id] && (
+                    <p style={{ fontSize: 12, color: "#10B981", marginTop: 8 }}>✓ Parent connecté</p>
                   )}
                 </div>
-                {form.matieres.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal ajouter */}
+        {showAdd && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
+            <div style={{ background: "#fff", borderRadius: 22, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 24px rgba(15,23,42,.12)" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 24px 0" }}>
+                <h2 style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>Ajouter un élève</h2>
+                <button onClick={() => { setShowAdd(false); setForm(emptyForm); }} style={{ background: "none", border: "none", cursor: "pointer" }}><X className="w-4 h-4 text-slate-400" /></button>
+              </div>
+              <div style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div><label style={S.label}>Nom complet</label><input style={S.input} value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Jean Dupont" /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div><label style={S.label}>Niveau</label>
+                    <select style={S.input} value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })}>
+                      {niveaux.map((n) => <option key={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div><label style={S.label}>Tarif / heure (€)</label>
+                    <input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} />
+                  </div>
+                </div>
+                <div>
+                  <label style={S.label}>Matières</label>
+                  <div style={{ position: "relative" }}>
+                    <input style={S.input} value={matiereInput} onChange={(e) => setMatiereInput(e.target.value)} placeholder="Chercher une matière..." />
+                    {matiereInput && (
+                      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", zIndex: 10, overflow: "hidden" }}>
+                        {MATIERES.filter((m) => m.toLowerCase().includes(matiereInput.toLowerCase()) && !form.matieres.includes(m)).map((m) => (
+                          <button key={m} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 13, background: "none", border: "none", cursor: "pointer", color: "#0F172A" }}
+                            onClick={() => { setForm({ ...form, matieres: [...form.matieres, m] }); setMatiereInput(""); }}>
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                     {form.matieres.map((m) => (
-                      <span key={m} className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-lg" style={{ fontSize: 13 }}>
-                        {m}
-                        <button type="button" onClick={() => setForm({ ...form, matieres: form.matieres.filter((x) => x !== m) })} className="hover:text-red-500 ml-0.5">
-                          <X className="w-3 h-3" />
-                        </button>
+                      <span key={m} style={{ ...S.badge("#EFF6FF", "#1E3A8A"), cursor: "pointer" }} onClick={() => setForm({ ...form, matieres: form.matieres.filter((x) => x !== m) })}>
+                        {m} <X style={{ width: 10, height: 10 }} />
                       </span>
                     ))}
                   </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1.5 text-muted-foreground" style={{ fontSize: 13 }}>Tarif / heure (€)</label>
-                  <input
-                    type="number"
-                    value={form.tarif_heure}
-                    onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })}
-                    className="w-full px-4 py-2.5 bg-muted rounded-lg outline-none"
-                  />
                 </div>
-
+                {addError && <p style={{ fontSize: 12, color: "#EF4444" }}>{addError}</p>}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setShowAdd(false); setForm(emptyForm); }} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
+                  <button onClick={handleAdd} disabled={!form.nom || form.matieres.length === 0 || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!form.nom || form.matieres.length === 0 || saving) ? 0.5 : 1 }}>
+                    {saving ? "Ajout..." : "Ajouter"}
+                  </button>
+                </div>
               </div>
-            </div>
-            {addError && (
-              <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{addError}</p>
-            )}
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted">
-                Annuler
-              </button>
-              <button
-                onClick={handleAdd}
-                disabled={!form.nom || form.matieres.length === 0 || saving}
-                className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                Ajouter
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </LoadingGuard>
   );
 }

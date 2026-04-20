@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X, Building2, AlertTriangle, ShieldCheck, ChevronRight } from "lucide-react";
+import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X } from "lucide-react";
 import { Navigate, useNavigate } from "react-router";
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../../lib/auth";
@@ -10,45 +10,38 @@ const MATIERES = [
   "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre",
 ];
 
+const S = {
+  card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)", padding: 24 } as React.CSSProperties,
+  input: { width: "100%", padding: "10px 14px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F1F5F9", fontFamily: "inherit", fontSize: 13, color: "#0F172A", outline: "none" } as React.CSSProperties,
+  label: { display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 } as React.CSSProperties,
+  btnPrimary: { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: "#2E6BEA", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" } as React.CSSProperties,
+  sectionHeader: { display: "flex", alignItems: "center", gap: 8, marginBottom: 20 } as React.CSSProperties,
+};
+
 export function Profil() {
   const { user, profile, updateProfile, loading } = useAuth();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  const [form, setForm] = useState({
-    prenom: "",
-    nom: "",
-    email: "",
-    telephone: "",
-    etablissement: "",
-    niveau_etudes: "",
-    siret: "",
-    adresse: "",
-    iban: "",
-  });
-
-  // Matières : tableau interne, synchronisé depuis/vers la string DB
   const [matieres, setMatieres] = useState<string[]>([]);
   const [matiereInput, setMatiereInput] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Stripe
+  const [form, setForm] = useState({
+    prenom: "", nom: "", email: "", telephone: "",
+    etablissement: "", niveau_etudes: "", siret: "", adresse: "", iban: "",
+  });
+
   const stripeConfigured = profile?.stripe_onboarding_complete === true;
   const stripePending = !!profile?.stripe_account_id && !stripeConfigured;
 
   useEffect(() => {
     if (profile) {
       setForm({
-        prenom: profile.prenom ?? "",
-        nom: profile.nom ?? "",
-        email: profile.email ?? "",
-        telephone: profile.telephone ?? "",
-        etablissement: profile.etablissement ?? "",
-        niveau_etudes: profile.niveau_etudes ?? "",
-        siret: profile.siret ?? "",
-        adresse: profile.adresse ?? "",
-        iban: profile.iban ?? "",
+        prenom: profile.prenom ?? "", nom: profile.nom ?? "", email: profile.email ?? "",
+        telephone: profile.telephone ?? "", etablissement: profile.etablissement ?? "",
+        niveau_etudes: profile.niveau_etudes ?? "", siret: profile.siret ?? "",
+        adresse: profile.adresse ?? "", iban: profile.iban ?? "",
       });
       const raw = profile.matieres_enseignees ?? "";
       setMatieres(raw ? raw.split(",").map((m) => m.trim()).filter(Boolean) : []);
@@ -57,322 +50,158 @@ export function Profil() {
 
   function addMatiere(m: string) {
     const val = m.trim();
-    if (val && !matieres.includes(val)) {
-      setMatieres([...matieres, val]);
-    }
-    setMatiereInput("");
-    setShowDropdown(false);
+    if (val && !matieres.includes(val)) setMatieres([...matieres, val]);
+    setMatiereInput(""); setShowDropdown(false);
   }
+  function removeMatiere(m: string) { setMatieres(matieres.filter((x) => x !== m)); }
 
-  function removeMatiere(m: string) {
-    setMatieres(matieres.filter((x) => x !== m));
-  }
-
-  const suggestions = MATIERES.filter(
-    (m) => !matieres.includes(m) && m.toLowerCase().includes(matiereInput.toLowerCase())
-  );
+  const suggestions = MATIERES.filter((m) => !matieres.includes(m) && m.toLowerCase().includes(matiereInput.toLowerCase()));
 
   async function handleSave() {
     setSaving(true);
     try {
-      const { error } = await updateProfile({
-        prenom: form.prenom,
-        nom: form.nom,
-        telephone: form.telephone,
-        etablissement: form.etablissement,
-        niveau_etudes: form.niveau_etudes,
-        matieres_enseignees: matieres.join(", "),
-        siret: form.siret,
-        adresse: form.adresse,
-        iban: form.iban,
-      });
-      if (!error) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleStripe() {
-    navigate("/onboarding?step=4");
+      const { error } = await updateProfile({ prenom: form.prenom, nom: form.nom, telephone: form.telephone, etablissement: form.etablissement, niveau_etudes: form.niveau_etudes, matieres_enseignees: matieres.join(", "), siret: form.siret, adresse: form.adresse, iban: form.iban });
+      if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+    } finally { setSaving(false); }
   }
 
   if (loading) return <LoadingGuard loading>{null}</LoadingGuard>;
   if (!user || !profile) return <Navigate to="/" replace />;
 
-  const inputClass = "w-full px-4 py-2.5 bg-muted rounded-lg outline-none focus:ring-2 focus:ring-primary/20";
-  const labelClass = "block mb-1.5 text-muted-foreground";
-
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8">
-        <img src={logo} alt="Colibri" className="w-14 h-14 mx-auto mb-4 rounded-xl" />
-        <h1>Mon profil</h1>
-        <p className="text-muted-foreground mt-1">Gérez vos informations personnelles et fiscales</p>
+    <div style={{ maxWidth: 680, margin: "0 auto" }}>
+
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: "#DBEAFE", overflow: "hidden", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <img src={logo} alt="Colibri" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+        <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A" }}>Mon profil</h1>
+        <p style={{ color: "#64748B", marginTop: 6, fontSize: 13 }}>Gérez vos informations personnelles et fiscales</p>
       </div>
 
-      <div className="space-y-6">
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
         {/* Informations personnelles */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <User className="w-4 h-4 text-primary" />
-            <h3>Informations personnelles</h3>
+        <div style={S.card}>
+          <div style={S.sectionHeader}>
+            <User style={{ width: 16, height: 16, color: "#2E6BEA" }} />
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Informations personnelles</h2>
           </div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass} style={{ fontSize: 13 }}>Prénom</label>
-                <input
-                  value={form.prenom}
-                  onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass} style={{ fontSize: 13 }}>Nom</label>
-                <input
-                  value={form.nom}
-                  onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Email</label>
-              <input
-                type="email"
-                value={form.email}
-                disabled
-                className={`${inputClass} opacity-60 cursor-not-allowed`}
-                title="L'email ne peut pas être modifié ici"
-              />
-            </div>
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Téléphone</label>
-              <input
-                type="tel"
-                value={form.telephone}
-                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
-                placeholder="06 12 34 56 78"
-                className={inputClass}
-              />
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div><label style={S.label}>Prénom</label><input style={S.input} value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} /></div>
+            <div><label style={S.label}>Nom</label><input style={S.input} value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} /></div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Email</label>
+            <input style={{ ...S.input, opacity: 0.6, cursor: "not-allowed" }} value={form.email} disabled title="L'email ne peut pas être modifié ici" />
+          </div>
+          <div>
+            <label style={S.label}>Téléphone</label>
+            <input type="tel" style={S.input} value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} placeholder="06 12 34 56 78" />
           </div>
         </div>
 
         {/* Informations académiques */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <BookOpen className="w-4 h-4 text-primary" />
-            <h3>Informations académiques</h3>
+        <div style={S.card}>
+          <div style={S.sectionHeader}>
+            <BookOpen style={{ width: 16, height: 16, color: "#2E6BEA" }} />
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Informations académiques</h2>
           </div>
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Établissement</label>
-              <input
-                value={form.etablissement}
-                onChange={(e) => setForm({ ...form, etablissement: e.target.value })}
-                placeholder="Université Paris-Saclay"
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Niveau d'études</label>
-              <select
-                value={form.niveau_etudes}
-                onChange={(e) => setForm({ ...form, niveau_etudes: e.target.value })}
-                className={inputClass}
-              >
-                <option value="">— Sélectionner —</option>
-                <option>Licence 1</option>
-                <option>Licence 2</option>
-                <option>Licence 3</option>
-                <option>Master 1</option>
-                <option>Master 2</option>
-                <option>Doctorat</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Matières enseignées</label>
-              <div className="relative">
-                <input
-                  value={matiereInput}
-                  onChange={(e) => { setMatiereInput(e.target.value); setShowDropdown(true); }}
-                  onFocus={() => setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && matiereInput.trim()) {
-                      e.preventDefault();
-                      addMatiere(matiereInput);
-                    }
-                  }}
-                  placeholder="Ex : Mathématiques..."
-                  className={inputClass}
-                />
-                {showDropdown && (suggestions.length > 0 || (matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()))) && (
-                  <ul className="absolute z-10 w-full bg-white border border-border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
-                    {suggestions.map((m) => (
-                      <li
-                        key={m}
-                        onMouseDown={() => addMatiere(m)}
-                        className="px-4 py-2.5 hover:bg-muted cursor-pointer"
-                        style={{ fontSize: 13 }}
-                      >
-                        {m}
-                      </li>
-                    ))}
-                    {matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()) && !matieres.includes(matiereInput.trim()) && (
-                      <li
-                        onMouseDown={() => addMatiere(matiereInput)}
-                        className="px-4 py-2.5 hover:bg-muted cursor-pointer text-primary"
-                        style={{ fontSize: 13 }}
-                      >
-                        Ajouter "{matiereInput.trim()}"
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </div>
-              {matieres.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {matieres.map((m) => (
-                    <span key={m} className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-lg" style={{ fontSize: 13 }}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Établissement</label>
+            <input style={S.input} value={form.etablissement} onChange={(e) => setForm({ ...form, etablissement: e.target.value })} placeholder="Université Paris-Saclay" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Niveau d'études</label>
+            <select style={S.input} value={form.niveau_etudes} onChange={(e) => setForm({ ...form, niveau_etudes: e.target.value })}>
+              <option value="">— Sélectionner —</option>
+              {["Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"].map((n) => <option key={n}>{n}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={S.label}>Matières enseignées</label>
+            <div style={{ position: "relative" }}>
+              <input style={{ ...S.input, marginBottom: 8 }} value={matiereInput}
+                onChange={(e) => { setMatiereInput(e.target.value); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                onKeyDown={(e) => { if (e.key === "Enter" && matiereInput.trim()) { e.preventDefault(); addMatiere(matiereInput); } }}
+                placeholder="Ex : Mathématiques..." />
+              {showDropdown && (suggestions.length > 0 || (matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()))) && (
+                <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", zIndex: 10, maxHeight: 192, overflowY: "auto" }}>
+                  {suggestions.map((m) => (
+                    <li key={m} onMouseDown={() => addMatiere(m)} style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#0F172A" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
                       {m}
-                      <button type="button" onClick={() => removeMatiere(m)} className="hover:text-red-500 ml-0.5">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
+                    </li>
                   ))}
-                </div>
+                  {matiereInput.trim() && !MATIERES.some((m) => m.toLowerCase() === matiereInput.toLowerCase()) && !matieres.includes(matiereInput.trim()) && (
+                    <li onMouseDown={() => addMatiere(matiereInput)} style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#2E6BEA" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                      Ajouter "{matiereInput.trim()}"
+                    </li>
+                  )}
+                </ul>
               )}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {matieres.map((m) => (
+                <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: "#EFF6FF", color: "#1E3A8A", cursor: "default" }}>
+                  {m}
+                  <button type="button" onClick={() => removeMatiere(m)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#1E3A8A" }}><X style={{ width: 10, height: 10 }} /></button>
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Informations fiscales & bancaires */}
-        <div className="bg-white rounded-xl border border-border p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <CreditCard className="w-4 h-4 text-primary" />
-            <h3>Informations fiscales & bancaires</h3>
+        {/* Informations fiscales */}
+        <div style={S.card}>
+          <div style={S.sectionHeader}>
+            <CreditCard style={{ width: 16, height: 16, color: "#2E6BEA" }} />
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>Informations fiscales &amp; bancaires</h2>
           </div>
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>SIRET (auto-entrepreneur)</label>
-              <input
-                value={form.siret}
-                onChange={(e) => setForm({ ...form, siret: e.target.value })}
-                placeholder="123 456 789 00012"
-                className={inputClass}
-              />
-            </div>
-
-            {/* Stripe Connect */}
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Compte bancaire & Identité</label>
-              {stripeConfigured ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                  <span className="text-green-700" style={{ fontSize: 13 }}>Compte Stripe connecté et vérifié</span>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>SIRET (auto-entrepreneur)</label>
+            <input style={S.input} value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} placeholder="123 456 789 00012" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Compte bancaire &amp; Identité</label>
+            {stripeConfigured ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13 }}>
+                <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />
+                <span style={{ color: "#059669", fontWeight: 600 }}>Compte Stripe connecté et vérifié</span>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/onboarding?step=4")} style={{ ...S.btnPrimary, fontSize: 12 }}>
+                {stripePending ? "Finaliser la connexion Stripe" : "Connecter Stripe"}
+              </button>
+            )}
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Extrait de casier judiciaire</label>
+            {profile.casier_judiciaire_url ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />
+                  <span style={{ color: "#059669", fontWeight: 600 }}>Document déposé — en cours de vérification</span>
                 </div>
-              ) : stripePending ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span className="text-amber-700" style={{ fontSize: 13 }}>Vérification Stripe en cours — vérifiez votre email</span>
-                </div>
-              ) : (
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="p-4 bg-indigo-50/50 flex items-start gap-3">
-                    <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
-                      <Building2 className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium" style={{ fontSize: 13 }}>Stripe Connect Express</p>
-                      <p className="text-muted-foreground mt-0.5" style={{ fontSize: 12 }}>
-                        Vérification d'identité (KYC) · Renseignement de votre IBAN · Réception des paiements
-                      </p>
-                    </div>
-                  </div>
-                  <div className="px-4 py-3 border-t border-border bg-white">
-                    <button
-                      type="button"
-                      onClick={handleStripe}
-                      disabled={!profile.siret}
-                      title={!profile.siret ? "Renseignez votre SIRET d'abord" : undefined}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      style={{ fontSize: 13 }}
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Configurer mon compte bancaire
-                    </button>
-                    {!profile.siret && (
-                      <p className="text-muted-foreground mt-2" style={{ fontSize: 12 }}>
-                        Renseignez votre SIRET pour débloquer cette étape.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Casier judiciaire */}
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Extrait de casier judiciaire</label>
-              {(profile as any).casier_judiciaire_url ? (
-                <div className="flex items-center justify-between px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                    <span className="text-green-700" style={{ fontSize: 13 }}>Document déposé — en cours de vérification</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/app/profil/casier")}
-                    className="text-xs text-green-600 hover:underline"
-                  >
-                    Modifier
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/profil/casier")}
-                  className="w-full flex items-center justify-between px-4 py-2.5 bg-muted rounded-lg hover:bg-muted/70 transition-colors"
-                  style={{ fontSize: 13 }}
-                >
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Déposer mon extrait de casier judiciaire</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-
-            <div>
-              <label className={labelClass} style={{ fontSize: 13 }}>Adresse postale</label>
-              <input
-                value={form.adresse}
-                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-                placeholder="12 rue de la Paix, 75001 Paris"
-                className={inputClass}
-              />
-            </div>
+                <button onClick={() => navigate("/app/profil/casier")} style={{ fontSize: 11, color: "#059669", background: "none", border: "none", cursor: "pointer" }}>Modifier</button>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/app/profil/casier")} style={{ ...S.btnPrimary, fontSize: 12 }}>Déposer le document</button>
+            )}
+          </div>
+          <div>
+            <label style={S.label}>Adresse postale</label>
+            <input style={S.input} value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="12 rue de la Paix, 75001 Paris" />
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saved ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+        {/* Save */}
+        <button onClick={handleSave} disabled={saving} style={{ ...S.btnPrimary, justifyContent: "center", padding: "13px", width: "100%", fontSize: 14 }}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {saved ? "Enregistré !" : "Enregistrer les modifications"}
         </button>
       </div>
