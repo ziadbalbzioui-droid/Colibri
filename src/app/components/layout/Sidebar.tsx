@@ -3,12 +3,11 @@ import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, 
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../../lib/auth";
 
-const navItems = [
+const BASE_NAV = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/eleves", icon: Users, label: "Élèves" },
   { to: "/app/cours", icon: BookOpen, label: "Cours" },
   { to: "/app/factures", icon: FileText, label: "Factures" },
-  { to: "/app/paps", icon: GraduationCap, label: "PAPS" },
   { to: "/app/aide", icon: HelpCircle, label: "Aide" },
   { to: "/app/profil", icon: CircleUser, label: "Mon profil" },
 ];
@@ -21,6 +20,11 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
+
+  const isMinesParis = profile?.etablissement?.toLowerCase().includes("mines") ?? false;
+  const navItems = isMinesParis
+    ? [...BASE_NAV.slice(0, 4), { to: "/app/paps", icon: GraduationCap, label: "PAPS" }, ...BASE_NAV.slice(4)]
+    : BASE_NAV;
 
   return (
     <>

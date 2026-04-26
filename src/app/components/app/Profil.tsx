@@ -10,6 +10,17 @@ const MATIERES = [
   "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre",
 ];
 
+const ETABLISSEMENTS = [
+  "Polytechnique (X)",
+  "ENS Ulm",
+  "Mines Paris - PSL",
+  "HEC Paris",
+  "ESSEC Business School",
+  "CentraleSupélec",
+  "ENS Paris-Saclay",
+  "Dauphine - PSL",
+];
+
 const S = {
   card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)", padding: 24 } as React.CSSProperties,
   input: { width: "100%", padding: "10px 14px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F1F5F9", fontFamily: "inherit", fontSize: 13, color: "#0F172A", outline: "none" } as React.CSSProperties,
@@ -26,6 +37,7 @@ export function Profil() {
   const [matieres, setMatieres] = useState<string[]>([]);
   const [matiereInput, setMatiereInput] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showEtabDropdown, setShowEtabDropdown] = useState(false);
 
   const [form, setForm] = useState({
     prenom: "", nom: "", email: "", telephone: "",
@@ -110,7 +122,23 @@ export function Profil() {
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Établissement</label>
-            <input style={S.input} value={form.etablissement} onChange={(e) => setForm({ ...form, etablissement: e.target.value })} placeholder="Université Paris-Saclay" />
+            <div style={{ position: "relative" }}>
+              <input style={S.input} value={form.etablissement}
+                onChange={(e) => { setForm({ ...form, etablissement: e.target.value }); setShowEtabDropdown(true); }}
+                onFocus={() => setShowEtabDropdown(true)}
+                onBlur={() => setTimeout(() => setShowEtabDropdown(false), 150)}
+                placeholder="Ex : Polytechnique..." />
+              {showEtabDropdown && ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(form.etablissement.toLowerCase())).length > 0 && (
+                <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", zIndex: 10, maxHeight: 192, overflowY: "auto" }}>
+                  {ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(form.etablissement.toLowerCase())).map((e) => (
+                    <li key={e} onMouseDown={() => { setForm({ ...form, etablissement: e }); setShowEtabDropdown(false); }} style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#0F172A" }}
+                      onMouseEnter={(ev) => (ev.currentTarget.style.background = "#F1F5F9")} onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
+                      {e}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Niveau d'études</label>

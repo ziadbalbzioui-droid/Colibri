@@ -9,8 +9,14 @@ import type { RecapStatut } from "../../../lib/database.types";
 import { LoadingGuard } from "../layout/LoadingGuard";
 
 const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
-const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
-const dureeToHours: Record<string, number> = { "30min": 0.5, "1h": 1, "1h30": 1.5, "2h": 2, "2h30": 2.5, "3h": 3 };
+
+function formatDuree(mins: number): string {
+  if (mins <= 0) return "0min";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}min`;
+  return m > 0 ? `${h}h${m}min` : `${h}h`;
+}
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
@@ -21,7 +27,7 @@ function formatDate(dateStr: string) {
 function getFirstDayOfWeek(year: number, month: number) { return (new Date(year, month, 1).getDay() + 6) % 7; }
 function getDaysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate(); }
 
-const initialFormState = { eleve_id: "", eleve_nom: "", matiere: "", date: "", duree: "1h", tarif_heure: 30, statut: "planifié" as CoursRow["statut"] };
+const initialFormState = { eleve_id: "", eleve_nom: "", matiere: "", date: "", duree_minutes: 60, tarif_heure: 30, statut: "planifié" as CoursRow["statut"] };
 
 const S = {
   card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
@@ -98,7 +104,7 @@ export function Cours() {
     return Object.entries(map);
   }, [expandedCours]);
 
-  const isFormValid = form.eleve_id !== "" && form.matiere.trim() !== "" && form.date !== "";
+  const isFormValid = form.eleve_id !== "" && form.matiere.trim() !== "" && form.date !== "" && form.duree_minutes > 0;
   const selectedCoursItems = selectedDay ? (coursByDate[selectedDay] ?? []) : [];
 
   function prevMonth() { if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); } else setCalMonth(calMonth - 1); }
@@ -107,7 +113,7 @@ export function Cours() {
   function handleOpenModal() {
     if (eleves.length === 0) { alert("Vous devez d'abord ajouter un élève."); return; }
     const first = eleves[0];
-    setForm({ eleve_id: first.id, eleve_nom: first.nom, matiere: first.matiere?.split(",")[0].trim() ?? "", date: "", duree: "1h", tarif_heure: first.tarif_heure ?? 30, statut: "planifié" });
+    setForm({ eleve_id: first.id, eleve_nom: first.nom, matiere: first.matiere?.split(",")[0].trim() ?? "", date: "", duree_minutes: 60, tarif_heure: first.tarif_heure ?? 30, statut: "planifié" });
     setShowModal(true);
   }
 
@@ -115,8 +121,9 @@ export function Cours() {
     if (!isFormValid) return;
     setSaving(true);
     try {
-      const heures = dureeToHours[form.duree] ?? 1;
-      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: form.duree, duree_heures: heures, montant: form.tarif_heure * heures, statut: form.statut });
+      const heures = form.duree_minutes / 60;
+      const dureeLabel = formatDuree(form.duree_minutes);
+      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: form.statut });
       setShowModal(false); setForm(initialFormState); setMatiereInput("");
     } finally { setSaving(false); }
   }
@@ -332,16 +339,28 @@ export function Cours() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div><label style={S.label}>Date</label><input type="date" style={S.input} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-                  <div><label style={S.label}>Durée</label>
-                    <select style={S.input} value={form.duree} onChange={(e) => setForm({ ...form, duree: e.target.value })}>
-                      {dureeOptions.map((d) => <option key={d}>{d}</option>)}
-                    </select>
+                  <div>
+                    <label style={S.label}>Durée (minutes)</label>
+                    <input
+                      type="number"
+                      min={5}
+                      step={5}
+                      style={S.input}
+                      value={form.duree_minutes || ""}
+                      placeholder="ex. 90"
+                      onChange={(e) => setForm({ ...form, duree_minutes: Math.max(0, Number(e.target.value)) })}
+                    />
+                    {form.duree_minutes > 0 && (
+                      <p style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
+                        = {formatDuree(form.duree_minutes)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div><label style={S.label}>Tarif / heure (€)</label><input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} /></div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10 }}>
                   <span style={{ fontSize: 13, color: "#1E3A8A" }}>Montant estimé</span>
-                  <span style={{ fontWeight: 700, color: "#1E3A8A" }}>{(form.tarif_heure * (dureeToHours[form.duree] ?? 1)).toFixed(2)} €</span>
+                  <span style={{ fontWeight: 700, color: "#1E3A8A" }}>{(form.tarif_heure * (form.duree_minutes / 60)).toFixed(2)} €</span>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={() => setShowModal(false)} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>

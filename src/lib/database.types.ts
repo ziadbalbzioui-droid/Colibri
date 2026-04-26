@@ -109,6 +109,9 @@ export interface Eleve {
   statut: EleveStatut;
   solde: number;
   notes: string;
+  telephone_eleve?: string;
+  email_eleve?: string;
+  adresse_eleve?: string;
   created_at: string;
 }
 

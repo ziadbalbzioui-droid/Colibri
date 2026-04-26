@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, X, ChevronRight } from "lucide-react";
+import { Search, Plus, X, ChevronRight, Copy, Save, Loader2 } from "lucide-react";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { supabase } from "../../../lib/supabase";
+import { toast } from "sonner";
 
 const TODAY = new Date();
 
@@ -46,7 +47,7 @@ function StatutBadge({ statut }: { statut: string }) {
 
 export function Eleves() {
   const { profile } = useAuth();
-  const { eleves, loading, error, reload, addEleve, updateNotes, updateTags } = useEleves();
+  const { eleves, loading, error, reload, addEleve, updateNotes, updateTags, updateCoordinates } = useEleves();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -57,6 +58,9 @@ export function Eleves() {
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [parentsMap, setParentsMap] = useState<Record<string, boolean>>({});
+  const [parentContacts, setParentContacts] = useState<Record<string, any>>({});
+  const [coordsForm, setCoordsForm] = useState({ telephone: "", email: "", adresse: "" });
+  const [savingCoords, setSavingCoords] = useState(false);
 
   useEffect(() => {
     async function fetchParents() {
@@ -66,6 +70,32 @@ export function Eleves() {
     }
     fetchParents();
   }, [eleves]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const eleve = eleves.find((e: EleveRow) => e.id === selectedId);
+    if (eleve) {
+      setCoordsForm({
+        telephone: eleve.telephone_eleve ?? "",
+        email: eleve.email_eleve ?? "",
+        adresse: eleve.adresse_eleve ?? "",
+      });
+    }
+    (async () => {
+      const { data: pe } = await supabase
+        .from("parent_eleve")
+        .select("parent_id")
+        .eq("eleve_id", selectedId)
+        .maybeSingle();
+      if (!pe?.parent_id) return;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("prenom, nom, telephone, email, adresse_postale")
+        .eq("id", pe.parent_id)
+        .single();
+      if (prof) setParentContacts((prev) => ({ ...prev, [selectedId]: prof }));
+    })();
+  }, [selectedId]);
 
   const filtered = eleves.filter((e: EleveRow) =>
     e.nom.toLowerCase().includes(search.toLowerCase()) ||
@@ -219,11 +249,103 @@ export function Eleves() {
                   />
                 </div>
 
+                {/* Coordonnées */}
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 10 }}>Coordonnées</h3>
+
+                  {/* Élève — champs éditables */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ ...S.eyebrow, marginBottom: 8 }}>Élève</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div>
+                        <label style={{ ...S.label, fontSize: 11 }}>Téléphone</label>
+                        <input
+                          style={S.input}
+                          placeholder="06 12 34 56 78"
+                          value={coordsForm.telephone}
+                          onChange={(e) => setCoordsForm((f) => ({ ...f, telephone: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ ...S.label, fontSize: 11 }}>Email</label>
+                        <input
+                          style={S.input}
+                          type="email"
+                          placeholder="eleve@email.com"
+                          value={coordsForm.email}
+                          onChange={(e) => setCoordsForm((f) => ({ ...f, email: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ ...S.label, fontSize: 11 }}>Adresse</label>
+                        <input
+                          style={S.input}
+                          placeholder="12 rue de la Paix, 75001 Paris"
+                          value={coordsForm.adresse}
+                          onChange={(e) => setCoordsForm((f) => ({ ...f, adresse: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        setSavingCoords(true);
+                        try {
+                          await updateCoordinates(selectedEleve.id, {
+                            telephone_eleve: coordsForm.telephone || undefined,
+                            email_eleve: coordsForm.email || undefined,
+                            adresse_eleve: coordsForm.adresse || undefined,
+                          });
+                          toast.success("Coordonnées mises à jour");
+                        } finally {
+                          setSavingCoords(false);
+                        }
+                      }}
+                      disabled={savingCoords}
+                      style={{ ...S.btnGhost, fontSize: 12, padding: "7px 14px", marginTop: 10, width: "100%", justifyContent: "center" }}
+                    >
+                      {savingCoords ? <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" /> : <Save style={{ width: 13, height: 13 }} />}
+                      Enregistrer
+                    </button>
+                  </div>
+
+                  {/* Parent — lecture seule */}
+                  {parentContacts[selectedEleve.id] && (
+                    <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ ...S.eyebrow, marginBottom: 8 }}>Parent</div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 4 }}>
+                        {parentContacts[selectedEleve.id].prenom} {parentContacts[selectedEleve.id].nom}
+                      </p>
+                      {parentContacts[selectedEleve.id].telephone && (
+                        <p style={{ fontSize: 13, color: "#334155", marginBottom: 3 }}>📞 {parentContacts[selectedEleve.id].telephone}</p>
+                      )}
+                      {parentContacts[selectedEleve.id].email && (
+                        <p style={{ fontSize: 13, color: "#334155", marginBottom: 3 }}>✉️ {parentContacts[selectedEleve.id].email}</p>
+                      )}
+                      {parentContacts[selectedEleve.id].adresse_postale && (
+                        <p style={{ fontSize: 13, color: "#334155" }}>📍 {parentContacts[selectedEleve.id].adresse_postale}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Code parent */}
                 <div style={{ background: "#EFF6FF", border: "1px solid #C7D8FB", borderRadius: 12, padding: 16 }}>
                   <div style={{ ...S.eyebrow, color: "#1E3A8A", marginBottom: 8 }}>Code d'accès Parent</div>
-                  <div style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, letterSpacing: ".2em", color: "#0F172A" }}>
-                    COL-{selectedEleve.code_parent ?? selectedEleve.id.slice(0, 6).toUpperCase()}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, letterSpacing: ".2em", color: "#0F172A" }}>
+                      COL-{selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase()}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const code = `COL-${selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase()}`;
+                        navigator.clipboard.writeText(code);
+                        toast.success("Code copié !");
+                      }}
+                      style={{ background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6, display: "flex", alignItems: "center" }}
+                      title="Copier le code"
+                    >
+                      <Copy style={{ width: 15, height: 15, color: "#1E3A8A" }} />
+                    </button>
                   </div>
                   {parentsMap[selectedEleve.id] && (
                     <p style={{ fontSize: 12, color: "#10B981", marginTop: 8 }}>✓ Parent connecté</p>
