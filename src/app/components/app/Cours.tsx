@@ -7,6 +7,10 @@ import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 import type { RecapStatut } from "../../../lib/database.types";
 import { LoadingGuard } from "../layout/LoadingGuard";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogHeader, AlertDialogTitle,
+} from "../ui/alert-dialog";
 
 const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
 
@@ -65,6 +69,8 @@ export function Cours() {
   const [matiereInput, setMatiereInput] = useState("");
   const [showMatiereDropdown, setShowMatiereDropdown] = useState(false);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [monthError, setMonthError] = useState<string | null>(null);
 
   const selectedEleve = eleves.find((e) => e.id === form.eleve_id);
 
@@ -128,6 +134,22 @@ export function Cours() {
     } finally { setSaving(false); }
   }
 
+  function handleValiderClick() {
+    if (!recapModal) return;
+    const lastDayOfMonth = new Date(recapModal.anneeNum, recapModal.moisNum, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    lastDayOfMonth.setHours(0, 0, 0, 0);
+    if (lastDayOfMonth > today) {
+      const nextMonth = recapModal.moisNum === 12 ? 1 : recapModal.moisNum + 1;
+      const nextYear = recapModal.moisNum === 12 ? recapModal.anneeNum + 1 : recapModal.anneeNum;
+      setMonthError(`Vous pouvez clôturer ce mois à partir du 1er ${MOIS[nextMonth - 1]} ${nextYear}`);
+      return;
+    }
+    setMonthError(null);
+    setShowCloseConfirm(true);
+  }
+
   async function handleValiderMois() {
     if (!recapModal) return;
     setValidating(true);
@@ -136,7 +158,7 @@ export function Cours() {
       recapModal.coursList.forEach((c) => { if (!c.eleve_id) return; if (!coursParEleve[c.eleve_id]) coursParEleve[c.eleve_id] = []; coursParEleve[c.eleve_id].push(c.id); });
       await validerMois(recapModal.moisNum, recapModal.anneeNum, coursParEleve);
       setRecapModal(null);
-    } finally { setValidating(false); }
+    } finally { setValidating(false); setShowCloseConfirm(false); }
   }
 
   return (
@@ -297,15 +319,38 @@ export function Cours() {
                 <span style={{ fontWeight: 700, color: "#0F172A" }}>Total</span>
                 <span style={{ fontWeight: 700, color: "#0F172A" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
               </div>
+              {monthError && (
+                <div style={{ marginBottom: 12, padding: "10px 14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, fontSize: 13, color: "#B91C1C" }}>
+                  {monthError}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setRecapModal(null)} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
-                <button onClick={handleValiderMois} disabled={validating} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating ? 0.5 : 1 }}>
+                <button onClick={() => { setRecapModal(null); setMonthError(null); }} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
+                <button onClick={handleValiderClick} disabled={validating} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating ? 0.5 : 1 }}>
                   {validating && <Loader2 className="w-4 h-4 animate-spin" />}Valider le mois
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clore le mois de {recapModal ? recapModal.mois : ""}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Une fois le mois clôturé, vous ne pourrez plus ajouter ni modifier les cours de ce mois. Les parents recevront une demande de validation des heures.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex gap-3">
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleValiderMois} className="bg-red-600 hover:bg-red-700">
+                {validating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Clôturer définitivement
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Add cours modal */}
         {showModal && (
