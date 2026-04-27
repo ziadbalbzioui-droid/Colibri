@@ -306,10 +306,13 @@ export function Welcome() {
             <section className="relative px-6 pt-16 pb-16 md:pt-24 md:pb-20 overflow-hidden">
               <div className="max-w-6xl mx-auto text-center space-y-8">
 
-                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900">L'excellence</span>{" "}
-                  <span className="text-slate-700">du soutien scolaire.</span> <br className="hidden md:block"/>
-                  <span className="text-slate-700">La sérénité administrative absolue.</span>
+                <h1 className="tracking-tight leading-[1.1]">
+                  <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "clamp(2.4rem, 6vw, 4.2rem)", color: "#0F172A", display: "block", letterSpacing: "-0.02em" }}>
+                    L'excellence du soutien scolaire.
+                  </span>
+                  <span className="text-slate-500 font-semibold" style={{ fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)", marginTop: "0.5rem", display: "block", letterSpacing: "-0.01em" }}>
+                    La sérénité administrative absolue.
+                  </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-700 leading-relaxed max-w-2xl mx-auto font-medium drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">
@@ -526,7 +529,7 @@ export function Welcome() {
                   <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <MailCheck className="w-8 h-8 text-green-600" />
                   </div>
-                  <h2 className="font-bold text-slate-900 text-xl mb-2">Vérifiez votre boîte mail</h2>
+                  <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "1.4rem", letterSpacing: "-0.02em", color: "#0F172A", marginBottom: "0.5rem" }}>Vérifiez votre boîte mail</h2>
                   <p className="text-slate-600 text-sm mb-8">
                     Un lien sécurisé a été envoyé à <strong>{email}</strong>. Cliquez dessus pour valider votre identité.
                   </p>
@@ -540,7 +543,7 @@ export function Welcome() {
               ) : (
                 <div className="bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl p-8">
                   <div className="mb-8">
-                    <h2 className="font-extrabold text-2xl text-slate-900">
+                    <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "1.6rem", letterSpacing: "-0.02em", color: "#0F172A" }}>
                       {!role ? "Connexion" : role === "prof" ? "Espace Professeur" : "Espace Famille"}
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">

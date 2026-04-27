@@ -157,9 +157,7 @@ export function EcolesPartenaires() {
       <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 px-6 h-20 flex items-center justify-between shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all">
         <div className="flex-1 flex items-center">
           <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/")}>
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center group-hover:bg-blue-700 transition-colors shadow-sm">
-              <span className="text-white font-bold text-xl leading-none">C</span>
-            </div>
+            <img src="/src/assets/colibri.png" alt="Colibri" className="w-9 h-9 object-contain" />
             <span className="text-2xl font-extrabold tracking-tight text-slate-900">Colibri</span>
           </div>
         </div>
@@ -185,7 +183,7 @@ export function EcolesPartenaires() {
         {/* HERO SECTION RÉDUITE - Accès direct aux écoles */}
         <section className="px-6 pt-16 pb-12">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
+            <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "clamp(2rem, 4vw, 2.8rem)", letterSpacing: "-0.02em", color: "#0F172A", marginBottom: "1rem" }}>
               Nos Écoles Partenaires
             </h1>
             <p className="text-base text-slate-500 max-w-xl mx-auto font-medium leading-relaxed">
@@ -291,9 +289,7 @@ export function EcolesPartenaires() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-xs leading-none">C</span>
-                </div>
+                <img src="/src/assets/colibri.png" alt="Colibri" className="w-6 h-6 object-contain" />
                 <span className="font-bold text-slate-900">Colibri</span>
               </div>
               <p className="text-sm text-slate-500 mb-6">
