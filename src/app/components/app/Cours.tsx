@@ -74,7 +74,7 @@ export function Cours() {
 
   const selectedEleve = eleves.find((e) => e.id === form.eleve_id);
 
-  const monthlySummary = useMemo(() => {
+  const allMonthlySummary = useMemo(() => {
     const map: Record<string, { total: number; nbCours: number; moisNum: number; anneeNum: number; coursList: CoursRow[] }> = {};
     cours.forEach((c: CoursRow) => {
       const [y, m] = c.date.split("-");
@@ -86,8 +86,11 @@ export function Cours() {
       const recap = recaps.find((r) => r.mois === v.moisNum && r.annee === v.anneeNum);
       const recapStatut: RecapStatut = recap?.statut ?? "en_cours";
       return { mois, ...v, recapStatut, recapId: recap?.id ?? null };
-    }).slice(0, 3);
+    }).sort((a, b) => a.anneeNum !== b.anneeNum ? b.anneeNum - a.anneeNum : b.moisNum - a.moisNum);
   }, [cours, recaps]);
+
+  const monthlySummary = allMonthlySummary.slice(0, 3);
+  const olderMonths = allMonthlySummary.slice(3);
 
   const firstDay = getFirstDayOfWeek(calYear, calMonth);
   const daysInMonth = getDaysInMonth(calYear, calMonth);
@@ -285,6 +288,33 @@ export function Cours() {
                 </table>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Historique — tous les mois au-delà des 3 récents */}
+        {olderMonths.length > 0 && (
+          <div style={{ ...S.card, padding: 20, marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginBottom: 14 }}>Historique</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 10 }}>
+              {olderMonths.map((m) => (
+                <div
+                  key={m.mois}
+                  onClick={() => setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList })}
+                  style={{ padding: "12px 14px", borderRadius: 12, border: "1px solid #E2E8F0", cursor: "pointer", background: "#F8FAFC", transition: "box-shadow .15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,.08)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{m.mois}</span>
+                    <StatusBadge statut={m.recapStatut} />
+                  </div>
+                  <div style={{ ...S.serif, fontSize: 20, color: "#0F172A", marginBottom: 4 }}>{m.total.toLocaleString("fr-FR")} €</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8", display: "flex", alignItems: "center", gap: 4 }}>
+                    <BookOpen style={{ width: 11, height: 11 }} />{m.nbCours} cours
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
