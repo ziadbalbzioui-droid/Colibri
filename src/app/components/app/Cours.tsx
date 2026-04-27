@@ -60,7 +60,7 @@ export function Cours() {
   const today = new Date();
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [recapModal, setRecapModal] = useState<{ mois: string; moisNum: number; anneeNum: number; coursList: CoursRow[] } | null>(null);
+  const [recapModal, setRecapModal] = useState<{ mois: string; moisNum: number; anneeNum: number; coursList: CoursRow[]; recapStatut: RecapStatut } | null>(null);
   const [validating, setValidating] = useState(false);
   const [calYear, setCalYear] = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
@@ -198,7 +198,7 @@ export function Cours() {
                     <BookOpen style={{ width: 12, height: 12 }} /> {m.nbCours} cours
                   </span>
                   {m.recapStatut === "en_cours" && (
-                    <button onClick={(e) => { e.stopPropagation(); setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList }); }} style={{ ...S.btnGhost, fontSize: 11, padding: "5px 10px" }}>
+                    <button onClick={(e) => { e.stopPropagation(); setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList, recapStatut: m.recapStatut }); }} style={{ ...S.btnGhost, fontSize: 11, padding: "5px 10px" }}>
                       Finir le mois
                     </button>
                   )}
@@ -299,7 +299,7 @@ export function Cours() {
               {olderMonths.map((m) => (
                 <div
                   key={m.mois}
-                  onClick={() => setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList })}
+                  onClick={() => setRecapModal({ mois: m.mois, moisNum: m.moisNum, anneeNum: m.anneeNum, coursList: m.coursList, recapStatut: m.recapStatut })}
                   style={{ padding: "12px 14px", borderRadius: 12, border: "1px solid #E2E8F0", cursor: "pointer", background: "#F8FAFC", transition: "box-shadow .15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,.08)")}
                   onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
@@ -354,12 +354,21 @@ export function Cours() {
                   {monthError}
                 </div>
               )}
-              <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => { setRecapModal(null); setMonthError(null); }} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
-                <button onClick={handleValiderClick} disabled={validating} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating ? 0.5 : 1 }}>
-                  {validating && <Loader2 className="w-4 h-4 animate-spin" />}Valider le mois
-                </button>
-              </div>
+              {recapModal?.recapStatut === "en_cours" ? (
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setRecapModal(null); setMonthError(null); }} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
+                  <button onClick={handleValiderClick} disabled={validating} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating ? 0.5 : 1 }}>
+                    {validating && <Loader2 className="w-4 h-4 animate-spin" />}Valider le mois
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "center", padding: "8px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13, color: "#065F46", fontWeight: 600 }}>
+                    ✓ Mois clôturé
+                  </div>
+                  <button onClick={() => { setRecapModal(null); setMonthError(null); }} style={{ ...S.btnGhost, justifyContent: "center" }}>Fermer</button>
+                </div>
+              )}
             </div>
           </div>
         )}
