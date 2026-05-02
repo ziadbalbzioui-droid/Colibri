@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate } from "react-router";
-import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X } from "lucide-react";
+import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X, Gift } from "lucide-react";
 import logo from "@/assets/colibri.png";
 import { useAuth } from "../../../lib/auth";
 
@@ -8,6 +8,7 @@ const BASE_NAV = [
   { to: "/app/eleves", icon: Users, label: "Élèves" },
   { to: "/app/cours", icon: BookOpen, label: "Cours" },
   { to: "/app/factures", icon: FileText, label: "Factures" },
+  { to: "/app/parrainage", icon: Gift, label: "Parrainage" },
   { to: "/app/aide", icon: HelpCircle, label: "Aide" },
   { to: "/app/profil", icon: CircleUser, label: "Mon profil" },
 ];

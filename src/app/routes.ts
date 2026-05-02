@@ -12,6 +12,7 @@ import { Cours } from "./components/app/Cours";
 import { RecapMensuel } from "./components/app/RecapMensuel";
 import { Profil } from "./components/app/Profil";
 import { Paps } from "./components/app/Paps";
+import { Parrainage } from "./components/app/Parrainage";
 import { Factures } from "./components/app/Factures";
 import { Aide } from "./components/app/Aide";
 import { CasierJudiciaire } from "./components/app/CasierJudiciaire";
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
           { path: "factures", Component: Factures },
           { path: "profil", Component: Profil },
           { path: "profil/casier", Component: CasierJudiciaire },
+          { path: "parrainage", Component: Parrainage },
           { path: "aide", Component: Aide },
         ],
       },

@@ -59,6 +59,15 @@ export interface Database {
   };
 }
 
+export interface Parrainage {
+  id: string;
+  parrain_id: string;
+  filleul_id: string;
+  prime_versee: boolean;
+  prime_versee_at: string | null;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   role: UserRole;
@@ -66,6 +75,8 @@ export interface Profile {
   nom: string;
   email: string;
   telephone?: string;
+  code_parrainage?: string;
+  parrain_id?: string;
   // prof-specific
   etablissement?: string;
   niveau_etudes?: string;

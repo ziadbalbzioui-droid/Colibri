@@ -9,6 +9,7 @@ import logo from "@/assets/colibri.png";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
 
+
 // ─── Step indicator ───────────────────────────────────────────
 function StepBar({ current }: { current: number }) {
   const steps = ["Compte", "Légal", "SIRET", "IBAN", "Confirmation"];
@@ -66,10 +67,11 @@ function InfoBubble({ text }: { text: string }) {
 
 
 // ─── Step 3 : Légal ───────────────────────────────────────────
-function Step3Legal({ onNext }: { onNext: () => void }) {
+function Step3Legal({ onNext }: { onNext: (codeParrain?: string) => void }) {
   const [cgu, setCgu] = useState(false);
   const [mandat, setMandat] = useState(false);
   const [competence, setCompetence] = useState(false);
+  const [codeParrain, setCodeParrain] = useState("");
 
   const allChecked = cgu && mandat && competence;
 
@@ -138,10 +140,26 @@ function Step3Legal({ onNext }: { onNext: () => void }) {
         ))}
       </div>
 
+      {/* Code parrain optionnel */}
+      <div className="border-t border-border pt-5">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Code de parrainage <span className="text-muted-foreground font-normal">(facultatif)</span>
+        </label>
+        <input
+          type="text"
+          value={codeParrain}
+          onChange={(e) => setCodeParrain(e.target.value.toUpperCase())}
+          placeholder="Ex : A3B7F2C1"
+          maxLength={8}
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 uppercase"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Si un collègue vous a invité, entrez son code ici.</p>
+      </div>
+
       <button
         type="button"
         disabled={!allChecked}
-        onClick={onNext}
+        onClick={() => onNext(codeParrain.trim() || undefined)}
         className="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2"
       >
         Étape suivante <ChevronRight className="w-4 h-4" />
@@ -446,7 +464,15 @@ export function OnboardingProf() {
   const handleSiretSkip = () =>
     setStep(4);
 
-  const handleLegalDone = () => {
+  const handleLegalDone = async (codeParrain?: string) => {
+    if (codeParrain && user) {
+      // Cherche le parrain par code et crée le lien parrainage
+      const { data: parrainId } = await supabase.rpc("find_parrain_by_code", { p_code: codeParrain });
+      if (parrainId && parrainId !== user.id) {
+        await supabase.from("profiles").update({ parrain_id: parrainId }).eq("id", user.id);
+        await supabase.from("parrainages").insert({ parrain_id: parrainId, filleul_id: user.id });
+      }
+    }
     setStep(3);
   };
 
