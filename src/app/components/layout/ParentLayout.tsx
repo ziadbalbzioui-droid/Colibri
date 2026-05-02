@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import { Home, BookOpen, FileText, LogOut, Menu, X, UserCircle } from "lucide-react";
 import logo from "@/assets/colibri.png";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 
 const parentNavItems = [
   { to: "/parent", icon: Home, label: "Accueil", end: true },

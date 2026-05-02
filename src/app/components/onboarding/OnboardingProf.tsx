@@ -3,15 +3,16 @@ import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router";
 import {
   CheckCircle, ChevronRight, Info, Loader2, AlertCircle,
-  Building2, FileCheck, CreditCard, PartyPopper, Share2,
+  FileCheck, PartyPopper, Share2,
 } from "lucide-react";
 import logo from "@/assets/colibri.png";
-import { supabase } from "../../lib/supabase";
-import { useAuth } from "../../lib/auth";
+import { supabase } from "../../../lib/supabase";
+import { useAuth } from "../../../lib/auth";
+
 
 // ─── Step indicator ───────────────────────────────────────────
 function StepBar({ current }: { current: number }) {
-  const steps = ["Compte", "Légal",  "SIRET", "Paiement", "Confirmation"];
+  const steps = ["Compte", "Légal", "SIRET", "IBAN", "Confirmation"];
   return (
     <div className="flex items-center gap-1 mb-8">
       {steps.map((label, i) => {
@@ -66,22 +67,42 @@ function InfoBubble({ text }: { text: string }) {
 
 
 // ─── Step 3 : Légal ───────────────────────────────────────────
-function Step3Legal({ onNext }: { onNext: () => void }) {
+function Step3Legal({ onNext }: { onNext: (codeParrain?: string) => void }) {
   const [cgu, setCgu] = useState(false);
   const [mandat, setMandat] = useState(false);
   const [competence, setCompetence] = useState(false);
+  const [codeParrain, setCodeParrain] = useState("");
 
   const allChecked = cgu && mandat && competence;
 
   const items = [
     {
       key: "cgu", checked: cgu, set: setCgu,
-      label: "J'accepte les Conditions Générales d'Utilisation",
+      label: (
+        <>
+          J'accepte les{" "}
+          <a href="/documents/cgu" target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="underline text-primary hover:text-primary/80">
+            Conditions Générales d'Utilisation
+          </a>
+        </>
+      ),
       info: "Les CGU définissent les droits et obligations entre vous et Colibri. Elles couvrent notamment la protection de vos données, les modalités de résiliation et la propriété intellectuelle.",
     },
     {
       key: "mandat", checked: mandat, set: setMandat,
-      label: "Je donne expressément mandat à Colibri pour générer mes factures en mon nom et encaisser les paiements via Stripe",
+      label: (
+        <>
+          J'accepte le{" "}
+          <a href="/documents/mandat-facturation" target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="underline text-primary hover:text-primary/80">
+            contrat de mandat de facturation
+          </a>
+          {" "}(Art. 289 I-2 CGI) autorisant Colibri à émettre des factures et encaisser les paiements en mon nom
+        </>
+      ),
       info: "Le mandat de facturation (Art. 289 I-2 CGI) autorise Colibri à émettre des factures en votre nom. Vous restez juridiquement responsable et recevez une copie de chaque facture. Le mandat est révocable à tout moment.",
     },
     {
@@ -119,10 +140,26 @@ function Step3Legal({ onNext }: { onNext: () => void }) {
         ))}
       </div>
 
+      {/* Code parrain optionnel */}
+      <div className="border-t border-border pt-5">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Code de parrainage <span className="text-muted-foreground font-normal">(facultatif)</span>
+        </label>
+        <input
+          type="text"
+          value={codeParrain}
+          onChange={(e) => setCodeParrain(e.target.value.toUpperCase())}
+          placeholder="Ex : A3B7F2C1"
+          maxLength={8}
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 uppercase"
+        />
+        <p className="text-xs text-muted-foreground mt-1">Si un collègue vous a invité, entrez son code ici.</p>
+      </div>
+
       <button
         type="button"
         disabled={!allChecked}
-        onClick={onNext}
+        onClick={() => onNext(codeParrain.trim() || undefined)}
         className="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2"
       >
         Étape suivante <ChevronRight className="w-4 h-4" />
@@ -175,7 +212,7 @@ function Step2Siret({ onNext, onSkip, prenom }: { onNext: (data: { siret: string
         a?.libelleVoieEtablissement,
         a?.codePostalEtablissement,
         a?.libelleCommuneEtablissement,
-      ].filter(Boolean).join(" ");
+      ].filter((v): v is string => !!v && v !== "[ND]").join(" ");
 
       setResult({ nom_entreprise, adresse });
     } catch (e) {
@@ -253,53 +290,72 @@ function Step2Siret({ onNext, onSkip, prenom }: { onNext: (data: { siret: string
   );
 }
 
-// ─── Step 4 : Stripe ─────────────────────────────────────────
-function Step4Stripe({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
-  const [loading, setLoading] = useState(false);
+// ─── Step 4 : IBAN ───────────────────────────────────────────
+function Step4Iban({ onNext, onSkip }: { onNext: (iban: string) => void; onSkip: () => void }) {
+  const [iban, setIban] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleStripe() {
-    setLoading(true);
-    // TODO: appeler votre backend pour créer un Stripe Connect Express account
-    // et rediriger vers l'URL d'onboarding Stripe
-    // Pour l'instant on passe directement à l'étape suivante
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    onNext();
+  function formatIban(value: string) {
+    const clean = value.replace(/\s/g, "").toUpperCase();
+    return clean.match(/.{1,4}/g)?.join(" ") ?? clean;
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setIban(formatIban(e.target.value));
+    setError(null);
+  }
+
+  function handleSubmit() {
+    const clean = iban.replace(/\s/g, "");
+    if (clean.length < 15 || clean.length > 34) {
+      setError("Format IBAN invalide (15 à 34 caractères)");
+      return;
+    }
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(clean)) {
+      setError("L'IBAN doit commencer par un code pays (ex : FR76…)");
+      return;
+    }
+    onNext(clean);
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Configuration des paiements</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">Coordonnées bancaires</h2>
         <p className="text-sm text-muted-foreground">
-          Connectez votre compte bancaire via Stripe pour recevoir vos paiements et vérifier votre identité.
+          Renseignez votre IBAN pour recevoir vos paiements directement sur votre compte.
         </p>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-6 text-center">
-        <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
-          <CreditCard className="w-8 h-8 text-indigo-600" />
-        </div>
-        <h3 className="font-semibold text-gray-900 mb-2">Stripe Connect Express</h3>
-        <p className="text-sm text-muted-foreground mb-1">Vérification d'identité sécurisée</p>
-        <p className="text-sm text-muted-foreground">Renseignement de votre IBAN</p>
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+        <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-700">
+          Votre IBAN est utilisé uniquement pour vous virer vos paiements. Il n'est jamais partagé avec les familles.
+        </p>
       </div>
 
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
-        <p className="font-semibold">Ce que Stripe va vous demander :</p>
-        <p>· Votre IBAN pour recevoir les paiements</p>
-        <p>· Une pièce d'identité (carte nationale ou passeport)</p>
-        <p>· Une photo de votre visage pour vérification</p>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          IBAN <span className="text-muted-foreground font-normal">(ex : FR76 3000 6000 0112 3456 7890 189)</span>
+        </label>
+        <input
+          type="text"
+          value={iban}
+          onChange={handleChange}
+          placeholder="FR76 ···"
+          maxLength={42}
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/20 uppercase"
+        />
+        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
       </div>
 
       <button
         type="button"
-        onClick={handleStripe}
-        disabled={loading}
-        className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2"
+        disabled={!iban.trim()}
+        onClick={handleSubmit}
+        className="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2"
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
-        Configurer mon compte bancaire et valider mon identité
+        Enregistrer et continuer <ChevronRight className="w-4 h-4" />
       </button>
 
       <button type="button" onClick={onSkip}
@@ -408,15 +464,23 @@ export function OnboardingProf() {
   const handleSiretSkip = () =>
     setStep(4);
 
-  const handleLegalDone = () => {
+  const handleLegalDone = async (codeParrain?: string) => {
+    if (codeParrain && user) {
+      // Cherche le parrain par code et crée le lien parrainage
+      const { data: parrainId } = await supabase.rpc("find_parrain_by_code", { p_code: codeParrain });
+      if (parrainId && parrainId !== user.id) {
+        await supabase.from("profiles").update({ parrain_id: parrainId }).eq("id", user.id);
+        await supabase.from("parrainages").insert({ parrain_id: parrainId, filleul_id: user.id });
+      }
+    }
     setStep(3);
   };
 
-  const handleStripeDone = () =>
-    save({ onboarding_complete: true }, 5);
+  const handleIbanDone = (iban: string) =>
+    save({ iban, onboarding_complete: true }, 5);
 
-  const handleStripeSkip = () =>
-    setStep(5);
+  const handleIbanSkip = () =>
+    save({ onboarding_complete: true }, 5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E3F2FD] via-white to-[#F0F7FF] flex flex-col">
@@ -446,7 +510,7 @@ export function OnboardingProf() {
 
             {step === 2 && <Step3Legal onNext={handleLegalDone} />}
             {step === 3 && <Step2Siret onNext={handleSiretDone} onSkip={handleSiretSkip} prenom={prenom} />}
-            {step === 4 && <Step4Stripe onNext={handleStripeDone} onSkip={handleStripeSkip} />}
+            {step === 4 && <Step4Iban onNext={handleIbanDone} onSkip={handleIbanSkip} />}
             {step === 5 && <Step5Confirmation prenom={prenom} />}
           </div>
 

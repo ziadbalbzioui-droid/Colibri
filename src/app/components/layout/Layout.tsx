@@ -3,7 +3,7 @@ import { Outlet } from "react-router";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { SiretBanner } from "./SiretBanner";
-import { StripeBanner } from "./StripeBanner";
+import { IbanBanner } from "./StripeBanner";
 import logo from "@/assets/colibri.png";
 
 export function Layout() {
@@ -30,7 +30,7 @@ export function Layout() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
         <SiretBanner />
-        <StripeBanner />
+        <IbanBanner />
         <main className="flex-1 px-4 pt-18 pb-8 md:pt-8 md:px-8 max-w-[1400px] w-full mx-auto">
           <Outlet />
         </main>

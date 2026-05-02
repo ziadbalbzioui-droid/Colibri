@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation, useSearchParams } from "react-router";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "./LoadingGuard";
 
 /** Protects /app routes (Profs only) */
@@ -32,7 +32,10 @@ export function AuthGuard() {
   // 4. Séparation des rôles : les parents n'entrent pas ici
   if (profile.role === "parent") return <Navigate to="/parent" replace />;
 
-  // 5. Tout est parfait, on affiche le tableau de bord / les cours
+  // 5. Onboarding non complété → tunnel d'onboarding
+  if (!profile.onboarding_complete) return <Navigate to="/onboarding" replace />;
+
+  // 6. Tout est parfait, on affiche le tableau de bord / les cours
   return <Outlet />;
 }
 
@@ -72,13 +75,11 @@ export function OnboardingGuard() {
   }
 
   let isFullyOnboarded = profile.onboarding_complete;
-  console.log(profile.stripe_onboarding_complete)
   if (profile.role === "prof") {
-    isFullyOnboarded = (profile.onboarding_complete && profile.siret && profile.stripe_onboarding_complete);
+    isFullyOnboarded = !!(profile.onboarding_complete && profile.iban);
   }
 
   // Si l'onboarding est déjà fait, on le renvoie à sa place
-  // SAUF si un step spécifique est demandé (ex: retour depuis la bannière Stripe)
   if (isFullyOnboarded) {
     return <Navigate to={profile.role === "prof" ? "/app" : "/parent"} replace />;
   }
