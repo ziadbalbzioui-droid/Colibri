@@ -395,10 +395,9 @@ export function Tarifs() {
               </p>
               <div className="flex items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
                 <span className="font-bold text-lg tracking-tighter text-slate-800">URSSAF</span>
-                <span className="font-bold text-lg tracking-tighter text-slate-800">Stripe</span>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
@@ -432,7 +431,7 @@ export function Tarifs() {
               © 2026 Colibri SAS. Entreprise mandataire de Services à la Personne.
             </p>
             <p className="text-xs text-slate-400">
-              Transactions sécurisées par Stripe.
+              Paiements sécurisés par virement bancaire.
             </p>
           </div>
         </div>

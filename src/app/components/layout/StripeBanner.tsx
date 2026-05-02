@@ -1,13 +1,13 @@
-import { AlertTriangle, CreditCard } from "lucide-react";
+import { AlertTriangle, Landmark } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../../lib/auth";
 
-export function StripeBanner() {
+export function IbanBanner() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
   if (profile?.role !== "prof") return null;
-  if (profile?.stripe_onboarding_complete === true) return null;
+  if (profile?.iban) return null;
   if (!profile?.siret) return null;
 
   return (
@@ -16,16 +16,16 @@ export function StripeBanner() {
         <div className="flex items-start gap-2 flex-1 min-w-0">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Paiements non configurés.</span>{" "}
-            Connectez votre compte Stripe pour recevoir vos paiements et vérifier votre identité.
+            <span className="font-semibold">IBAN non renseigné.</span>{" "}
+            Ajoutez votre IBAN pour recevoir vos paiements sur votre compte bancaire.
           </p>
         </div>
         <button
-          onClick={() => navigate("/onboarding?step=4")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+          onClick={() => navigate("/onboarding")}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors shrink-0"
         >
-          <CreditCard className="w-3.5 h-3.5" />
-          Connecter Stripe
+          <Landmark className="w-3.5 h-3.5" />
+          Renseigner mon IBAN
         </button>
       </div>
     </div>

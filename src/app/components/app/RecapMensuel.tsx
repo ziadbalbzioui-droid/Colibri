@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useCours } from "../../../lib/hooks/useCours";
 import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
+import { useAuth } from "../../../lib/auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,8 +27,10 @@ function formatDate(dateStr: string) {
 export function RecapMensuel() {
   const { eleveId, mois, annee } = useParams<{ eleveId: string; mois: string; annee: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { cours } = useCours();
   const { validerMois } = useRecapMensuel();
+  const hasIban = !!profile?.iban;
   const [saving, setSaving] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [monthValidationError, setMonthValidationError] = useState<string | null>(null);
@@ -152,7 +155,8 @@ export function RecapMensuel() {
       {/* Action */}
       <button
         onClick={handleValiderClick}
-        disabled={saving || coursDuMois.length === 0}
+        disabled={saving || coursDuMois.length === 0 || !hasIban}
+        title={!hasIban ? "Renseignez votre IBAN pour pouvoir clore un mois" : undefined}
         className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
         style={{ fontWeight: 500 }}
       >

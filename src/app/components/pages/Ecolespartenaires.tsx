@@ -251,7 +251,7 @@ export function EcolesPartenaires() {
                 </div>
                 <h4 className="font-bold text-slate-900 text-lg mb-3">Sécurité et Légalité</h4>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Extrait de casier judiciaire vierge obligatoire, couplé à une vérification d'identité stricte (KYC) par notre partenaire bancaire Stripe.
+                  Extrait de casier judiciaire vierge obligatoire, couplé à une vérification d'identité stricte pour garantir la sécurité des élèves.
                 </p>
               </div>
 
@@ -297,10 +297,9 @@ export function EcolesPartenaires() {
               </p>
               <div className="flex items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
                 <span className="font-bold text-lg tracking-tighter text-slate-800">URSSAF</span>
-                <span className="font-bold text-lg tracking-tighter text-slate-800">Stripe</span>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
@@ -334,7 +333,7 @@ export function EcolesPartenaires() {
               © 2026 Colibri SAS. Entreprise mandataire de Services à la Personne.
             </p>
             <p className="text-xs text-slate-400">
-              Transactions sécurisées par Stripe.
+              Paiements sécurisés par virement bancaire.
             </p>
           </div>
         </div>

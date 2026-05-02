@@ -56,6 +56,7 @@ export function Cours() {
   const { eleves } = useEleves();
   const { recaps, validerMois } = useRecapMensuel();
   const hasSiret = !!profile?.siret;
+  const hasIban = !!profile?.iban;
 
   const today = new Date();
   const [showModal, setShowModal] = useState(false);
@@ -357,7 +358,12 @@ export function Cours() {
               {recapModal?.recapStatut === "en_cours" ? (
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={() => { setRecapModal(null); setMonthError(null); }} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
-                  <button onClick={handleValiderClick} disabled={validating} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating ? 0.5 : 1 }}>
+                  <button
+                    onClick={handleValiderClick}
+                    disabled={validating || !hasIban}
+                    title={!hasIban ? "Renseignez votre IBAN pour pouvoir clore un mois" : undefined}
+                    style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: validating || !hasIban ? 0.4 : 1 }}
+                  >
                     {validating && <Loader2 className="w-4 h-4 animate-spin" />}Valider le mois
                   </button>
                 </div>

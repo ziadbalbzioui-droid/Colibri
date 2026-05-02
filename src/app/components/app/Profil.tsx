@@ -44,9 +44,6 @@ export function Profil() {
     etablissement: "", niveau_etudes: "", siret: "", adresse: "", iban: "",
   });
 
-  const stripeConfigured = profile?.stripe_onboarding_complete === true;
-  const stripePending = !!profile?.stripe_account_id && !stripeConfigured;
-
   useEffect(() => {
     if (profile) {
       setForm({
@@ -195,16 +192,18 @@ export function Profil() {
             <input style={S.input} value={form.siret} onChange={(e) => setForm({ ...form, siret: e.target.value })} placeholder="123 456 789 00012" />
           </div>
           <div style={{ marginBottom: 14 }}>
-            <label style={S.label}>Compte bancaire &amp; Identité</label>
-            {stripeConfigured ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13 }}>
-                <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />
-                <span style={{ color: "#059669", fontWeight: 600 }}>Compte Stripe connecté et vérifié</span>
+            <label style={S.label}>IBAN</label>
+            <input
+              style={{ ...S.input, fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase" }}
+              value={form.iban}
+              onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })}
+              placeholder="FR76 3000 6000 0112 3456 7890 189"
+            />
+            {form.iban && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 11, color: "#059669" }}>
+                <CheckCircle2 style={{ width: 12, height: 12 }} />
+                IBAN renseigné
               </div>
-            ) : (
-              <button onClick={() => navigate("/onboarding?step=4")} style={{ ...S.btnPrimary, fontSize: 12 }}>
-                {stripePending ? "Finaliser la connexion Stripe" : "Connecter Stripe"}
-              </button>
             )}
           </div>
           <div style={{ marginBottom: 14 }}>

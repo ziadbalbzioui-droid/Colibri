@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, X, ChevronRight, Copy, Save, Loader2 } from "lucide-react";
+import { Search, Plus, X, ChevronRight, Copy } from "lucide-react";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import { useAuth } from "../../../lib/auth";
@@ -47,20 +47,17 @@ function StatutBadge({ statut }: { statut: string }) {
 
 export function Eleves() {
   const { profile } = useAuth();
-  const { eleves, loading, error, reload, addEleve, updateNotes, updateTags, updateCoordinates } = useEleves();
+  const { eleves, loading, error, reload, addEleve } = useEleves();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [newTag, setNewTag] = useState("");
   const [matiereInput, setMatiereInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [parentsMap, setParentsMap] = useState<Record<string, boolean>>({});
   const [parentContacts, setParentContacts] = useState<Record<string, any>>({});
-  const [coordsForm, setCoordsForm] = useState({ telephone: "", email: "", adresse: "" });
-  const [savingCoords, setSavingCoords] = useState(false);
 
   useEffect(() => {
     async function fetchParents() {
@@ -73,14 +70,6 @@ export function Eleves() {
 
   useEffect(() => {
     if (!selectedId) return;
-    const eleve = eleves.find((e: EleveRow) => e.id === selectedId);
-    if (eleve) {
-      setCoordsForm({
-        telephone: eleve.telephone_eleve ?? "",
-        email: eleve.email_eleve ?? "",
-        adresse: eleve.adresse_eleve ?? "",
-      });
-    }
     (async () => {
       const { data: pe } = await supabase
         .from("parent_eleve")
@@ -99,8 +88,7 @@ export function Eleves() {
 
   const filtered = eleves.filter((e: EleveRow) =>
     e.nom.toLowerCase().includes(search.toLowerCase()) ||
-    e.matiere.toLowerCase().includes(search.toLowerCase()) ||
-    e.tags.some((t: string) => t.toLowerCase().includes(search.toLowerCase()))
+    e.matiere.toLowerCase().includes(search.toLowerCase())
   );
 
   const selectedEleve = eleves.find((e: EleveRow) => e.id === selectedId) ?? null;
@@ -114,18 +102,6 @@ export function Eleves() {
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Erreur lors de l'ajout");
     } finally { setSaving(false); }
-  }
-
-  async function handleAddTag(id: string, tag: string) {
-    const t = tag.trim(); if (!t) return;
-    const eleve = eleves.find((e: EleveRow) => e.id === id);
-    if (eleve && !eleve.tags.includes(t)) await updateTags(id, [...eleve.tags, t]);
-    setNewTag("");
-  }
-
-  async function handleRemoveTag(id: string, tag: string) {
-    const eleve = eleves.find((e: EleveRow) => e.id === id);
-    if (eleve) await updateTags(id, eleve.tags.filter((t: string) => t !== tag));
   }
 
   return (
@@ -150,7 +126,7 @@ export function Eleves() {
               <Search style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#94A3B8" }} />
               <input
                 style={{ ...S.input, paddingLeft: 36 }}
-                placeholder="Rechercher un élève, matière, tag..."
+                placeholder="Rechercher un élève ou une matière..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -173,13 +149,6 @@ export function Eleves() {
                     onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{e.nom}</div>
-                      {e.tags.length > 0 && (
-                        <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                          {e.tags.slice(0, 2).map((t: string) => (
-                            <span key={t} style={{ fontSize: 10, background: "#EFF6FF", color: "#1E3A8A", padding: "1px 6px", borderRadius: 99 }}>{t}</span>
-                          ))}
-                        </div>
-                      )}
                     </td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.niveau}</td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.matiere}</td>
@@ -220,92 +189,28 @@ export function Eleves() {
                   ))}
                 </div>
 
-                {/* Tags */}
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 10 }}>Tags</h3>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                    {selectedEleve.tags.map((t: string) => (
-                      <span key={t} style={{ ...S.badge("#EFF6FF", "#1E3A8A"), cursor: "pointer" }} onClick={() => handleRemoveTag(selectedEleve.id, t)}>
-                        {t} <X style={{ width: 10, height: 10 }} />
-                      </span>
-                    ))}
-                    {selectedEleve.tags.length === 0 && <span style={{ fontSize: 12, color: "#94A3B8" }}>Aucun tag</span>}
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input style={{ ...S.input, flex: 1 }} placeholder="Nouveau tag..." value={newTag} onChange={(e) => setNewTag(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleAddTag(selectedEleve.id, newTag)} />
-                    <button style={S.btnGhost} onClick={() => handleAddTag(selectedEleve.id, newTag)}>+</button>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 8 }}>Notes privées</h3>
-                  <textarea
-                    style={{ ...S.input, resize: "none", height: 96 }}
-                    defaultValue={selectedEleve.notes ?? ""}
-                    placeholder="Notes privées sur cet élève..."
-                    onBlur={(e) => updateNotes(selectedEleve.id, e.target.value)}
-                  />
-                </div>
-
                 {/* Coordonnées */}
                 <div style={{ marginBottom: 20 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 10 }}>Coordonnées</h3>
 
-                  {/* Élève — champs éditables */}
+                  {/* Élève — lecture seule */}
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ ...S.eyebrow, marginBottom: 8 }}>Élève</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div>
-                        <label style={{ ...S.label, fontSize: 11 }}>Téléphone</label>
-                        <input
-                          style={S.input}
-                          placeholder="06 12 34 56 78"
-                          value={coordsForm.telephone}
-                          onChange={(e) => setCoordsForm((f) => ({ ...f, telephone: e.target.value }))}
-                        />
+                    {selectedEleve.telephone_eleve || selectedEleve.email_eleve || selectedEleve.adresse_eleve ? (
+                      <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "12px 14px" }}>
+                        {selectedEleve.telephone_eleve && (
+                          <p style={{ fontSize: 13, color: "#334155", marginBottom: 3 }}>📞 {selectedEleve.telephone_eleve}</p>
+                        )}
+                        {selectedEleve.email_eleve && (
+                          <p style={{ fontSize: 13, color: "#334155", marginBottom: 3 }}>✉️ {selectedEleve.email_eleve}</p>
+                        )}
+                        {selectedEleve.adresse_eleve && (
+                          <p style={{ fontSize: 13, color: "#334155" }}>📍 {selectedEleve.adresse_eleve}</p>
+                        )}
                       </div>
-                      <div>
-                        <label style={{ ...S.label, fontSize: 11 }}>Email</label>
-                        <input
-                          style={S.input}
-                          type="email"
-                          placeholder="eleve@email.com"
-                          value={coordsForm.email}
-                          onChange={(e) => setCoordsForm((f) => ({ ...f, email: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ ...S.label, fontSize: 11 }}>Adresse</label>
-                        <input
-                          style={S.input}
-                          placeholder="12 rue de la Paix, 75001 Paris"
-                          value={coordsForm.adresse}
-                          onChange={(e) => setCoordsForm((f) => ({ ...f, adresse: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        setSavingCoords(true);
-                        try {
-                          await updateCoordinates(selectedEleve.id, {
-                            telephone_eleve: coordsForm.telephone || undefined,
-                            email_eleve: coordsForm.email || undefined,
-                            adresse_eleve: coordsForm.adresse || undefined,
-                          });
-                          toast.success("Coordonnées mises à jour");
-                        } finally {
-                          setSavingCoords(false);
-                        }
-                      }}
-                      disabled={savingCoords}
-                      style={{ ...S.btnGhost, fontSize: 12, padding: "7px 14px", marginTop: 10, width: "100%", justifyContent: "center" }}
-                    >
-                      {savingCoords ? <Loader2 style={{ width: 13, height: 13 }} className="animate-spin" /> : <Save style={{ width: 13, height: 13 }} />}
-                      Enregistrer
-                    </button>
+                    ) : (
+                      <p style={{ fontSize: 12, color: "#94A3B8" }}>Aucune coordonnée renseignée</p>
+                    )}
                   </div>
 
                   {/* Parent — lecture seule */}
@@ -333,11 +238,11 @@ export function Eleves() {
                   <div style={{ ...S.eyebrow, color: "#1E3A8A", marginBottom: 8 }}>Code d'accès Parent</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontFamily: "monospace", fontSize: 20, fontWeight: 700, letterSpacing: ".2em", color: "#0F172A" }}>
-                      COL-{selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase()}
+                      {selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase()}
                     </div>
                     <button
                       onClick={() => {
-                        const code = `COL-${selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase()}`;
+                        const code = selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase();
                         navigator.clipboard.writeText(code);
                         toast.success("Code copié !");
                       }}

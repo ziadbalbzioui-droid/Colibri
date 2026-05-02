@@ -217,7 +217,7 @@ export function Dashboard() {
               <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 8, lineHeight: 1, color: "#0F172A" }}>
                 {Math.round(brutThisMonth * 0.3)}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
               </div>
-              <p style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>Collectés par Stripe, versés automatiquement sur votre compte.</p>
+              <p style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>Versés automatiquement sur votre compte bancaire.</p>
               <div style={{ marginTop: 14, padding: "9px 12px", background: "#fff", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
                 <CreditCard className="w-3.5 h-3.5" /> IBAN · {profile?.iban ? profile.iban.slice(-4) : "****"}
               </div>

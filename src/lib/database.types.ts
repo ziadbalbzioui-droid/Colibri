@@ -42,6 +42,11 @@ export interface Database {
         Insert: Omit<PapsAnnonce, "id" | "created_at">;
         Update: Partial<Omit<PapsAnnonce, "id" | "created_at" | "prof_id">>;
       };
+      paps_candidatures: {
+        Row: PapsCandidature;
+        Insert: Omit<PapsCandidature, "id" | "created_at">;
+        Update: never;
+      };
       parent_eleve: {
         Row: ParentEleve;
         Insert: Omit<ParentEleve, "id" | "created_at">;
@@ -171,6 +176,21 @@ export interface LigneFacture {
   matiere: string;
   heures: number;
   tarif_heure: number;
+}
+
+export interface PapsCandidature {
+  id: string;
+  annonce_id: string;
+  candidat_id: string;
+  message: string;
+  created_at: string;
+}
+
+export interface PapsCandidatureWithProfile extends PapsCandidature {
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
 }
 
 export interface PapsAnnonce {
