@@ -255,12 +255,23 @@ export function Cours() {
           {selectedDay && selectedCoursItems.length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #E2E8F0" }}>
               <p style={{ fontSize: 12, color: "#64748B", marginBottom: 10 }}>Cours du {formatDate(selectedDay)}</p>
-              {selectedCoursItems.map((c: CoursRow) => (
-                <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#F1F5F9", borderRadius: 10, marginBottom: 6 }}>
-                  <div><span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{c.eleve_nom}</span><span style={{ color: "#64748B", fontSize: 12, marginLeft: 8 }}>{c.matiere} · {c.duree}</span></div>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{c.montant} €</span>
-                </div>
-              ))}
+              {selectedCoursItems.map((c: CoursRow) => {
+                const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                const taux = getTauxPlusvalue(grille, tarifH);
+                const netProf = Math.round(c.montant * (1 + taux));
+                return (
+                  <div key={c.id} style={{ padding: "10px 14px", background: "#F1F5F9", borderRadius: 10, marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{c.eleve_nom}</span>
+                      <span style={{ color: "#64748B", fontSize: 12 }}>{c.matiere} · {c.duree}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.montant}€ famille</span>
+                      <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
           {selectedDay && selectedCoursItems.length === 0 && (
@@ -283,14 +294,21 @@ export function Cours() {
                 </div>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
-                    {items.map((c: CoursRow) => (
-                      <tr key={c.id}>
-                        <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{formatDate(c.date)}</td>
-                        <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.matiere}</td>
-                        <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.duree}</td>
-                        <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.montant} €</td>
-                      </tr>
-                    ))}
+                    {items.map((c: CoursRow) => {
+                      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                      const taux = getTauxPlusvalue(grille, tarifH);
+                      const netProf = Math.round(c.montant * (1 + taux));
+                      return (
+                        <tr key={c.id}>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{formatDate(c.date)}</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.matiere}</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.duree}</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 12, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.montant}€ famille</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -341,20 +359,45 @@ export function Cours() {
                   <div key={nom} style={{ marginBottom: 16 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                       <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{nom}</span>
-                      <span style={{ fontSize: 13, color: "#64748B" }}>{items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>
+                        {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")}€ famille · {items.reduce((s, c) => {
+                          const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                          return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                        }, 0).toLocaleString("fr-FR")}€ net
+                      </span>
                     </div>
-                    {items.map((c) => (
-                      <div key={c.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, color: "#64748B" }}>{formatDate(c.date)} · {c.matiere} · {c.duree}</span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "#0F172A" }}>{c.montant} €</span>
-                      </div>
-                    ))}
+                    {items.map((c) => {
+                      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                      const taux = getTauxPlusvalue(grille, tarifH);
+                      const netProf = Math.round(c.montant * (1 + taux));
+                      return (
+                        <div key={c.id} style={{ padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                            <span style={{ fontSize: 13, color: "#64748B" }}>{formatDate(c.date)} · {c.matiere} · {c.duree}</span>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: "#0F172A" }}>{c.montant}€ famille</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 11, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</span>
+                            <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
-              <div style={{ paddingTop: 16, borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                <span style={{ fontWeight: 700, color: "#0F172A" }}>Total</span>
-                <span style={{ fontWeight: 700, color: "#0F172A" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
+              <div style={{ paddingTop: 16, borderTop: "1px solid #E2E8F0", marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: "#64748B" }}>Total famille</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#64748B" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontWeight: 700, color: "#0F172A" }}>Votre net</span>
+                  <span style={{ fontWeight: 700, color: "#16A34A" }}>{recapModal.coursList.reduce((s, c) => {
+                    const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                    return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                  }, 0).toLocaleString("fr-FR")} €</span>
+                </div>
               </div>
               {monthError && (
                 <div style={{ marginBottom: 12, padding: "10px 14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, fontSize: 13, color: "#B91C1C" }}>
@@ -454,10 +497,24 @@ export function Cours() {
                   </div>
                 </div>
                 <div><label style={S.label}>Tarif / heure — net parent (€)</label><input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} /></div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10 }}>
-                  <span style={{ fontSize: 13, color: "#1E3A8A" }}>Montant estimé</span>
-                  <span style={{ fontWeight: 700, color: "#1E3A8A" }}>{(form.tarif_heure * (form.duree_minutes / 60)).toFixed(2)} €</span>
-                </div>
+                {(() => {
+                  const heures = form.duree_minutes / 60;
+                  const montantFamille = form.tarif_heure * heures;
+                  const taux = getTauxPlusvalue(grille, form.tarif_heure);
+                  const netProf = Math.round(montantFamille * (1 + taux));
+                  return (
+                    <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#1E3A8A", marginBottom: 6 }}>
+                        <span>Prix famille ({form.tarif_heure}€/h × {formatDuree(form.duree_minutes)})</span>
+                        <span style={{ fontWeight: 700 }}>{montantFamille.toFixed(2)} €</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                        <span style={{ color: "#059669" }}>Votre net (+{Math.round(taux * 100)}% plus-value)</span>
+                        <span style={{ fontWeight: 700, color: "#059669" }}>{netProf} €</span>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={() => setShowModal(false)} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
                   <button onClick={handleAdd} disabled={!isFormValid || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!isFormValid || saving) ? 0.5 : 1 }}>

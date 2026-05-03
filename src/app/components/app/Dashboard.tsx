@@ -8,7 +8,6 @@ import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGri
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 
-const URSSAF = 0.211;
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
 const dureeToHours: Record<string, number> = {
@@ -145,7 +144,7 @@ export function Dashboard() {
     }, 0),
     [coursThisMonth, grille]
   );
-  const netThisMonth = Math.round(revenuBrutMois * (1 - URSSAF));
+  const netThisMonth = Math.round(revenuBrutMois);
   const heuresThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0), [coursThisMonth]);
   const elevesActifs = useMemo(() => eleves.filter((e: EleveRow) => e.statut === "actif").length, [eleves]);
 
@@ -213,7 +212,7 @@ export function Dashboard() {
                 {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
               </div>
               <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
-                Soit <strong>{Math.round(revenuBrutMois).toLocaleString("fr-FR")}&nbsp;€</strong> brut avec votre commission Colibri, déclaré à l'URSSAF.
+                Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci, commission Colibri incluse.
               </p>
               <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
                 <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
@@ -249,19 +248,26 @@ export function Dashboard() {
               <p style={{ fontSize: 13, color: "#64748B", padding: "0 24px 24px" }}>Aucun cours planifié.</p>
             ) : (
               <div style={{ padding: "0 24px 24px" }}>
-                {upcomingCours.map((c: CoursRow, i: number) => (
-                  <div key={c.id} style={{ display: "grid", gridTemplateColumns: "110px 1fr auto", gap: 14, alignItems: "center", padding: "14px 0", borderBottom: i < upcomingCours.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                    <div>
-                      <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>{dayLabel(c.date)}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, color: "#0F172A" }}>{c.duree}</div>
+                {upcomingCours.map((c: CoursRow, i: number) => {
+                  const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                  const taux = getTauxPlusvalue(grille, tarifH);
+                  const netProf = Math.round(c.montant * (1 + taux));
+                  return (
+                    <div key={c.id} style={{ display: "grid", gridTemplateColumns: "90px 1fr auto", gap: 14, alignItems: "start", padding: "14px 0", borderBottom: i < upcomingCours.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>{dayLabel(c.date)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.eleve_nom}</div>
+                        <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{c.matiere} · {Math.round(tarifH)}€/h · {c.duree}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, color: "#64748B" }}>{c.montant}€ <span style={{ fontSize: 10, color: "#94A3B8" }}>famille</span></div>
+                        <div style={{ fontSize: 11, color: "#16A34A", marginTop: 2 }}>+{Math.round(taux * 100)}% → {netProf}€ net</div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: "#0F172A" }}>{c.eleve_nom}</div>
-                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{c.matiere}</div>
-                    </div>
-                    <div style={{ ...S.serif, fontSize: 20, color: "#1E3A8A" }}>{c.montant}€</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -277,14 +283,25 @@ export function Dashboard() {
               <p style={{ fontSize: 13, color: "#94A3B8" }}>Aucun cours enregistré.</p>
             ) : (
               <>
-                {recentCours.map((c: CoursRow, i: number) => (
-                  <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 0", borderBottom: i < recentCours.length - 1 ? "1px dashed #E2E8F0" : "none" }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                      {c.eleve_nom}<span style={{ fontWeight: 400, color: "#94A3B8", marginLeft: 6 }}>· {c.matiere}</span>
+                {recentCours.map((c: CoursRow, i: number) => {
+                  const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+                  const taux = getTauxPlusvalue(grille, tarifH);
+                  const netProf = Math.round(c.montant * (1 + taux));
+                  return (
+                    <div key={c.id} style={{ padding: "10px 0", borderBottom: i < recentCours.length - 1 ? "1px dashed #E2E8F0" : "none" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                          {c.eleve_nom}<span style={{ fontWeight: 400, color: "#94A3B8", marginLeft: 6 }}>· {c.matiere}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "#64748B" }}>{c.montant}€ famille</div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.duree}</div>
+                        <div style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</div>
+                      </div>
                     </div>
-                    <div style={{ ...S.serif, fontSize: 16, color: "#0F172A" }}>+{c.montant}€</div>
-                  </div>
-                ))}
+                  );
+                })}
                 <p style={{ marginTop: 16, fontSize: 12, color: "#64748B" }}>
                   {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}&nbsp;€
                 </p>
@@ -346,10 +363,24 @@ export function Dashboard() {
                 <div><label style={S.label}>Tarif / heure — net parent (€)</label>
                   <input type="number" style={S.input} value={coursForm.tarif_heure} onChange={(e) => setCoursForm({ ...coursForm, tarif_heure: Number(e.target.value) })} />
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10 }}>
-                  <span style={{ fontSize: 13, color: "#1E3A8A" }}>Montant estimé</span>
-                  <span style={{ fontWeight: 700, color: "#1E3A8A" }}>{(coursForm.tarif_heure * (dureeToHours[coursForm.duree] ?? 1)).toFixed(2)} €</span>
-                </div>
+                {(() => {
+                  const heures = dureeToHours[coursForm.duree] ?? 1;
+                  const montantFamille = coursForm.tarif_heure * heures;
+                  const taux = getTauxPlusvalue(grille, coursForm.tarif_heure);
+                  const netProf = Math.round(montantFamille * (1 + taux));
+                  return (
+                    <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "12px 14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#1E3A8A", marginBottom: 6 }}>
+                        <span>Prix famille ({coursForm.tarif_heure}€/h × {heures}h)</span>
+                        <span style={{ fontWeight: 700 }}>{montantFamille.toFixed(2)} €</span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                        <span style={{ color: "#059669" }}>Votre net (+{Math.round(taux * 100)}% plus-value)</span>
+                        <span style={{ fontWeight: 700, color: "#059669" }}>{netProf} €</span>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={closeModal} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
                   <button onClick={submitCours} disabled={!coursForm.matiere || !coursForm.date || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!coursForm.matiere || !coursForm.date || saving) ? 0.5 : 1 }}>

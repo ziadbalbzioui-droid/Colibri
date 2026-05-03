@@ -120,10 +120,16 @@ function MockDeclarerCours() {
           <label style={MS.label}>Tarif / heure (€) ⑤</label>
           <div style={MS.input}>30</div>
         </div>
-        {/* Montant estimé */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10, border: "1px solid #C7D8FB" }}>
-          <span style={{ fontSize: 13, color: "#1E3A8A" }}>Montant estimé ⑥</span>
-          <span style={{ fontWeight: 700, color: "#1E3A8A" }}>45,00 €</span>
+        {/* Résumé financier */}
+        <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "12px 14px", border: "1px solid #C7D8FB" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 13, color: "#1E3A8A" }}>Prix famille (30€/h × 1h30) ⑥</span>
+            <span style={{ fontWeight: 700, color: "#1E3A8A" }}>45,00 €</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "#059669" }}>Votre net (+28% plus-value) ⑦</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "#059669" }}>57,60 €</span>
+          </div>
         </div>
         {/* Boutons */}
         <div style={{ display: "flex", gap: 10 }}>
@@ -244,18 +250,10 @@ function MockDashboard() {
             </div>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {[
-            { label: "CA brut", value: "1 240 €", sub: "ce mois", icon: "💶", bg: "#fff", border: "#E2E8F0" },
-            { label: "Cotisations URSSAF", value: "−262 €", sub: "21,2% estimé", icon: "📋", bg: "#FFF7ED", border: "#FED7AA" },
-            { label: "Net estimé", value: "978 €", sub: "après charges", icon: "✅", bg: "#F0FDF4", border: "#BBF7D0" },
-          ].map((s, i) => (
-            <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 16, padding: 20 }}>
-              <p style={MS.eyebrow}>{s.label}</p>
-              <div style={{ ...MS.serif, fontSize: 30, letterSpacing: "-.02em", color: "#0F172A", margin: "8px 0 4px" }}>{s.value}</div>
-              <p style={{ fontSize: 12, color: "#94A3B8" }}>{s.sub}</p>
-            </div>
-          ))}
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 16, padding: 20 }}>
+          <p style={MS.eyebrow}>Revenu net du mois</p>
+          <div style={{ ...MS.serif, fontSize: 48, letterSpacing: "-.02em", color: "#0F172A", margin: "8px 0 4px" }}>978 €</div>
+          <p style={{ fontSize: 12, color: "#94A3B8" }}>Sur 10h de cours déclarés ce mois · commission Colibri incluse</p>
         </div>
       </div>
     </MockWrap>
@@ -554,7 +552,8 @@ const GUIDES: {
           { label: "Date", desc: "Date à laquelle le cours a eu lieu (ou est planifié)." },
           { label: "Durée (minutes)", desc: "Entrez la durée en minutes. Colibri convertit automatiquement : 90 = 1h30min." },
           { label: "Tarif / heure", desc: "Pré-rempli depuis le profil élève. Modifiez si ce cours a un tarif exceptionnel." },
-          { label: "Montant estimé", desc: "Calculé automatiquement : tarif × (durée ÷ 60). Mis à jour en temps réel." },
+          { label: "Prix famille", desc: "Calculé automatiquement : tarif × (durée ÷ 60). Mis à jour en temps réel." },
+          { label: "Votre net", desc: "Ce que vous toucherez après commission Colibri. La plus-value affichée dépend de votre tarif horaire et est déjà nette de cotisations URSSAF et d'impôts." },
         ],
       },
       {
@@ -569,12 +568,11 @@ const GUIDES: {
       },
       {
         title: "Suivez vos finances",
-        desc: "Le dashboard affiche en temps réel votre CA brut, les cotisations URSSAF estimées et votre net. Ces chiffres se calculent automatiquement à chaque cours enregistré.",
+        desc: "Le dashboard affiche en temps réel votre revenu net du mois. Ce montant se calcule automatiquement à chaque cours enregistré, en tenant compte de la plus-value Colibri — déjà nette de cotisations et d'impôts.",
         MockComponent: MockDashboard,
         fieldHints: [
-          { label: "CA brut", desc: "Total des montants des cours du mois en cours." },
-          { label: "Cotisations URSSAF", desc: "Estimation à 21,2% de votre CA brut. Sert de base à votre déclaration mensuelle ou trimestrielle." },
-          { label: "Net estimé", desc: "CA brut moins les cotisations. Votre revenu réel avant impôt sur le revenu." },
+          { label: "Revenu net du mois", desc: "Total de vos gains pour le mois, après application de la plus-value Colibri. C'est le montant qui arrivera sur votre compte bancaire." },
+          { label: "Plus-value Colibri", desc: "Pourcentage ajouté à chaque cours selon votre tarif horaire (plus le tarif est abordable, plus la subvention est forte). Il est calculé pour être déjà net de cotisations URSSAF et d'impôt sur le revenu." },
         ],
       },
       {
