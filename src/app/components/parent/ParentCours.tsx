@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, CheckCircle, Loader2, AlertCircle, X, FileText, AlertTriangle } from "lucide-react";
-import { Link } from "react-router";
+import { ChevronLeft, ChevronRight, BookOpen, CheckCircle, Loader2, AlertCircle, X, FileText, AlertTriangle, Flag } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 import type { ValidationWithRecap } from "../../../lib/hooks/useParentData";
@@ -85,7 +85,8 @@ function MiniCalendar({ year, month, activeDays }: { year: number; month: number
 }
 
 export function ParentCours() {
-  const { cours, children, validations, validerRecap, profile, loading } = useParentData();
+  const { cours, children, validations, validerRecap, loading } = useParentData();
+  const navigate = useNavigate();
   const [recapModal, setRecapModal] = useState<ValidationWithRecap | null>(null);
   const [validating, setValidating] = useState(false);
   const [validError, setValidError] = useState<string | null>(null);
@@ -97,9 +98,9 @@ export function ParentCours() {
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
 
   const profByEleve = Object.fromEntries(children.map((ch) => [ch.id, ch.prof_nom]));
-  const hasAvanceImmediate = profile?.urssaf_status === "active";
 
   const pending = validations.filter((v) => v.statut === "en_attente_parent");
+  const contested = validations.filter((v) => v.statut === "conteste");
 
   function moisLabel(v: ValidationWithRecap) {
     return `${MOIS[v.recap_mensuel.mois - 1]} ${v.recap_mensuel.annee}`;
@@ -195,7 +196,9 @@ export function ParentCours() {
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
                     <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                      {items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €
+                      {items.length} cours · {totalH}h ·{" "}
+                      <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>{totalM.toLocaleString("fr-FR")} €</span>
+                      {" "}<span style={{ color: "#16A34A", fontWeight: 600 }}>{Math.round(totalM * 0.5)} €</span>
                     </p>
                   </div>
                   <button
@@ -207,6 +210,29 @@ export function ParentCours() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Contested validations */}
+      {contested.length > 0 && (
+        <div style={{ background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 16, padding: "16px 20px" }}>
+          <p style={{ fontWeight: 600, fontSize: 13, color: "#9F1239", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+            <Flag style={{ width: 14, height: 14 }} />
+            {contested.length === 1 ? "1 mois contesté" : `${contested.length} mois contestés`}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {contested.map((r) => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 10, padding: "10px 14px", border: "1px solid #FECDD3" }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2, marginBottom: 0 }}>En cours de traitement par Colibri</p>
+                </div>
+                <span style={{ fontSize: 11, background: "#FFF1F2", color: "#9F1239", border: "1px solid #FECDD3", padding: "3px 10px", borderRadius: 8, fontWeight: 600 }}>
+                  Contesté
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -255,9 +281,9 @@ export function ParentCours() {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: "#64748B" }}>Montant brut</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{totalMontant} €</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", textDecoration: "line-through" }}>{totalMontant} €</span>
             </div>
-            {hasAvanceImmediate && totalMontant > 0 && (
+            {totalMontant > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", background: "#ECFDF5", borderRadius: 8, marginTop: 2 }}>
                 <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600 }}>Votre part (50%)</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#065F46" }}>{Math.round(totalMontant * 0.5)} €</span>
@@ -294,8 +320,8 @@ export function ParentCours() {
                     </p>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.montant} €</p>
-                    <p style={{ fontSize: 10, color: "#94A3B8", marginTop: 2, marginBottom: 0 }}>brut</p>
+                    <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>{Math.round(c.montant * 0.5)} €</p>
                   </div>
                 </div>
               );
@@ -381,7 +407,10 @@ export function ParentCours() {
                               {formatDateFull(c.date)} · {profNom}
                             </p>
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", flexShrink: 0 }}>{c.montant} €</span>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", margin: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+                          </div>
                         </div>
                       );
                     })}
@@ -391,26 +420,16 @@ export function ParentCours() {
                   <div style={{ margin: "14px 28px 0", background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                       <span style={{ fontSize: 13, color: "#64748B" }}>Total brut</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{totalM.toLocaleString("fr-FR")} €</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8", textDecoration: "line-through" }}>{totalM.toLocaleString("fr-FR")} €</span>
                     </div>
-                    {hasAvanceImmediate && (
-                      <>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                          <span style={{ fontSize: 13, color: "#64748B" }}>Prise en charge Urssaf (50%)</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{Math.round(totalM * 0.5)} €</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Votre part</span>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{partParent} €</span>
-                        </div>
-                      </>
-                    )}
-                    {!hasAvanceImmediate && (
-                      <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Total à payer</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{totalM.toLocaleString("fr-FR")} €</span>
-                      </div>
-                    )}
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>Prise en charge Urssaf (50%)</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{Math.round(totalM * 0.5)} €</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Votre part</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>{partParent} €</span>
+                    </div>
                   </div>
 
                   {/* ── Confirmation checkbox ── */}
@@ -434,19 +453,27 @@ export function ParentCours() {
                   )}
 
                   {/* ── Actions ── */}
-                  <div style={{ padding: "16px 28px 28px", display: "flex", gap: 10 }}>
-                    <button
-                      onClick={closeModal}
-                      style={{ flex: 1, padding: "12px", borderRadius: 14, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 14, color: "#64748B", fontWeight: 500 }}
-                    >
-                      Annuler
-                    </button>
+                  <div style={{ padding: "16px 28px 28px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={closeModal}
+                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 13, color: "#64748B", fontWeight: 500 }}
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={() => { closeModal(); navigate(`/parent/contestation/${recapModal.id}`); }}
+                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1.5px solid #FB923C", background: "#FFF7ED", cursor: "pointer", fontSize: 13, color: "#EA580C", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        <Flag style={{ width: 13, height: 13 }} /> Contester
+                      </button>
+                    </div>
                     <button
                       onClick={handleValider}
                       disabled={validating || !confirmed}
                       style={{
-                        flex: 2, background: confirmed ? "#2E6BEA" : "#94A3B8", color: "#fff",
-                        padding: "12px", borderRadius: 14, border: "none",
+                        width: "100%", background: confirmed ? "#2E6BEA" : "#94A3B8", color: "#fff",
+                        padding: "13px", borderRadius: 12, border: "none",
                         cursor: confirmed && !validating ? "pointer" : "not-allowed",
                         fontSize: 14, fontWeight: 600,
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,

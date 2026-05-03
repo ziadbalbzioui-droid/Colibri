@@ -1,28 +1,25 @@
 import { Link, useNavigate } from "react-router";
-import { Calendar, Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, BookOpen, Zap, Clock3 } from "lucide-react";
+import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useParentData } from "../../../lib/hooks/useParentData";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-function formatDate(d: string) {
-  const dt = new Date(d);
-  return `${dt.getDate()} ${MOIS[dt.getMonth()]}`;
-}
+const MATIERE_COLORS: Record<string, { bg: string; dot: string }> = {
+  "Mathématiques":   { bg: "#EFF6FF", dot: "#1D4ED8" },
+  "Physique-Chimie": { bg: "#F5F3FF", dot: "#7C3AED" },
+  "Français":        { bg: "#FFF7ED", dot: "#C2410C" },
+  "Histoire-Géo":    { bg: "#ECFDF5", dot: "#065F46" },
+  "Anglais":         { bg: "#F0FDF4", dot: "#15803D" },
+  "SVT":             { bg: "#FDF4FF", dot: "#A21CAF" },
+  "Philosophie":     { bg: "#FFF1F2", dot: "#BE123C" },
+};
 
 const S = {
-  card: {
-    background: "#fff",
-    border: "1px solid #E2E8F0",
-    borderRadius: 16,
-    boxShadow: "0 1px 3px rgba(15,23,42,.06)",
-  } as React.CSSProperties,
+  card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
   serif: { fontFamily: "'Fraunces', Georgia, serif" } as React.CSSProperties,
-  eyebrow: {
-    fontSize: 11, fontWeight: 700, letterSpacing: ".1em",
-    textTransform: "uppercase" as const, color: "#64748B",
-  } as React.CSSProperties,
+  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#64748B" } as React.CSSProperties,
 };
 
 export function ParentDashboard() {
@@ -35,8 +32,6 @@ export function ParentDashboard() {
   const prenom = profile?.prenom ?? "parent";
   const today = new Date();
 
-  const prochaines = cours.filter((c) => new Date(c.date) >= today).slice(0, 3);
-
   const heuresCeMois = cours
     .filter((c) => {
       const d = new Date(c.date);
@@ -44,46 +39,21 @@ export function ParentDashboard() {
     })
     .reduce((s, c) => s + c.duree_heures, 0);
 
+  const coursCeMois = cours.filter((c) => {
+    const d = new Date(c.date);
+    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  }).length;
+
   const enAttente = factures
     .filter((f) => f.statut === "en attente")
     .reduce((s, f) => s + f.montant_brut, 0);
 
-  const dernieresFactures = factures.slice(0, 2);
+  const dernieresFactures = factures.slice(0, 4);
 
   const weekLabel = (() => {
     const weekNum = Math.ceil((today.getDate() + new Date(today.getFullYear(), today.getMonth(), 1).getDay()) / 7);
     return `${today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · semaine ${weekNum}`;
   })();
-
-  const stats = [
-    {
-      label: "Prochaine séance",
-      value: prochaines[0] ? formatDate(prochaines[0].date) : "—",
-      sub: prochaines[0] ? prochaines[0].matiere : "Aucune planifiée",
-      icon: Calendar,
-      iconBg: "#EFF6FF", iconColor: "#2563EB",
-    },
-    {
-      label: "Heures ce mois",
-      value: `${heuresCeMois.toFixed(1)}h`,
-      sub: `${cours.filter((c) => {
-        const d = new Date(c.date);
-        return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-      }).length} séances`,
-      icon: Clock,
-      iconBg: "#F0FDF4", iconColor: "#16A34A",
-    },
-    {
-      label: "Montant en attente",
-      value: enAttente > 0 ? `${enAttente} €` : "À jour",
-      sub: enAttente > 0
-        ? `Avec avance immédiate : ${Math.round(enAttente * 0.5)} €`
-        : "Tout est payé ✓",
-      icon: CreditCard,
-      iconBg: enAttente > 0 ? "#FFFBEB" : "#F0FDF4",
-      iconColor: enAttente > 0 ? "#D97706" : "#16A34A",
-    },
-  ];
 
   return (
     <LoadingGuard loading={loading}>
@@ -94,48 +64,51 @@ export function ParentDashboard() {
           <button
             type="button"
             onClick={() => navigate("/parent/profil")}
-            style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFFBEB", border: "2px solid #FCD34D", borderRadius: 16, padding: "14px 20px", cursor: "pointer", textAlign: "left", width: "100%" }}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 14, padding: "12px 16px", cursor: "pointer", textAlign: "left", width: "100%" }}
           >
-            <div style={{ width: 40, height: 40, background: "#FDE68A", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Clock3 style={{ width: 20, height: 20, color: "#92400E" }} />
+            <div style={{ width: 34, height: 34, background: "#FDE68A", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Clock style={{ width: 16, height: 16, color: "#92400E" }} />
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontWeight: 600, color: "#92400E", fontSize: 13, margin: 0 }}>
                 Compte Urssaf en attente d'activation
               </p>
               <p style={{ fontSize: 11, color: "#B45309", marginTop: 2, marginBottom: 0 }}>
-                Cliquez ici pour terminer l'activation et débloquer toutes les fonctionnalités
+                Consultez votre boîte mail pour finaliser l'activation
               </p>
             </div>
-            <ChevronRight style={{ width: 18, height: 18, color: "#B45309", flexShrink: 0 }} />
+            <ChevronRight style={{ width: 16, height: 16, color: "#B45309", flexShrink: 0 }} />
           </button>
         )}
 
         {/* CTA: Activate service */}
         {needsActivation && (
-          <div style={{ ...S.card, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 38, height: 38, background: "#EFF6FF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Zap style={{ width: 18, height: 18, color: "#2563EB" }} />
+          <button
+            type="button"
+            onClick={() => navigate("/parent/activation")}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFF7ED", border: "1.5px solid #FB923C", borderRadius: 14, padding: "12px 16px", cursor: "pointer", textAlign: "left", width: "100%" }}
+          >
+            <div style={{ width: 34, height: 34, background: "#FED7AA", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Zap style={{ width: 16, height: 16, color: "#EA580C" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>Activez l'avance immédiate</p>
-              <p style={{ fontSize: 12, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                Bénéficiez de 50% de réduction directement sur chaque facture — dispositif officiel Urssaf
+              <p style={{ fontWeight: 700, color: "#EA580C", fontSize: 13, margin: 0 }}>
+                Activez l'avance immédiate pour utiliser Colibri
+              </p>
+              <p style={{ fontSize: 11, color: "#C2410C", marginTop: 2, marginBottom: 0 }}>
+                50% de réduction sur chaque facture · Requis pour accéder aux paiements
               </p>
             </div>
-            <button
-              onClick={() => navigate("/parent/activation")}
-              style={{ flexShrink: 0, background: "#2E6BEA", color: "#fff", fontWeight: 600, fontSize: 12, padding: "7px 14px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
-            >
-              Activer <ChevronRight style={{ width: 14, height: 14 }} />
-            </button>
-          </div>
+            <div style={{ flexShrink: 0, background: "#EA580C", color: "#fff", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 10, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              Activer <ChevronRight style={{ width: 13, height: 13 }} />
+            </div>
+          </button>
         )}
 
         <div style={{ opacity: isActivationPending ? 0.4 : 1, pointerEvents: isActivationPending ? "none" : "auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
           {/* Header */}
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 4 }}>
             <p style={{ ...S.eyebrow, marginBottom: 10 }}>{weekLabel}</p>
             <h1 style={{ ...S.serif, fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: "-.02em", color: "#0F172A", margin: 0 }}>
               Bonjour, {prenom}<br />
@@ -159,120 +132,117 @@ export function ParentDashboard() {
           ) : (
             <>
               {/* Children cards */}
-              <div style={{ display: "grid", gridTemplateColumns: children.length > 1 ? "1fr 1fr" : "1fr", gap: 16 }}>
-                {children.map((child) => (
-                  <div key={child.id} style={{ background: "linear-gradient(135deg, #2E6BEA, #1565C0)", borderRadius: 20, padding: 24, color: "#fff" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{ width: 56, height: 56, background: "rgba(255,255,255,.2)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 700, flexShrink: 0 }}>
-                          {child.nom.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <h2 style={{ ...S.serif, fontSize: 20, fontWeight: 400, color: "#fff", margin: 0 }}>{child.nom}</h2>
-                          <p style={{ color: "#BFDBFE", fontSize: 13, marginTop: 2, marginBottom: 0 }}>{child.niveau}</p>
-                          <p style={{ color: "#BFDBFE", fontSize: 11, marginTop: 2, marginBottom: 0 }}>Prof : {child.prof_nom}</p>
-                        </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {children.map((child) => {
+                  const colors = MATIERE_COLORS[child.matiere] ?? { bg: "#F8FAFC", dot: "#475569" };
+                  return (
+                    <div key={child.id} style={{ ...S.card, padding: "16px 20px 16px 24px", display: "flex", alignItems: "center", gap: 16, position: "relative", overflow: "hidden" }}>
+                      {/* Left accent bar */}
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: colors.dot }} />
+                      {/* Avatar */}
+                      <div style={{ width: 46, height: 46, background: colors.bg, borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: colors.dot, flexShrink: 0 }}>
+                        {child.nom.charAt(0).toUpperCase()}
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ color: "#BFDBFE", fontSize: 11, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>Matière</p>
-                        <span style={{ display: "inline-block", background: "rgba(255,255,255,.2)", fontSize: 11, padding: "2px 10px", borderRadius: 999, fontWeight: 600 }}>
+                      {/* Name + level */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h2 style={{ ...S.serif, fontSize: 17, fontWeight: 400, color: "#0F172A", margin: "0 0 3px", lineHeight: 1.2 }}>
+                          {child.nom}
+                        </h2>
+                        <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>{child.niveau}</p>
+                      </div>
+                      {/* Matière + prof */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <span style={{ display: "inline-block", background: colors.bg, color: colors.dot, fontSize: 11, padding: "3px 10px", borderRadius: 999, fontWeight: 700 }}>
                           {child.matiere}
                         </span>
+                        <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 5, marginBottom: 0 }}>{child.prof_nom}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Stats */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-                {stats.map((stat) => (
-                  <div key={stat.label} style={{ ...S.card, padding: 20 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: stat.iconBg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                      <stat.icon style={{ width: 16, height: 16, color: stat.iconColor }} />
-                    </div>
-                    <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>{stat.label}</p>
-                    <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#0F172A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>{stat.value}</p>
-                    <p style={{ fontSize: 11, color: "#64748B", marginTop: 4, marginBottom: 0 }}>{stat.sub}</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {/* Heures ce mois */}
+                <div style={{ ...S.card, padding: 20 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <Clock style={{ width: 16, height: 16, color: "#16A34A" }} />
                   </div>
-                ))}
+                  <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Heures ce mois</p>
+                  <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#0F172A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
+                    {heuresCeMois.toFixed(1)}h
+                  </p>
+                  <p style={{ fontSize: 11, color: "#64748B", marginTop: 4, marginBottom: 0 }}>{coursCeMois} séance{coursCeMois > 1 ? "s" : ""}</p>
+                </div>
+                {/* Montant */}
+                <div style={{ ...S.card, padding: 20 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: enAttente > 0 ? "#FFFBEB" : "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <CreditCard style={{ width: 16, height: 16, color: enAttente > 0 ? "#D97706" : "#16A34A" }} />
+                  </div>
+                  <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Montant en attente</p>
+                  {enAttente > 0 ? (
+                    <>
+                      <p style={{ fontSize: 12, color: "#94A3B8", textDecoration: "line-through", marginTop: 4, marginBottom: 0 }}>{enAttente} € brut</p>
+                      <p style={{ ...S.serif, fontSize: 24, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
+                        {Math.round(enAttente * 0.5)} €
+                      </p>
+                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>après crédit d'impôt</p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>À jour</p>
+                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 4, marginBottom: 0 }}>Tout est payé ✓</p>
+                    </>
+                  )}
+                </div>
               </div>
 
-              {/* Séances + Factures */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-                {/* Prochaines séances */}
-                <div style={{ ...S.card, overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid #F1F5F9" }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0F172A", margin: 0 }}>Prochaines séances</h3>
-                    <Link to="/parent/cours" style={{ fontSize: 12, color: "#2E6BEA", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
-                      Voir tout <ChevronRight style={{ width: 14, height: 14 }} />
-                    </Link>
-                  </div>
-                  {prochaines.length === 0 ? (
-                    <p style={{ padding: "24px", fontSize: 13, color: "#94A3B8", textAlign: "center", margin: 0 }}>
-                      Aucune séance planifiée
-                    </p>
-                  ) : (
-                    prochaines.map((c, i) => (
-                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: i < prochaines.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 10, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <BookOpen style={{ width: 15, height: 15, color: "#2563EB" }} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.matiere}</p>
-                          <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                            {formatDate(c.date)} · {c.duree}
-                          </p>
-                        </div>
-                        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, background: "#EFF6FF", color: "#1E3A8A", fontWeight: 600, flexShrink: 0 }}>
-                          {c.statut}
+              {/* Dernières factures — full width */}
+              <div style={{ ...S.card, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid #F1F5F9" }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0F172A", margin: 0 }}>Dernières factures</h3>
+                  <Link to="/parent/factures" style={{ fontSize: 12, color: "#2E6BEA", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
+                    Voir tout <ChevronRight style={{ width: 14, height: 14 }} />
+                  </Link>
+                </div>
+                {dernieresFactures.length === 0 ? (
+                  <p style={{ padding: "24px", fontSize: 13, color: "#94A3B8", textAlign: "center", margin: 0 }}>
+                    Aucune facture
+                  </p>
+                ) : (
+                  dernieresFactures.map((f, i) => (
+                    <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: i < dernieresFactures.length - 1 ? "1px solid #F8FAFC" : "none" }}>
+                      <div style={{ flexShrink: 0, color: f.statut === "payée" ? "#22C55E" : "#F59E0B" }}>
+                        {f.statut === "payée"
+                          ? <CheckCircle style={{ width: 16, height: 16 }} />
+                          : <AlertCircle style={{ width: 16, height: 16 }} />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{f.mois}</p>
+                        <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
+                          {MOIS[new Date(f.date_emission).getMonth()]} {new Date(f.date_emission).getFullYear()}
+                        </p>
+                      </div>
+                      {/* Prix barré + net */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{f.montant_brut} €</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: f.statut === "payée" ? "#64748B" : "#16A34A", margin: 0 }}>
+                          {Math.round(f.montant_brut * 0.5)} €
+                        </p>
+                      </div>
+                      {f.statut === "en attente" ? (
+                        <Link to="/parent/factures" style={{ fontSize: 12, background: "#2E6BEA", color: "#fff", padding: "5px 12px", borderRadius: 10, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}>
+                          Payer
+                        </Link>
+                      ) : (
+                        <span style={{ fontSize: 11, background: "#ECFDF5", color: "#065F46", padding: "4px 10px", borderRadius: 8, fontWeight: 600, flexShrink: 0 }}>
+                          Payée
                         </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Dernières factures */}
-                <div style={{ ...S.card, overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid #F1F5F9" }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0F172A", margin: 0 }}>Dernières factures</h3>
-                    <Link to="/parent/factures" style={{ fontSize: 12, color: "#2E6BEA", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
-                      Voir tout <ChevronRight style={{ width: 14, height: 14 }} />
-                    </Link>
-                  </div>
-                  {dernieresFactures.length === 0 ? (
-                    <p style={{ padding: "24px", fontSize: 13, color: "#94A3B8", textAlign: "center", margin: 0 }}>
-                      Aucune facture
-                    </p>
-                  ) : (
-                    dernieresFactures.map((f, i) => (
-                      <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: i < dernieresFactures.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                        <div style={{ flexShrink: 0, color: f.statut === "payée" ? "#22C55E" : "#F59E0B" }}>
-                          {f.statut === "payée"
-                            ? <CheckCircle style={{ width: 16, height: 16 }} />
-                            : <AlertCircle style={{ width: 16, height: 16 }} />}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{f.mois}</p>
-                          <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                            {f.montant_brut}€ brut
-                          </p>
-                        </div>
-                        {f.statut === "en attente" ? (
-                          <Link to="/parent/factures" style={{ fontSize: 12, background: "#2E6BEA", color: "#fff", padding: "5px 12px", borderRadius: 10, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}>
-                            Payer
-                          </Link>
-                        ) : (
-                          <span style={{ fontSize: 11, background: "#ECFDF5", color: "#065F46", padding: "4px 10px", borderRadius: 8, fontWeight: 600, flexShrink: 0 }}>
-                            Payée
-                          </span>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </>
           )}

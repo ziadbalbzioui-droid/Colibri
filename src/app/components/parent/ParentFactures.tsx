@@ -52,15 +52,22 @@ export function ParentFactures() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
-        {[
-          { label: "Total payé (année)", value: `${totalAnnee}€`, color: "text-green-600" },
-          { label: "En attente", value: `${enAttente}€`, color: enAttente > 0 ? "text-amber-600" : "text-muted-foreground" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-border p-4 text-center">
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
-        ))}
+        <div className="bg-white rounded-xl border border-border p-4 text-center">
+          <p className="text-xs line-through text-slate-400 mt-0.5">{totalAnnee} € brut</p>
+          <p className="text-xl font-bold text-green-600">{Math.round(totalAnnee * 0.5)} €</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Total payé (année)</p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4 text-center">
+          {enAttente > 0 ? (
+            <>
+              <p className="text-xs line-through text-slate-400 mt-0.5">{enAttente} € brut</p>
+              <p className="text-xl font-bold text-amber-600">{Math.round(enAttente * 0.5)} €</p>
+            </>
+          ) : (
+            <p className="text-xl font-bold text-muted-foreground">0 €</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-0.5">En attente</p>
+        </div>
       </div>
 
       {/* Invoice list */}
@@ -82,13 +89,14 @@ export function ParentFactures() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{f.mois}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {f.lignes.reduce((s, l) => s + l.heures, 0)}h · {f.montant_brut}€ brut
-                    {f.statut === "payée" && " · payée"}
+                    {f.lignes.reduce((s, l) => s + l.heures, 0)}h{f.statut === "payée" && " · payée"}
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">
-                  <p className="text-sm font-semibold text-gray-900">{f.montant_brut}€</p>
-                  <p className="text-xs text-muted-foreground">{f.lignes.reduce((s, l) => s + l.heures, 0)}h de cours</p>
+                  <p className="text-xs line-through text-slate-400">{f.montant_brut} €</p>
+                  <p className={`text-sm font-bold ${f.statut === "payée" ? "text-slate-500" : "text-green-600"}`}>
+                    {Math.round(f.montant_brut * 0.5)} €
+                  </p>
                 </div>
                 <div className="shrink-0">
                   {f.statut === "en attente" ? (
@@ -142,9 +150,17 @@ export function ParentFactures() {
                     <span className="text-muted-foreground">Heures</span>
                     <span>{payModal.lignes.reduce((s, l) => s + l.heures, 0)}h</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Montant brut</span>
+                    <span className="line-through text-slate-400">{payModal.montant_brut} €</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Crédit d'impôt Urssaf (50%)</span>
+                    <span className="text-green-600 font-medium">−{Math.round(payModal.montant_brut * 0.5)} €</span>
+                  </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2.5">
-                    <span className="font-medium">Montant à payer</span>
-                    <span className="font-bold text-xl">{payModal.montant_brut}€</span>
+                    <span className="font-medium">Votre part</span>
+                    <span className="font-bold text-xl text-green-600">{Math.round(payModal.montant_brut * 0.5)} €</span>
                   </div>
                 </div>
 
@@ -205,7 +221,7 @@ export function ParentFactures() {
                   className="w-full bg-primary text-white py-2.5 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {paying && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Confirmer le paiement — {payModal.montant_brut}€
+                  Confirmer le paiement — {Math.round(payModal.montant_brut * 0.5)} €
                 </button>
               </div>
             )}
