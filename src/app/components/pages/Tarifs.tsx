@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router";
+import { useGrilleCommission, getTauxPlusvalue } from "../../lib/hooks/useGrilleCommission";
 import { 
   Calculator, 
   TrendingUp, 
@@ -23,7 +24,19 @@ type Eleve = {
 
 export function Tarifs() {
   const navigate = useNavigate();
-  
+  const { grille, loading: grilleLoading } = useGrilleCommission();
+
+  // --- DÉRIVÉ DE LA GRILLE DB ---
+  const graphData = useMemo(() =>
+    [...grille]
+      .sort((a, b) => a.tarif_palier - b.tarif_palier)
+      .map(g => ({ taux: g.tarif_palier, bonus: Math.round(g.taux_plusvalue * 100) })),
+    [grille]
+  );
+  const maxBonus = graphData.length > 0 ? Math.max(...graphData.map(d => d.bonus)) : 40;
+  const minTaux = graphData.length > 0 ? graphData[0].taux : 15;
+  const maxTaux = graphData.length > 0 ? graphData[graphData.length - 1].taux : 60;
+
   // --- LOGIQUE SIMULATEUR MULTI-ÉLÈVES ---
   const [eleves, setEleves] = useState<Eleve[]>([
     { id: "1", heures: 4, taux: 30 }
@@ -43,59 +56,13 @@ export function Tarifs() {
     }
   };
 
-  // Calcul du pourcentage basé EXCTEMENT sur ton image (Interpolation linéaire)
-  const calculateBonusPercent = (taux: number) => {
-    if (taux <= 15) return 0.40;
-    if (taux >= 60) return 0.15;
-    
-    const dataPoints = [
-      { x: 15, y: 0.40 },
-      { x: 20, y: 0.30 },
-      { x: 25, y: 0.25 },
-      { x: 30, y: 0.25 },
-      { x: 35, y: 0.23 },
-      { x: 40, y: 0.20 },
-      { x: 45, y: 0.18 },
-      { x: 50, y: 0.16 },
-      { x: 55, y: 0.15 },
-      { x: 60, y: 0.15 }
-    ];
-
-    for (let i = 0; i < dataPoints.length - 1; i++) {
-      if (taux >= dataPoints[i].x && taux <= dataPoints[i+1].x) {
-        const x1 = dataPoints[i].x;
-        const y1 = dataPoints[i].y;
-        const x2 = dataPoints[i+1].x;
-        const y2 = dataPoints[i+1].y;
-        
-        if (x1 === x2) return y1;
-        return y1 + ((taux - x1) * (y2 - y1)) / (x2 - x1);
-      }
-    }
-    return 0.15;
-  };
-
-  // Calculs totaux
+  // Calculs totaux — taux_plusvalue est déjà net de cotisations
   const totalBlack = eleves.reduce((acc, e) => acc + (e.heures * e.taux), 0);
   const totalColibri = eleves.reduce((acc, e) => {
-    const bonus = calculateBonusPercent(e.taux);
-    return acc + Math.round((e.heures * e.taux) * (1 + bonus));
+    const bonus = getTauxPlusvalue(grille, e.taux);
+    return acc + Math.round(e.heures * e.taux * (1 + bonus));
   }, 0);
   const totalHeures = eleves.reduce((acc, e) => acc + e.heures, 0);
-
-  // --- DONNÉES POUR LE GRAPHIQUE (Correspondent à ton image) ---
-  const graphData = [
-    { taux: 15, bonus: 40 },
-    { taux: 20, bonus: 30 },
-    { taux: 25, bonus: 25 },
-    { taux: 30, bonus: 25 },
-    { taux: 35, bonus: 23 },
-    { taux: 40, bonus: 20 },
-    { taux: 45, bonus: 18 },
-    { taux: 50, bonus: 16 },
-    { taux: 55, bonus: 15 },
-    { taux: 60, bonus: 15 }
-  ];
 
   return (
     <div className="relative min-h-screen flex flex-col font-sans text-slate-900 selection:bg-blue-100">
@@ -240,7 +207,7 @@ export function Tarifs() {
                   <div className="flex-1 h-7 bg-slate-100 rounded-lg overflow-hidden flex relative">
                     <div 
                       className="h-full bg-blue-600 flex items-center px-3" 
-                      style={{ width: `${(data.bonus / 40) * 100}%` }}
+                      style={{ width: `${(data.bonus / maxBonus) * 100}%` }}
                     >
                       <span className="text-white text-xs font-bold">+{data.bonus}%</span>
                     </div>
@@ -308,7 +275,7 @@ export function Tarifs() {
                     </label>
                     <div className="flex items-center gap-3">
                       <input 
-                        type="range" min="15" max="60" step="1"
+                        type="range" min={minTaux} max={maxTaux} step="1"
                         value={eleve.taux}
                         onChange={(e) => updateEleve(eleve.id, 'taux', parseInt(e.target.value))}
                         className="flex-1 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
