@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router";
-import { useGrilleCommission, getTauxPlusvalue } from "../../lib/hooks/useGrilleCommission";
+import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import { 
   Calculator, 
   TrendingUp, 
