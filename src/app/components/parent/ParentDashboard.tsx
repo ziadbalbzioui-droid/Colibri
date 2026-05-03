@@ -93,7 +93,7 @@ export function ParentDashboard() {
         {isActivationPending && (
           <button
             type="button"
-            onClick={() => navigate("/onboarding")}
+            onClick={() => navigate("/parent/profil")}
             style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFFBEB", border: "2px solid #FCD34D", borderRadius: 16, padding: "14px 20px", cursor: "pointer", textAlign: "left", width: "100%" }}
           >
             <div style={{ width: 40, height: 40, background: "#FDE68A", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -126,7 +126,7 @@ export function ParentDashboard() {
               </div>
             </div>
             <button
-              onClick={() => navigate("/onboarding", { state: { skipToStep: 2 } })}
+              onClick={() => navigate("/parent/profil")}
               style={{ width: "100%", background: "#fff", color: "#2E6BEA", fontWeight: 600, fontSize: 14, padding: "12px", borderRadius: 14, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
               Activer le service <ChevronRight style={{ width: 16, height: 16 }} />
