@@ -267,7 +267,7 @@ export function Cours() {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.montant}€ famille</span>
-                      <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</span>
+                      <span style={{ fontSize: 11 }}><span style={{ color: "#6366F1" }}>+{Math.round(taux * 100)}%</span><span style={{ color: "#16A34A" }}> → {netProf}€ pour vous, après impôts et cotisations</span></span>
                     </div>
                   </div>
                 );
@@ -305,7 +305,7 @@ export function Cours() {
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.duree}</td>
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 12, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</td>
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.montant}€ famille</td>
-                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600 }}><span style={{ color: "#6366F1" }}>+{Math.round(taux * 100)}%</span><span style={{ color: "#16A34A" }}> → {netProf}€ pour vous</span></td>
                         </tr>
                       );
                     })}
@@ -363,7 +363,7 @@ export function Cours() {
                         {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")}€ famille · {items.reduce((s, c) => {
                           const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
                           return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
-                        }, 0).toLocaleString("fr-FR")}€ pour vous
+                        }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations
                       </span>
                     </div>
                     {items.map((c) => {
@@ -378,7 +378,7 @@ export function Cours() {
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
                             <span style={{ fontSize: 11, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</span>
-                            <span style={{ fontSize: 11, color: "#16A34A" }}>{netProf}€ pour vous</span>
+                            <span style={{ fontSize: 11, color: "#16A34A" }}>{netProf}€ pour vous, après impôts et cotisations</span>
                           </div>
                         </div>
                       );

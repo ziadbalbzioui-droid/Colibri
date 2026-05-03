@@ -181,7 +181,7 @@ function MockFinirMois() {
       </MockWrap>
 
       {/* Modal récap */}
-      <MockWrap maxWidth={500} caption="Étape 2 — Le récapitulatif affiche tous les cours du mois par élève. Vérifiez, puis cliquez « Valider le mois ».">
+      <MockWrap maxWidth={500} caption="Étape 2 — Le récapitulatif affiche tous les cours du mois par élève avec le détail famille / pour vous. Vérifiez, puis cliquez « Valider le mois ».">
         <div style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
@@ -194,11 +194,21 @@ function MockFinirMois() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>Emma L.</span>
-              <span style={{ fontSize: 13, color: "#64748B" }}>3h · 90 €</span>
+              <span style={{ fontSize: 13, color: "#64748B" }}>3h · 90€ famille · 115€ pour vous, après impôts et cotisations</span>
             </div>
-            {[["15 jan.", "Maths", "1h", "30 €"], ["22 jan.", "Maths", "2h", "60 €"]].map(([d, m, dur, mt], i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4, fontSize: 13, color: "#64748B" }}>
-                <span>{d} · {m} · {dur}</span><span style={{ fontWeight: 500, color: "#0F172A" }}>{mt}</span>
+            {[
+              { d: "15 jan.", m: "Maths", dur: "1h", famille: "30 €", tarifH: "30€/h", net: "38 €" },
+              { d: "22 jan.", m: "Maths", dur: "2h", famille: "60 €", tarifH: "30€/h", net: "77 €" },
+            ].map((c, i) => (
+              <div key={i} style={{ padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ fontSize: 13, color: "#64748B" }}>{c.d} · {c.m} · {c.dur}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#0F172A" }}>{c.famille} famille</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, color: "#94A3B8" }}>{c.tarifH}</span>
+                  <span style={{ fontSize: 11, color: "#16A34A" }}>{c.net} pour vous, après impôts et cotisations</span>
+                </div>
               </div>
             ))}
           </div>
@@ -206,24 +216,38 @@ function MockFinirMois() {
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>Lucas M.</span>
-              <span style={{ fontSize: 13, color: "#64748B" }}>3h30 · 87,50 €</span>
+              <span style={{ fontSize: 13, color: "#64748B" }}>3h30 · 87,50€ famille · 108€ pour vous, après impôts et cotisations</span>
             </div>
-            {[["18 jan.", "Physique", "1h30", "37,50 €"], ["25 jan.", "Physique", "2h", "50 €"]].map(([d, m, dur, mt], i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4, fontSize: 13, color: "#64748B" }}>
-                <span>{d} · {m} · {dur}</span><span style={{ fontWeight: 500, color: "#0F172A" }}>{mt}</span>
+            {[
+              { d: "18 jan.", m: "Physique", dur: "1h30", famille: "37,50 €", tarifH: "25€/h", net: "46 €" },
+              { d: "25 jan.", m: "Physique", dur: "2h", famille: "50 €", tarifH: "25€/h", net: "62 €" },
+            ].map((c, i) => (
+              <div key={i} style={{ padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                  <span style={{ fontSize: 13, color: "#64748B" }}>{c.d} · {c.m} · {c.dur}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#0F172A" }}>{c.famille} famille</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 11, color: "#94A3B8" }}>{c.tarifH}</span>
+                  <span style={{ fontSize: 11, color: "#16A34A" }}>{c.net} pour vous, après impôts et cotisations</span>
+                </div>
               </div>
             ))}
           </div>
           {/* Total + bouton */}
-          <div style={{ paddingTop: 16, borderTop: "1px solid #E2E8F0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-              <span style={{ fontWeight: 700, color: "#0F172A" }}>Total</span>
-              <span style={{ fontWeight: 700, color: "#0F172A" }}>177,50 €</span>
+          <div style={{ paddingTop: 16, borderTop: "1px solid #E2E8F0", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ fontSize: 13, color: "#64748B" }}>Total famille</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#64748B" }}>177,50 €</span>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ ...MS.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</div>
-              <div style={{ ...MS.btnPrimary, flex: 1, justifyContent: "center" }}>Valider le mois</div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 700, color: "#0F172A" }}>Pour vous, après impôts et cotisations</span>
+              <span style={{ fontWeight: 700, color: "#16A34A" }}>223 €</span>
             </div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ ...MS.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</div>
+            <div style={{ ...MS.btnPrimary, flex: 1, justifyContent: "center" }}>Valider le mois</div>
           </div>
         </div>
       </MockWrap>

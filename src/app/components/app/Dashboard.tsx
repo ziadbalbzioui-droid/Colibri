@@ -266,7 +266,7 @@ export function Dashboard() {
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
                         <div style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.duree}</div>
-                        <div style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</div>
+                        <div style={{ fontSize: 11 }}><span style={{ color: "#6366F1" }}>+{Math.round(taux * 100)}%</span><span style={{ color: "#16A34A" }}> → {netProf}€ pour vous, après impôts et cotisations</span></div>
                       </div>
                     </div>
                   );
@@ -305,6 +305,7 @@ export function Dashboard() {
                     <div style={{ fontSize: 11, color: "#64748B", marginBottom: 8 }}>{e.niveau}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 2 }}>{totalPaye.toLocaleString("fr-FR")}€ famille</div>
                     <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR")}€ <span style={{ fontSize: 10, fontFamily: "inherit", color: "#64748B" }}>pour vous</span></div>
+                    <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 1, fontFamily: "inherit" }}>après impôts et cotisations</div>
                     {e.statut === "en pause" && <span style={{ ...S.badge("#FFFBEB", "#92400E"), marginTop: 6 }}>Relancer</span>}
                   </div>
                 );

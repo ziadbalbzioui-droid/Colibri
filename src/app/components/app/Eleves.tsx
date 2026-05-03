@@ -196,12 +196,17 @@ export function Eleves() {
 
                 {/* Stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-                  {[{ label: "Total heures", val: `${selectedEleve.total_heures ?? 0}h` }, { label: "Total gagné, après impôts et cotisations", val: `${selectedEleveNet.toLocaleString("fr-FR")} €` }].map((s) => (
-                    <div key={s.label} style={{ background: "#F1F5F9", borderRadius: 12, padding: 16 }}>
-                      <div style={S.eyebrow}>{s.label}</div>
-                      <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{s.val}</div>
+                  <div style={{ background: "#F1F5F9", borderRadius: 12, padding: 16 }}>
+                    <div style={S.eyebrow}>Total heures</div>
+                    <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{selectedEleve.total_heures ?? 0}h</div>
+                  </div>
+                  <div style={{ background: "#F1F5F9", borderRadius: 12, padding: 16 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <div style={S.eyebrow}>Total gagné</div>
+                      <span style={{ fontSize: 9, color: "#94A3B8", fontWeight: 500, letterSpacing: ".02em" }}>après impôts et cotisations</span>
                     </div>
-                  ))}
+                    <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{selectedEleveNet.toLocaleString("fr-FR")} €</div>
+                  </div>
                 </div>
 
                 {/* Coordonnées */}
