@@ -297,6 +297,187 @@ function MockProfil() {
   );
 }
 
+// ─── PAPS Mockups ─────────────────────────────────────────────
+
+function MockPapsAnnonces() {
+  return (
+    <MockWrap maxWidth={600} caption="Page PAPS — liste des annonces du réseau avec filtres matière et niveau">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid #E2E8F0" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>PAPS</span>
+            <span style={{ background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>Mineurs</span>
+          </div>
+          <p style={{ fontSize: 12, color: "#64748B" }}>Transmets un élève à un collègue de confiance dans ton réseau.</p>
+        </div>
+        <div style={{ ...MS.btnPrimary, fontSize: 12, padding: "7px 12px", gap: 5 }}>
+          <Plus className="w-3 h-3" /> Poster une annonce
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, padding: "10px 20px", borderBottom: "1px solid #F1F5F9" }}>
+        {["Toutes les matières ▾", "Tous niveaux ▾"].map((f, i) => (
+          <div key={i} style={{ padding: "6px 12px", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, fontSize: 12, color: "#64748B" }}>{f}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: 16 }}>
+        {/* Annonce 1 — bouton postuler */}
+        <div style={{ borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden", background: "#fff" }}>
+          <div style={{ height: 4, background: "#3B82F6" }} />
+          <div style={{ padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <span style={{ background: "#EFF6FF", color: "#1D4ED8", padding: "3px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>Mathématiques</span>
+                <p style={{ fontSize: 12, color: "#64748B", marginTop: 5 }}>Terminale S</p>
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>30<span style={{ fontSize: 12, fontWeight: 400, color: "#94A3B8" }}>€/h</span></p>
+            </div>
+            <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 3 }}>📍 Paris 15e</p>
+            <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 10 }}>🕐 Mercredi 16h · 1x/semaine</p>
+            <p style={{ fontSize: 11, color: "#64748B", background: "#F8FAFC", borderRadius: 10, padding: "8px 10px", marginBottom: 12 }}>Élève sérieuse, difficultés en analyse fonctionnelle...</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid #F1F5F9" }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A" }}>Thomas M.</p>
+                <p style={{ fontSize: 11, color: "#94A3B8" }}>il y a 2j</p>
+              </div>
+              <div style={{ background: "#0F172A", color: "#fff", padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>Je suis dispo</div>
+            </div>
+          </div>
+        </div>
+        {/* Annonce 2 — déjà postulé */}
+        <div style={{ borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden", background: "#fff" }}>
+          <div style={{ height: 4, background: "#A855F7" }} />
+          <div style={{ padding: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <span style={{ background: "#F5F3FF", color: "#7C3AED", padding: "3px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>Physique-Chimie</span>
+                <p style={{ fontSize: 12, color: "#64748B", marginTop: 5 }}>1ère S</p>
+              </div>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>28<span style={{ fontSize: 12, fontWeight: 400, color: "#94A3B8" }}>€/h</span></p>
+            </div>
+            <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 3 }}>📍 Paris 6e</p>
+            <p style={{ fontSize: 11, color: "#94A3B8", marginBottom: 10 }}>🕐 Jeudi soir · 2x/mois</p>
+            <p style={{ fontSize: 11, color: "#64748B", background: "#F8FAFC", borderRadius: 10, padding: "8px 10px", marginBottom: 12 }}>Besoin d'un renfort avant le bac blanc...</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid #F1F5F9" }}>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A" }}>Sophie L.</p>
+                <p style={{ fontSize: 11, color: "#94A3B8" }}>aujourd'hui</p>
+              </div>
+              <div style={{ background: "#ECFDF5", color: "#065F46", padding: "6px 12px", borderRadius: 10, fontSize: 11, fontWeight: 600 }}>✓ Demande transmise</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </MockWrap>
+  );
+}
+
+function MockPapsPostForm() {
+  return (
+    <MockWrap maxWidth={480} caption="Formulaire « Poster une annonce » — décrivez l'élève que vous cédez">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px 0" }}>
+        <h2 style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>Poster une annonce</h2>
+        <X className="w-4 h-4 text-slate-300" />
+      </div>
+      <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Matière ①</label>
+            <div style={{ ...MS.input, display: "flex", justifyContent: "space-between" }}>Mathématiques <span style={{ color: "#94A3B8" }}>▾</span></div>
+          </div>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Niveau élève ②</label>
+            <div style={{ ...MS.input, display: "flex", justifyContent: "space-between" }}>Terminale S <span style={{ color: "#94A3B8" }}>▾</span></div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Prix (€/h) ③</label>
+            <div style={MS.input}>30</div>
+          </div>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Fréquence ④</label>
+            <div style={{ ...MS.input, color: "#94A3B8" }}>1x/semaine…</div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Horaires ⑤</label>
+            <div style={{ ...MS.input, color: "#94A3B8" }}>Mercredi 16h…</div>
+          </div>
+          <div>
+            <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Localisation ⑥</label>
+            <div style={{ ...MS.input, color: "#94A3B8" }}>Paris 15e…</div>
+          </div>
+        </div>
+        <div>
+          <label style={{ ...MS.label, textTransform: "uppercase" as const, letterSpacing: ".06em", fontSize: 10 }}>Description de l'élève ⑦</label>
+          <div style={{ ...MS.input, minHeight: 52, color: "#94A3B8", alignItems: "flex-start", display: "flex" }}>Niveau, difficultés, objectifs…</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", background: "#FEF2F2", borderRadius: 10, border: "1px solid #FECACA" }}>
+          <div style={{ width: 14, height: 14, border: "1.5px solid #DC2626", borderRadius: 3, marginTop: 1, flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#B91C1C" }}>Marquer comme urgent ⑧</p>
+            <p style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>L'annonce apparaîtra en haut avec un badge rouge</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ ...MS.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</div>
+          <div style={{ ...MS.btnPrimary, flex: 1, justifyContent: "center" }}>Publier l'annonce</div>
+        </div>
+      </div>
+    </MockWrap>
+  );
+}
+
+function MockPapsCandidatures() {
+  return (
+    <MockWrap maxWidth={560} caption="Section « Mes annonces » — cliquez sur une annonce pour voir les candidatures et les coordonnées des collègues">
+      <div style={{ padding: "14px 20px", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: 8 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", textTransform: "uppercase" as const, letterSpacing: ".1em" }}>Mes annonces</p>
+        <span style={MS.badge("#EFF6FF", "#2E6BEA")}>1</span>
+      </div>
+      {/* Annonce row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EFF6FF", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, flexShrink: 0 }}>MA</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <p style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>Mathématiques</p>
+            <span style={{ color: "#94A3B8" }}>·</span>
+            <p style={{ fontSize: 13, color: "#64748B" }}>Terminale S</p>
+          </div>
+          <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>Paris 15e · 30€/h</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, ...MS.badge("#ECFDF5", "#065F46"), padding: "5px 10px" }}>
+          <Users className="w-3 h-3" /> 2 candidatures
+        </div>
+      </div>
+      {/* Candidature item */}
+      <div style={{ padding: "14px 20px" }}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 14, border: "1px solid #E2E8F0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,rgba(46,107,234,.3),rgba(46,107,234,.1))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#2E6BEA", flexShrink: 0 }}>JD</div>
+            <div>
+              <p style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>Jean Dupont</p>
+              <p style={{ fontSize: 11, color: "#94A3B8" }}>5 mai</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, ...MS.badge("#EFF6FF", "#1D4ED8"), padding: "5px 10px" }}>
+              <Mail className="w-3 h-3" /> jean.dupont@example.com
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, ...MS.badge("#ECFDF5", "#065F46"), padding: "5px 10px" }}>
+              <Phone className="w-3 h-3" /> 06 12 34 56 78
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: "#64748B", background: "#F8FAFC", borderRadius: 10, padding: "8px 12px", borderLeft: "3px solid rgba(46,107,234,.3)", fontStyle: "italic" as const }}>
+            « Bonjour, je suis disponible le mercredi soir et le week-end. 2 ans d'expérience en soutien Terminale. »
+          </div>
+        </div>
+      </div>
+    </MockWrap>
+  );
+}
+
 // ─── Rich content components for guides ───────────────────────
 
 function ReassuranceBox({ title, children }: { title: string; children: React.ReactNode }) {
@@ -397,8 +578,39 @@ const GUIDES: {
         ],
       },
       {
-        title: "PAPS — réseau Mines de Paris",
-        desc: "Si vous êtes diplômé de Mines de Paris, la section PAPS est accessible depuis la sidebar. Vous pouvez y consulter les annonces de cession d'élèves dans le réseau et postuler directement.",
+        title: "PAPS — Consulter les annonces du réseau",
+        desc: "Réservé aux diplômés de Mines de Paris. Dans la section PAPS, vous voyez toutes les annonces de cession d'élèves publiées par d'autres profs du réseau. Chaque carte indique la matière, le niveau, le prix, la fréquence et la localisation.",
+        MockComponent: MockPapsAnnonces,
+        fieldHints: [
+          { label: "Filtres matière / niveau", desc: "Affinez les annonces affichées selon votre domaine et les niveaux que vous souhaitez enseigner." },
+          { label: "Carte d'annonce", desc: "Chaque annonce montre la matière (code couleur), le prix horaire, la localisation, les heures hebdomadaires et une description courte." },
+          { label: "Je suis dispo", desc: "Envoyez votre candidature en un clic. Le prof qui a posté l'annonce reçoit vos coordonnées directement." },
+        ],
+      },
+      {
+        title: "PAPS — Poster votre propre annonce",
+        desc: "Vous souhaitez céder un ou plusieurs élèves à un confrère du réseau ? Cliquez sur « Poster une annonce » en haut à droite pour remplir le formulaire.",
+        MockComponent: MockPapsPostForm,
+        fieldHints: [
+          { label: "Matière", desc: "La matière concernée par la cession (Maths, Physique-Chimie, etc.)." },
+          { label: "Niveau", desc: "Le niveau scolaire de l'élève à céder (Seconde, Terminale, CPGE…)." },
+          { label: "Prix (€/h)", desc: "Le tarif horaire pratiqué avec cet élève, pour que le repreneur puisse s'organiser." },
+          { label: "Fréquence", desc: "Fréquence des cours — par exemple « 1h/semaine » ou « 2h toutes les 2 semaines »." },
+          { label: "Horaires", desc: "Les créneaux disponibles convenus avec l'élève." },
+          { label: "Localisation", desc: "Quartier ou ville pour que les candidats sachent si c'est accessible." },
+          { label: "Description", desc: "Quelques lignes sur l'élève, sa progression, ses besoins — pour aider le repreneur à se projeter." },
+          { label: "Urgent", desc: "Cochez si vous partez bientôt et avez besoin d'un repreneur rapidement. L'annonce sera mise en avant." },
+        ],
+      },
+      {
+        title: "PAPS — Gérer vos candidatures reçues",
+        desc: "Quand un prof postule à l'une de vos annonces, vous le voyez apparaître dans la section « Mes annonces ». Ses coordonnées sont affichées directement — prenez contact et organisez la passation.",
+        MockComponent: MockPapsCandidatures,
+        fieldHints: [
+          { label: "Nom du candidat", desc: "Prénom et nom du prof qui a postulé à votre annonce." },
+          { label: "Email & téléphone", desc: "Coordonnées directes pour le contacter sans passer par la plateforme." },
+          { label: "Message", desc: "Le message laissé par le candidat pour se présenter ou préciser sa disponibilité." },
+        ],
       },
       {
         title: "Renseignez SIRET et IBAN",
@@ -474,28 +686,30 @@ const GUIDES: {
         title: "Ce que vous gagnez vraiment",
         desc: "Sur chaque euro encaissé, vous reversez 21,2% à l'URSSAF (cotisations sociales). Le reste est à vous. Votre dashboard Colibri calcule tout ça automatiquement.",
         extraContent: (
-          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-            {[
-              { label: "Petit mois", ca: "500 €", net: "394 €" },
-              { label: "Mois moyen", ca: "1 000 €", net: "788 €", highlight: true },
-              { label: "Gros mois", ca: "2 000 €", net: "1 576 €" },
-            ].map((s, i) => (
-              <div key={i} style={{ background: s.highlight ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.highlight ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 12, padding: "16px", textAlign: "center" as const }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{s.label}</p>
-                <p style={{ fontSize: 12, color: "#64748B", marginBottom: 8 }}>Encaissé : <strong style={{ color: "#0F172A" }}>{s.ca}</strong></p>
-                <p style={{ fontSize: 22, fontWeight: 800, color: s.highlight ? "#166534" : "#0F172A" }}>{s.net}</p>
-                <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>net en poche</p>
-              </div>
-            ))}
-          </div>
+          <>
+            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {[
+                { label: "500 € encaissés", net: "447 €" },
+                { label: "1 000 € encaissés", net: "894 €", highlight: true },
+                { label: "2 000 € encaissés", net: "1 788 €" },
+              ].map((s, i) => (
+                <div key={i} style={{ background: s.highlight ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.highlight ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 12, padding: "16px", textAlign: "center" as const }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{s.label}</p>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: s.highlight ? "#166534" : "#0F172A" }}>{s.net}</p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>net en poche</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 8 }}>Calculs avec ACRE (taux ~10,6%, 1ère année). Sans ACRE : cotisations à 21,2% — ex. 1 000 € → 788 € net.</p>
+          </>
         ),
       },
       {
         title: "APL : vous les gardez",
         desc: "C'est la première question que tout le monde se pose. La réponse est simple.",
         extraContent: (
-          <ReassuranceBox title="Vous conservez vos APL. Intégralement.">
-            Les APL sont calculées sur vos revenus de <strong>deux ans avant</strong>. En commençant à donner des cours aujourd'hui, il n'y a <strong>aucun impact sur vos APL actuelles</strong> — ni maintenant, ni l'année prochaine. Et même à très long terme, avec les revenus typiques des cours particuliers étudiants, l'impact reste de quelques euros au maximum. <strong>Continuez à donner des cours sans vous inquiéter.</strong>
+          <ReassuranceBox title="Vous gardez vos APL. Sans aucun changement.">
+            Dans le contexte de cours de soutien occasionnels — quelques centaines d'euros par mois — il n'y a <strong>aucun impact sur vos APL. Pas même de quelques euros.</strong> Pour que vos revenus personnels affectent vos APL, il faudrait gagner des dizaines de milliers d'euros par an. Ce n'est absolument pas le contexte ici. <strong>Donnez des cours l'esprit totalement tranquille.</strong>
           </ReassuranceBox>
         ),
       },
