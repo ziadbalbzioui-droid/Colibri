@@ -29,8 +29,9 @@ export function AuthGuard() {
     );
   }
 
-  // 4. Séparation des rôles : les parents n'entrent pas ici
+  // 4. Séparation des rôles
   if (profile.role === "parent") return <Navigate to="/parent" replace />;
+  if (profile.role === "admin") return <Navigate to="/admin" replace />;
 
   // 5. Onboarding non complété → tunnel d'onboarding
   if (!profile.onboarding_complete) return <Navigate to="/onboarding" replace />;
@@ -57,6 +58,19 @@ export function ParentGuard() {
   //if (!profile.onboarding_complete && !location.pathname.includes("/parent/onboarding")) {
   //  return <Navigate to="/parent/onboarding" replace />;
   //}
+
+  return <Outlet />;
+}
+
+/** Protects /admin routes (Admin only) */
+export function AdminGuard() {
+  const { user, profile, loading } = useAuth();
+
+  if (loading) return <LoadingGuard loading>{null}</LoadingGuard>;
+  if (!user) return <Navigate to="/" replace />;
+  if (!profile) return <LoadingGuard loading>{null}</LoadingGuard>;
+
+  if (profile.role !== "admin") return <Navigate to="/" replace />;
 
   return <Outlet />;
 }

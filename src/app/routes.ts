@@ -3,7 +3,7 @@ import { Welcome } from "./components/pages/Welcome";
 import { Tarifs } from "./components/pages/Tarifs";
 import { Mission } from "./components/pages/Mission";
 import { EcolesPartenaires } from "./components/pages/Ecolespartenaires";
-import { AuthGuard, ParentGuard, OnboardingGuard } from "./components/layout/AuthGuard";
+import { AuthGuard, ParentGuard, OnboardingGuard, AdminGuard } from "./components/layout/AuthGuard";
 import { Layout } from "./components/layout/Layout";
 import { ParentLayout } from "./components/layout/ParentLayout";
 import { Dashboard } from "./components/app/Dashboard";
@@ -25,6 +25,7 @@ import { ParentAide } from "./components/parent/ParentAide";
 import { ParentActivation } from "./components/parent/ParentActivation";
 import { ParentContestation } from "./components/parent/ParentContestation";
 import { Onboarding } from "./components/onboarding/Onboarding";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Welcome },
@@ -59,6 +60,13 @@ export const router = createBrowserRouter([
           { path: "aide", Component: Aide },
         ],
       },
+    ],
+  },
+  {
+    path: "/admin",
+    Component: AdminGuard,
+    children: [
+      { index: true, Component: AdminDashboard },
     ],
   },
   {

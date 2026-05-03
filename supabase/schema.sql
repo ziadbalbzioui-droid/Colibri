@@ -8,7 +8,7 @@ create extension if not exists "uuid-ossp";
 -- ─── PROFILES ────────────────────────────────────────────────
 create table if not exists public.profiles (
   id            uuid primary key references auth.users(id) on delete cascade,
-  role          text not null check (role in ('prof', 'parent')),
+  role          text not null check (role in ('prof', 'parent', 'admin')),
   prenom        text not null,
   nom           text not null,
   email         text not null,
@@ -188,11 +188,9 @@ create table if not exists public.parent_eleve (
   unique (parent_id, eleve_id)
 );
 
--- ─── HELPER FUNCTIONS : Éviter la récursion RLS ─────────────
--- security definer = s'exécute avec les droits du propriétaire,
--- donc bypass le RLS des tables interrogées → pas de récursion.
-
--- Utilisée par : recap_mensuel: parent read
+-- ─── HELPER FUNCTION : Éviter la récursion RLS recap_mensuel ─
+-- security definer = s'exécute avec les droits du propriétaire de la fonction,
+-- donc bypass le RLS des tables qu'elle interroge → pas de récursion.
 create or replace function public.parent_peut_lire_recap(p_recap_id uuid)
 returns boolean
 language sql
@@ -205,44 +203,6 @@ as $$
     join public.parent_eleve pe on pe.eleve_id = rev.eleve_id
     where rev.recap_id = p_recap_id
       and pe.parent_id = auth.uid()
-  );
-$$;
-
--- Utilisée par : recap_eleve_validation: prof crud
--- Vérifie que le recap appartient au prof SANS lire recap_mensuel via RLS.
-create or replace function public.prof_owns_recap(p_recap_id uuid)
-returns boolean
-language sql
-security definer
-stable
-as $$
-  select exists (
-    select 1 from public.recap_mensuel
-    where id = p_recap_id and prof_id = auth.uid()
-  );
-$$;
-
-create or replace function public.parent_peut_lire_eleve(p_eleve_id uuid)
-returns boolean
-language sql
-security definer
-stable
-as $$
-  select exists (
-    select 1 from public.parent_eleve
-    where eleve_id = p_eleve_id and parent_id = auth.uid()
-  );
-$$;
-
-create or replace function public.prof_peut_lire_parent_eleve(p_eleve_id uuid)
-returns boolean
-language sql
-security definer
-stable
-as $$
-  select exists (
-    select 1 from public.eleves
-    where id = p_eleve_id and prof_id = auth.uid()
   );
 $$;
 
@@ -275,7 +235,6 @@ do $$ begin
   drop policy if exists "paps: prof update"     on public.paps_annonces;
   drop policy if exists "paps: prof delete"     on public.paps_annonces;
   drop policy if exists "parent_eleve: parent read" on public.parent_eleve;
-  drop policy if exists "parent_eleve: prof read" on public.parent_eleve;
   drop policy if exists "recap_mensuel: prof crud" on public.recap_mensuel;
   drop policy if exists "recap_mensuel: parent read" on public.recap_mensuel;
   drop policy if exists "recap_mensuel: parent paiement" on public.recap_mensuel;
@@ -286,6 +245,7 @@ end $$;
 
 -- Profiles
 create policy "profiles: read own"   on public.profiles for select using (auth.uid() = id);
+
 -- Permet au parent de lire le profil du prof de ses enfants (pour afficher le nom du prof)
 create policy "profiles: parent read prof" on public.profiles for select using (
   exists (
@@ -301,7 +261,7 @@ create policy "profiles: update own" on public.profiles for update using (auth.u
 -- Eleves
 create policy "eleves: prof crud" on public.eleves for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
 create policy "eleves: parent read" on public.eleves for select using (
-  public.parent_peut_lire_eleve(id)
+  exists (select 1 from public.parent_eleve pe where pe.eleve_id = eleves.id and pe.parent_id = auth.uid())
 );
 
 -- Eleve_tags
@@ -335,9 +295,15 @@ create policy "paps: prof delete" on public.paps_annonces for delete using (auth
 
 -- Parent-eleve
 create policy "parent_eleve: parent read" on public.parent_eleve for select using (auth.uid() = parent_id);
-create policy "parent_eleve: prof read" on public.parent_eleve for select using (
+
+-- 1. On supprime la règle existante
+DROP POLICY IF EXISTS "parent_eleve: prof read" ON public.parent_eleve;
+
+-- 2. On la recrée proprement
+CREATE POLICY "parent_eleve: prof read" ON public.parent_eleve FOR SELECT USING (
   public.prof_peut_lire_parent_eleve(eleve_id)
 );
+
 
 -- Recap Mensuel (V2)
 create policy "recap_mensuel: prof crud" on public.recap_mensuel for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
@@ -352,18 +318,16 @@ create policy "recap_mensuel: parent read" on public.recap_mensuel for select us
 -- Le parent n'a plus besoin de policy UPDATE sur recap_mensuel.
 
 -- Recap Eleve Validation
--- On utilise prof_owns_recap() (security definer) pour éviter la récursion :
--- sans ça, cette policy FOR ALL lit recap_mensuel → déclenche recap_mensuel RLS
--- → qui lit recap_eleve_validation → boucle infinie.
 create policy "recap_eleve_validation: prof crud" on public.recap_eleve_validation for all using (
-  public.prof_owns_recap(recap_id)
+  exists (select 1 from public.recap_mensuel rm where rm.id = recap_eleve_validation.recap_id and rm.prof_id = auth.uid())
 ) with check (
-  public.prof_owns_recap(recap_id)
+  exists (select 1 from public.recap_mensuel rm where rm.id = recap_eleve_validation.recap_id and rm.prof_id = auth.uid())
 );
 create policy "recap_eleve_validation: parent read" on public.recap_eleve_validation for select using (
   exists (
-    select 1 from public.parent_eleve pe
-    where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
+    select 1 from public.recap_eleve_validation rev2
+    join public.parent_eleve pe on pe.eleve_id = rev2.eleve_id
+    where rev2.recap_id = recap_eleve_validation.recap_id and pe.parent_id = auth.uid()
   )
 );
 create policy "recap_eleve_validation: parent update" on public.recap_eleve_validation for update using (
@@ -374,6 +338,18 @@ create policy "recap_eleve_validation: parent update" on public.recap_eleve_vali
   )
 ) with check (
   statut = 'valide' and
+  exists (
+    select 1 from public.parent_eleve pe
+    where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
+  )
+);
+
+
+-- 1. On détruit la règle qui cause la boucle infinie
+drop policy if exists "recap_eleve_validation: parent read" on public.recap_eleve_validation;
+
+-- 2. On la remplace par une règle directe et optimisée
+create policy "recap_eleve_validation: parent read" on public.recap_eleve_validation for select using (
   exists (
     select 1 from public.parent_eleve pe
     where pe.eleve_id = recap_eleve_validation.eleve_id and pe.parent_id = auth.uid()
@@ -466,5 +442,233 @@ drop policy if exists "parent_eleve: parent insert" on public.parent_eleve;
 create policy "parent_eleve: parent insert" on public.parent_eleve for insert
   with check (auth.uid() = parent_id);
 
+-- ─── POLICIES ADMIN ─────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin');
+$$;
+
+CREATE POLICY "profiles: admin read all" ON public.profiles
+  FOR SELECT USING (public.is_admin());
+
+CREATE POLICY "recap_mensuel: admin read all" ON public.recap_mensuel
+  FOR SELECT USING (public.is_admin());
+
+CREATE POLICY "cours: admin read all" ON public.cours
+  FOR SELECT USING (public.is_admin());
+
 -- LE COUP DE PIED AU CACHE : On force l'API à relire la base de données
 NOTIFY pgrst, 'reload schema';
+
+
+
+
+
+-- ═══════════════════════════════════════════════════════════
+-- FIX RECURSION INFINIE : recap_mensuel ↔ recap_eleve_validation
+-- ═══════════════════════════════════════════════════════════
+
+-- 1. Fonctions security definer (bypass RLS = pas de récursion)
+
+create or replace function public.parent_peut_lire_recap(p_recap_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.recap_eleve_validation rev
+    join public.parent_eleve pe on pe.eleve_id = rev.eleve_id
+    where rev.recap_id = p_recap_id and pe.parent_id = auth.uid()
+  );
+$$;
+
+create or replace function public.prof_owns_recap(p_recap_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.recap_mensuel
+    where id = p_recap_id and prof_id = auth.uid()
+  );
+$$;
+
+-- 2. Supprimer TOUTES les anciennes policies sur ces 2 tables
+
+drop policy if exists "recap_mensuel: prof crud"       on public.recap_mensuel;
+drop policy if exists "recap_mensuel: parent read"     on public.recap_mensuel;
+drop policy if exists "recap_mensuel: parent paiement" on public.recap_mensuel;
+
+drop policy if exists "recap_eleve_validation: prof crud"      on public.recap_eleve_validation;
+drop policy if exists "recap_eleve_validation: parent read"    on public.recap_eleve_validation;
+drop policy if exists "recap_eleve_validation: parent update"  on public.recap_eleve_validation;
+
+-- 3. Recréer les policies proprement
+
+create policy "recap_mensuel: prof crud" on public.recap_mensuel
+  for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
+
+create policy "recap_mensuel: parent read" on public.recap_mensuel
+  for select using (public.parent_peut_lire_recap(id));
+
+create policy "recap_eleve_validation: prof crud" on public.recap_eleve_validation
+  for all using (public.prof_owns_recap(recap_id))
+  with check (public.prof_owns_recap(recap_id));
+
+create policy "recap_eleve_validation: parent read" on public.recap_eleve_validation
+  for select using (
+    exists (select 1 from public.parent_eleve pe
+            where pe.eleve_id = recap_eleve_validation.eleve_id
+              and pe.parent_id = auth.uid())
+  );
+
+create policy "recap_eleve_validation: parent update" on public.recap_eleve_validation
+  for update using (
+    statut = 'en_attente_parent' and
+    exists (select 1 from public.parent_eleve pe
+            where pe.eleve_id = recap_eleve_validation.eleve_id
+              and pe.parent_id = auth.uid())
+  ) with check (
+    statut = 'valide' and
+    exists (select 1 from public.parent_eleve pe
+            where pe.eleve_id = recap_eleve_validation.eleve_id
+              and pe.parent_id = auth.uid())
+  );
+
+-- 4. Aussi la policy profiles pour voir le nom du prof
+drop policy if exists "profiles: parent read prof" on public.profiles;
+create policy "profiles: parent read prof" on public.profiles for select using (
+  exists (
+    select 1 from public.eleves e
+    join public.parent_eleve pe on pe.eleve_id = e.id
+    where e.prof_id = profiles.id and pe.parent_id = auth.uid()
+  )
+);
+
+-- Supprimer la colonne fantôme qui n'a rien à faire là
+ALTER TABLE public.recap_mensuel DROP COLUMN IF EXISTS eleve_id;
+
+
+-- Supprimer l'ancienne contrainte CHECK et la recréer avec 'valide'
+ALTER TABLE public.recap_eleve_validation 
+  DROP CONSTRAINT IF EXISTS recap_eleve_validation_statut_check;
+
+ALTER TABLE public.recap_eleve_validation
+  ADD CONSTRAINT recap_eleve_validation_statut_check
+  CHECK (statut IN ('en_attente_parent', 'en_attente_validation', 'valide', 'conteste'));
+
+ALTER TABLE public.recap_mensuel 
+  DROP CONSTRAINT IF EXISTS recap_mensuel_statut_check;
+
+ALTER TABLE public.recap_mensuel 
+  ADD CONSTRAINT recap_mensuel_statut_check 
+  CHECK (statut IN ('en_cours', 'en_attente_parent', 'en_attente_paiement', 'valide'));
+
+
+
+-- 1. On crée les fonctions "Coupe-Circuit" pour éviter la récursion
+create or replace function public.parent_peut_lire_eleve(p_eleve_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.parent_eleve
+    where eleve_id = p_eleve_id and parent_id = auth.uid()
+  );
+$$;
+
+create or replace function public.prof_peut_lire_parent_eleve(p_eleve_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.eleves
+    where id = p_eleve_id and prof_id = auth.uid()
+  );
+$$;
+
+-- 2. On remplace les anciennes politiques qui causaient la boucle
+drop policy if exists "eleves: parent read" on public.eleves;
+create policy "eleves: parent read" on public.eleves for select using (
+  public.parent_peut_lire_eleve(id)
+);
+
+drop policy if exists "parent_eleve: prof read" on public.parent_eleve;
+create policy "parent_eleve: prof read" on public.parent_eleve for select using (
+  public.prof_peut_lire_parent_eleve(eleve_id)
+);
+
+
+NOTIFY pgrst, 'reload schema';
+
+
+-- ─── INTÉGRATION QONTO / URSSAF ──────────────────────────────
+
+-- 1. Nouvelles colonnes sur recap_mensuel
+ALTER TABLE public.recap_mensuel
+  ADD COLUMN IF NOT EXISTS montant_total    numeric(10,2),
+  ADD COLUMN IF NOT EXISTS paye_le          timestamptz;
+
+-- Nouveau statut 'paye'
+ALTER TABLE public.recap_mensuel
+  DROP CONSTRAINT IF EXISTS recap_mensuel_statut_check;
+ALTER TABLE public.recap_mensuel
+  ADD CONSTRAINT recap_mensuel_statut_check
+  CHECK (statut IN (
+    'en_cours','en_attente_parent',
+    'en_attente_paiement','valide','paye'
+  ));
+
+-- 2. Table des demandes de paiement URSSAF
+CREATE TABLE IF NOT EXISTS public.urssaf_demandes_paiement (
+  id                    uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  recap_id              uuid NOT NULL REFERENCES public.recap_mensuel(id) ON DELETE CASCADE,
+  parent_id             uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  montant_total         numeric(10,2) NOT NULL,
+  montant_reste_charge  numeric(10,2) NOT NULL,
+  urssaf_demande_id     text,
+  statut                text NOT NULL DEFAULT 'brouillon'
+                        CHECK (statut IN (
+                          'brouillon','envoyee','en_attente_parent',
+                          'validee','payee','rejetee'
+                        )),
+  qonto_tx_id           text,
+  cree_le               timestamptz NOT NULL DEFAULT now(),
+  paye_le               timestamptz
+);
+
+-- 3. Table des virements URSSAF reçus (détectés par webhook Qonto)
+CREATE TABLE IF NOT EXISTS public.urssaf_virements_recus (
+  id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  demande_id    uuid REFERENCES public.urssaf_demandes_paiement(id) ON DELETE SET NULL,
+  qonto_tx_id   text NOT NULL UNIQUE,
+  montant_cents int  NOT NULL,
+  recu_le       timestamptz NOT NULL DEFAULT now(),
+  dispatche     boolean NOT NULL DEFAULT false
+);
+
+-- 4. Table des virements sortants vers les profs
+CREATE TABLE IF NOT EXISTS public.qonto_bulk_transfers (
+  id                  uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  recap_id            uuid REFERENCES public.recap_mensuel(id) ON DELETE SET NULL,
+  prof_id             uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  qonto_transfer_id   text,
+  montant_cents       int NOT NULL,
+  commission_cents    int NOT NULL DEFAULT 0,
+  statut              text NOT NULL DEFAULT 'en_attente'
+                      CHECK (statut IN ('en_attente','envoye','echoue')),
+  execute_le          timestamptz
+);
+
+-- 5. Index
+CREATE INDEX IF NOT EXISTS idx_urssaf_demandes_recap
+  ON public.urssaf_demandes_paiement (recap_id);
+CREATE INDEX IF NOT EXISTS idx_urssaf_demandes_statut
+  ON public.urssaf_demandes_paiement (statut);
+CREATE INDEX IF NOT EXISTS idx_virements_recus_dispatche
+  ON public.urssaf_virements_recus (dispatche);
+CREATE INDEX IF NOT EXISTS idx_bulk_transfers_prof
+  ON public.qonto_bulk_transfers (prof_id);
+
+-- 6. RLS
+ALTER TABLE public.urssaf_demandes_paiement  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.urssaf_virements_recus     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.qonto_bulk_transfers       ENABLE ROW LEVEL SECURITY;
+
+-- Ces tables sont uniquement accessibles via service_role (back-end)
+-- Aucune policy pour les users : le front n'y accède jamais directement
+
+NOTIFY pgrst, 'reload schema';
+
+
+

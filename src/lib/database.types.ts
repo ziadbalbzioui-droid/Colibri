@@ -1,4 +1,4 @@
-export type UserRole = "prof" | "parent";
+export type UserRole = "prof" | "parent" | "admin";
 export type EleveStatut = "actif" | "en attente" | "en pause" | "terminé";
 export type CoursStatut = "payé" | "en attente" | "planifié";
 export type FactureStatut = "payée" | "en attente";
