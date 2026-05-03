@@ -93,8 +93,8 @@ export interface Profile {
   mandat_accepted?: boolean;
   competence_accepted?: boolean;
   acceptances_at?: string;
-  stripe_account_id?: string;
-  stripe_onboarding_complete?: boolean;
+  paiement_onboarding?: boolean;
+  carte_identite_url?: string;
   // parent onboarding – état civil
   civilite?: "M." | "Mme";
   nom_naissance?: string;

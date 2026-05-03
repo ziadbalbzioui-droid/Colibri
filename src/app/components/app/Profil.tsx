@@ -207,6 +207,20 @@ export function Profil() {
             )}
           </div>
           <div style={{ marginBottom: 14 }}>
+            <label style={S.label}>Pièce d'identité</label>
+            {profile.carte_identite_url ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <CheckCircle2 style={{ width: 16, height: 16, color: "#059669" }} />
+                  <span style={{ color: "#059669", fontWeight: 600 }}>Document déposé — en cours de vérification</span>
+                </div>
+                <button onClick={() => navigate("/app/profil/identite")} style={{ fontSize: 11, color: "#059669", background: "none", border: "none", cursor: "pointer" }}>Modifier</button>
+              </div>
+            ) : (
+              <button onClick={() => navigate("/app/profil/identite")} style={{ ...S.btnPrimary, fontSize: 12 }}>Déposer le document</button>
+            )}
+          </div>
+          <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Extrait de casier judiciaire</label>
             {profile.casier_judiciaire_url ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#ECFDF5", border: "1px solid #BBF7D0", borderRadius: 10, fontSize: 13 }}>

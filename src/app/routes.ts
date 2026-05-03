@@ -16,6 +16,7 @@ import { Parrainage } from "./components/app/Parrainage";
 import { Factures } from "./components/app/Factures";
 import { Aide } from "./components/app/Aide";
 import { CasierJudiciaire } from "./components/app/CasierJudiciaire";
+import { CarteIdentite } from "./components/app/CarteIdentite";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
 import { ParentCours } from "./components/parent/ParentCours";
 import { ParentFactures } from "./components/parent/ParentFactures";
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
           { path: "factures", Component: Factures },
           { path: "profil", Component: Profil },
           { path: "profil/casier", Component: CasierJudiciaire },
+          { path: "profil/identite", Component: CarteIdentite },
           { path: "parrainage", Component: Parrainage },
           { path: "aide", Component: Aide },
         ],
