@@ -234,26 +234,41 @@ function MockFinirMois() {
 // ── Mockup : Dashboard stats ──
 function MockDashboard() {
   return (
-    <MockWrap maxWidth={580} caption="Dashboard — les 3 indicateurs clés calculés automatiquement à partir de vos cours déclarés">
+    <MockWrap maxWidth={580} caption="Dashboard — revenu net calculé automatiquement à partir de vos cours déclarés, commission Colibri incluse">
       <div style={{ padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A" }}>Dashboard</h1>
             <p style={{ color: "#64748B", fontSize: 13, marginTop: 2 }}>Janvier 2025</p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ ...MS.btnGhost, padding: "7px 12px", fontSize: 12 }}>
-              <Plus className="w-3.5 h-3.5" /> Élève
-            </div>
-            <div style={{ ...MS.btnPrimary, padding: "7px 12px", fontSize: 12 }}>
-              <Plus className="w-3.5 h-3.5" /> Cours
-            </div>
+          <div style={{ ...MS.btnPrimary, padding: "7px 12px", fontSize: 12 }}>
+            <Plus className="w-3.5 h-3.5" /> Cours
           </div>
         </div>
-        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 16, padding: 20 }}>
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <p style={MS.eyebrow}>Revenu net du mois</p>
           <div style={{ ...MS.serif, fontSize: 48, letterSpacing: "-.02em", color: "#0F172A", margin: "8px 0 4px" }}>978 €</div>
           <p style={{ fontSize: 12, color: "#94A3B8" }}>Sur 10h de cours déclarés ce mois · commission Colibri incluse</p>
+        </div>
+        {/* Journal récent */}
+        <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: 16 }}>
+          <p style={{ ...MS.eyebrow, marginBottom: 10 }}>Journal récent</p>
+          {[
+            { nom: "Emma L.", mat: "Maths", tarif: "30€/h · 2h", famille: "60€ famille", net: "77€ net" },
+            { nom: "Lucas M.", mat: "Physique", tarif: "25€/h · 1h30", famille: "37,50€ famille", net: "46€ net" },
+          ].map((c, i, arr) => (
+            <div key={i} style={{ paddingBottom: i < arr.length - 1 ? 10 : 0, marginBottom: i < arr.length - 1 ? 10 : 0, borderBottom: i < arr.length - 1 ? "1px dashed #E2E8F0" : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.nom} <span style={{ fontWeight: 400, color: "#94A3B8" }}>· {c.mat}</span></span>
+                <span style={{ fontSize: 13, color: "#64748B" }}>{c.famille}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2 }}>
+                <span style={{ fontSize: 11, color: "#64748B" }}>{c.tarif}</span>
+                <span style={{ fontSize: 11, color: "#16A34A" }}>{c.net}</span>
+              </div>
+            </div>
+          ))}
+          <p style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>2 séances récentes — 97,50€ famille · <span style={{ color: "#16A34A" }}>123€ net prof</span></p>
         </div>
       </div>
     </MockWrap>

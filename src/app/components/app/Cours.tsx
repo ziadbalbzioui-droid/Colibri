@@ -378,7 +378,7 @@ export function Cours() {
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
                             <span style={{ fontSize: 11, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</span>
-                            <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</span>
+                            <span style={{ fontSize: 11, color: "#16A34A" }}>{netProf}€ net</span>
                           </div>
                         </div>
                       );

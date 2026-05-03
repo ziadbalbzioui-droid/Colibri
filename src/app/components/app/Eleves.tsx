@@ -135,7 +135,7 @@ export function Eleves() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Nom", "Niveau", "Matière", "Tarif/h", "Statut", "Dernier cours", ""].map((h) => (
+                {["Nom", "Niveau", "Matière", "Tarif Famille /h", "Statut", "Dernier cours", ""].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#64748B", background: "#F8FAFC" }}>{h}</th>
                 ))}
               </tr>

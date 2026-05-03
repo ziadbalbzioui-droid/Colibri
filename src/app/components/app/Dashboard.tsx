@@ -156,23 +156,15 @@ export function Dashboard() {
     return map;
   }, [cours]);
 
-  const upcomingCours = useMemo(() => {
-    const todayStr = now.toISOString().split("T")[0];
-    return [...cours]
-      .filter((c: CoursRow) => c.date >= todayStr && c.statut === "planifié")
-      .sort((a: CoursRow, b: CoursRow) => a.date.localeCompare(b.date))
-      .slice(0, 4);
-  }, [cours]);
-
-  const dayLabel = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const todayStr = now.toISOString().split("T")[0];
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
-    if (dateStr === todayStr) return "Aujourd'hui";
-    if (dateStr === tomorrowStr) return "Demain";
-    return d.toLocaleDateString("fr-FR", { weekday: "long" });
-  };
+  const eleveNetTotals = useMemo(() => {
+    const map: Record<string, number> = {};
+    cours.forEach((c: CoursRow) => {
+      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+      const taux = getTauxPlusvalue(grille, tarifH);
+      map[c.eleve_nom] = (map[c.eleve_nom] ?? 0) + Math.round(c.montant * (1 + taux));
+    });
+    return map;
+  }, [cours, grille]);
 
   const weekLabel = (() => {
     const weekNum = Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7);
@@ -234,45 +226,8 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Agenda + Journal */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16, marginBottom: 16 }}>
-          {/* Agenda */}
-          <div style={S.card}>
-            <div style={{ padding: "24px 24px 0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-                <h2 style={{ ...S.serif, fontSize: 22, fontWeight: 400, letterSpacing: "-.02em", color: "#0F172A" }}>Votre semaine</h2>
-                <span style={{ fontSize: 12, color: "#2E6BEA", fontWeight: 600, cursor: "pointer" }}>Agenda complet →</span>
-              </div>
-            </div>
-            {upcomingCours.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#64748B", padding: "0 24px 24px" }}>Aucun cours planifié.</p>
-            ) : (
-              <div style={{ padding: "0 24px 24px" }}>
-                {upcomingCours.map((c: CoursRow, i: number) => {
-                  const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                  const taux = getTauxPlusvalue(grille, tarifH);
-                  const netProf = Math.round(c.montant * (1 + taux));
-                  return (
-                    <div key={c.id} style={{ display: "grid", gridTemplateColumns: "90px 1fr auto", gap: 14, alignItems: "start", padding: "14px 0", borderBottom: i < upcomingCours.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                      <div>
-                        <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>{dayLabel(c.date)}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.eleve_nom}</div>
-                        <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{c.matiere} · {Math.round(tarifH)}€/h · {c.duree}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 13, color: "#64748B" }}>{c.montant}€ <span style={{ fontSize: 10, color: "#94A3B8" }}>famille</span></div>
-                        <div style={{ fontSize: 11, color: "#16A34A", marginTop: 2 }}>+{Math.round(taux * 100)}% → {netProf}€ net</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Journal */}
+        {/* Journal */}
+        <div style={{ marginBottom: 16 }}>
           <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 16, padding: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
               <BookOpen className="w-4 h-4 text-slate-400" />
@@ -303,7 +258,10 @@ export function Dashboard() {
                   );
                 })}
                 <p style={{ marginTop: 16, fontSize: 12, color: "#64748B" }}>
-                  {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}&nbsp;€
+                  {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}€ famille · <span style={{ color: "#16A34A" }}>{recentCours.reduce((a: number, r: CoursRow) => {
+                    const tarifH = r.duree_heures > 0 ? r.montant / r.duree_heures : 0;
+                    return a + Math.round(r.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                  }, 0).toLocaleString("fr-FR")}€ net prof</span>
                 </p>
               </>
             )}
@@ -325,12 +283,14 @@ export function Dashboard() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
               {eleves.slice(0, 6).map((e: EleveRow, i: number) => {
                 const totalPaye = elevePayTotals[e.nom] ?? 0;
+                const netTotal = eleveNetTotals[e.nom] ?? 0;
                 return (
                   <div key={e.id} style={{ padding: 14, borderRadius: 12, background: "#F8FAFC", border: "1px solid #E2E8F0" }}>
                     <Initials name={e.nom} index={i} />
                     <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 2, color: "#0F172A" }}>{e.nom.split(" ")[0]}</div>
-                    <div style={{ fontSize: 11, color: "#64748B", marginBottom: 10 }}>{e.niveau}</div>
-                    <div style={{ ...S.serif, fontSize: 18, color: "#0F172A" }}>{totalPaye.toLocaleString("fr-FR")}€</div>
+                    <div style={{ fontSize: 11, color: "#64748B", marginBottom: 8 }}>{e.niveau}</div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 2 }}>{totalPaye.toLocaleString("fr-FR")}€ famille</div>
+                    <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR")}€ <span style={{ fontSize: 11, fontFamily: "inherit", color: "#64748B" }}>net</span></div>
                     {e.statut === "en pause" && <span style={{ ...S.badge("#FFFBEB", "#92400E"), marginTop: 6 }}>Relancer</span>}
                   </div>
                 );
