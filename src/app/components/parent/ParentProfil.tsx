@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, Baby, KeyRound, Plus, AlertCircle } from "lucide-react";
+import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, Baby, KeyRound, Plus, AlertCircle, Zap, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useAuth } from "../../../lib/auth";
 import { useParentData } from "../../../lib/hooks/useParentData";
 
 export function ParentProfil() {
   const { profile, updateProfile } = useAuth();
   const { children, ajouterCode } = useParentData();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [newCode, setNewCode] = useState("");
@@ -291,8 +293,18 @@ export function ParentProfil() {
           </div>
         )}
         {(!urssafStatus || urssafStatus === "none") && (
-          <div className="mt-4 bg-gray-50 border border-border rounded-lg px-4 py-3 text-xs text-muted-foreground">
-            Complétez votre onboarding pour activer le service d'avance immédiate.
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-3">
+              Bénéficiez de 50% de réduction directement sur chaque facture grâce au crédit d'impôt Urssaf.
+            </p>
+            <button
+              onClick={() => navigate("/parent/activation")}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+            >
+              <Zap className="w-4 h-4" />
+              Activer le service
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>

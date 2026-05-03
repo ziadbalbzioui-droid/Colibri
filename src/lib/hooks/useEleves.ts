@@ -18,6 +18,9 @@ export interface EleveRow {
   dernier_cours: string;
   heures_par_semaine: number[];
   code_invitation?: string;
+  telephone_eleve?: string;
+  email_eleve?: string;
+  adresse_eleve?: string;
 }
 
 function computeHeursSemaine(dates: string[]): number[] {
@@ -71,6 +74,7 @@ export function useEleves() {
           tarif_heure: e.tarif_heure, statut: e.statut, solde: e.solde, notes: e.notes,
           tags: (e.eleve_tags as { tag: string }[]).map((t) => t.tag),
           total_heures, total_paye, dernier_cours, heures_par_semaine, code_invitation: e.code_invitation,
+          telephone_eleve: e.telephone_eleve, email_eleve: e.email_eleve, adresse_eleve: e.adresse_eleve,
         };
       });
 
@@ -143,5 +147,11 @@ export function useEleves() {
     setEleves((prev) => prev.filter((e) => e.id !== id));
   };
 
-  return { eleves, loading, error, reload: load, addEleve, updateNotes, updateStatut, updateTags, removeEleve };
+  const updateCoordinates = async (id: string, data: { telephone_eleve?: string; email_eleve?: string; adresse_eleve?: string }) => {
+    const { error } = await supabase.from("eleves").update(data).eq("id", id);
+    if (error) throw error;
+    setEleves((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
+  };
+
+  return { eleves, loading, error, reload: load, addEleve, updateNotes, updateStatut, updateTags, removeEleve, updateCoordinates };
 }

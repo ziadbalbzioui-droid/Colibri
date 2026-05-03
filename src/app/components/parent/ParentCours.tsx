@@ -1,42 +1,106 @@
 import { useState } from "react";
-import { Link } from "react-router";
-import { BookOpen, Clock, CheckCircle, CalendarDays, Loader2, AlertCircle, X, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, CheckCircle, Loader2, AlertCircle, X, FileText, AlertTriangle, Flag } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 import type { ValidationWithRecap } from "../../../lib/hooks/useParentData";
 
-const matiereStyle: Record<string, string> = {
-  "Mathématiques": "bg-blue-50 text-blue-700 border-blue-100",
-  "Physique-Chimie": "bg-purple-50 text-purple-700 border-purple-100",
-};
-
-const statutStyle: Record<string, string> = {
-  effectué: "bg-green-50 text-green-700",
-  planifié: "bg-blue-50 text-blue-700",
-  "en attente": "bg-amber-50 text-amber-700",
-  payé: "bg-green-50 text-green-700",
-};
-
-type Filter = "tous" | "à venir" | "passés";
-
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const JOURS_COURTS = ["L", "M", "M", "J", "V", "S", "D"];
 
-function formatDate(d: string) {
+const S = {
+  card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
+  serif: { fontFamily: "'Fraunces', Georgia, serif" } as React.CSSProperties,
+  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#64748B" } as React.CSSProperties,
+};
+
+const MATIERE_COLORS: Record<string, { bg: string; dot: string }> = {
+  "Mathématiques":  { bg: "#EFF6FF", dot: "#1D4ED8" },
+  "Physique-Chimie": { bg: "#F5F3FF", dot: "#7C3AED" },
+  "Français":        { bg: "#FFF7ED", dot: "#C2410C" },
+  "Histoire-Géo":    { bg: "#ECFDF5", dot: "#065F46" },
+  "Anglais":         { bg: "#F0FDF4", dot: "#15803D" },
+  "SVT":             { bg: "#FDF4FF", dot: "#A21CAF" },
+  "Philosophie":     { bg: "#FFF1F2", dot: "#BE123C" },
+};
+
+function formatDateFull(d: string) {
   const dt = new Date(d);
   const jours = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
   return `${jours[dt.getDay()]} ${dt.getDate()} ${MOIS[dt.getMonth()]}`;
 }
 
+// ── Mini calendar with dots under course days ──
+function MiniCalendar({ year, month, activeDays }: { year: number; month: number; activeDays: Set<number> }) {
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const offset = (firstDow + 6) % 7;
+  const today = new Date();
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  const todayDate = today.getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7) cells.push(null);
+
+  return (
+    <div>
+      {/* Day headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
+        {JOURS_COURTS.map((j, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#94A3B8", padding: "4px 0" }}>{j}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+        {cells.map((d, i) => {
+          const isActive = d !== null && activeDays.has(d);
+          const isToday = isCurrentMonth && d === todayDate;
+          return (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 6 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, fontWeight: isToday ? 700 : 400,
+                background: isToday ? "#EFF6FF" : "transparent",
+                color: d ? (isToday ? "#1D4ED8" : "#374151") : "transparent",
+                border: isToday ? "1.5px solid #BFDBFE" : "1.5px solid transparent",
+              }}>
+                {d ?? ""}
+              </div>
+              {/* Dot for course days */}
+              <div style={{
+                width: 5, height: 5, borderRadius: "50%",
+                background: isActive ? "#2563EB" : "transparent",
+                marginTop: 2,
+              }} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function ParentCours() {
-  const { cours, validations, validerRecap, loading } = useParentData();
-  const [filter, setFilter] = useState<Filter>("tous");
+  const { cours, children, validations, validerRecap, loading } = useParentData();
+  const navigate = useNavigate();
   const [recapModal, setRecapModal] = useState<ValidationWithRecap | null>(null);
   const [validating, setValidating] = useState(false);
   const [validError, setValidError] = useState<string | null>(null);
   const [validated, setValidated] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const today = new Date();
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
+
+  const profByEleve = Object.fromEntries(children.map((ch) => [ch.id, ch.prof_nom]));
 
   const pending = validations.filter((v) => v.statut === "en_attente_parent");
+  const contested = validations.filter((v) => v.statut === "conteste");
 
   function moisLabel(v: ValidationWithRecap) {
     return `${MOIS[v.recap_mensuel.mois - 1]} ${v.recap_mensuel.annee}`;
@@ -47,8 +111,30 @@ export function ParentCours() {
     return cours.filter((c) => c.eleve_id === v.eleve_id && c.date.startsWith(prefix));
   }
 
+  const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
+
+  function prevMonth() {
+    if (selectedMonth === 0) { setSelectedYear((y) => y - 1); setSelectedMonth(11); }
+    else setSelectedMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (isCurrentMonth) return;
+    if (selectedMonth === 11) { setSelectedYear((y) => y + 1); setSelectedMonth(0); }
+    else setSelectedMonth((m) => m + 1);
+  }
+
+  const coursOfMonth: CoursRow[] = cours.filter((c) => {
+    const d = new Date(c.date);
+    return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+  });
+
+  const totalHeures = coursOfMonth.reduce((s, c) => s + c.duree_heures, 0);
+  const totalMontant = coursOfMonth.reduce((s, c) => s + c.montant, 0);
+  const activeDays = new Set(coursOfMonth.map((c) => new Date(c.date).getDate()));
+  const sorted = [...coursOfMonth].sort((a, b) => b.date.localeCompare(a.date));
+
   async function handleValider() {
-    if (!recapModal) return;
+    if (!recapModal || !confirmed) return;
     setValidating(true);
     setValidError(null);
     try {
@@ -61,216 +147,341 @@ export function ParentCours() {
     }
   }
 
-  function closeModal() {
-    setRecapModal(null);
+  function openModal(r: ValidationWithRecap) {
+    setRecapModal(r);
+    setConfirmed(false);
     setValidated(false);
     setValidError(null);
   }
 
+  function closeModal() {
+    setRecapModal(null);
+    setValidated(false);
+    setValidError(null);
+    setConfirmed(false);
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 240, color: "#94A3B8" }}>
+        <Loader2 style={{ width: 20, height: 20, marginRight: 8 }} className="animate-spin" /> Chargement...
       </div>
     );
   }
 
-  const now = new Date();
-
-  const filtered = cours.filter((c: CoursRow) => {
-    const isPast = new Date(c.date) < now;
-    if (filter === "à venir") return !isPast;
-    if (filter === "passés") return isPast;
-    return true;
-  });
-
-  const avenir = cours.filter((c: CoursRow) => new Date(c.date) >= now).length;
-  const passes = cours.filter((c: CoursRow) => new Date(c.date) < now).length;
-  const totalHeures = cours.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0);
-
   return (
-    <div className="space-y-6">
+    <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Cours</h1>
-        <p className="text-muted-foreground text-sm mt-1">Historique et prochaines séances</p>
+        <p style={S.eyebrow}>Suivi des séances</p>
+        <h1 style={{ ...S.serif, fontWeight: 400, fontSize: 40, letterSpacing: "-.02em", color: "#0F172A", margin: "6px 0 0", lineHeight: 1.05 }}>
+          Cours
+        </h1>
       </div>
 
-      {/* Mois en attente de validation */}
+      {/* Pending validation banner */}
       {pending.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-          <p className="text-sm font-semibold text-amber-800">
+        <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 16, padding: "16px 20px" }}>
+          <p style={{ fontWeight: 600, fontSize: 13, color: "#92400E", margin: "0 0 10px" }}>
             {pending.length === 1 ? "1 mois en attente de votre validation" : `${pending.length} mois en attente de validation`}
           </p>
-          {pending.map((r) => {
-            const items = coursDuRecap(r);
-            const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
-            const totalM = items.reduce((s, c) => s + c.montant, 0);
-            return (
-              <div key={r.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-amber-100">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{moisLabel(r)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {pending.map((r) => {
+              const items = coursDuRecap(r);
+              const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
+              const totalM = items.reduce((s, c) => s + c.montant, 0);
+              return (
+                <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 12, padding: "10px 16px", border: "1px solid #FDE68A" }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
+                    <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
+                      {items.length} cours · {totalH}h ·{" "}
+                      <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>{totalM.toLocaleString("fr-FR")} €</span>
+                      {" "}<span style={{ color: "#16A34A", fontWeight: 600 }}>{Math.round(totalM * 0.5)} €</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => openModal(r)}
+                    style={{ fontSize: 12, background: "#2E6BEA", color: "#fff", padding: "6px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 600, flexShrink: 0 }}
+                  >
+                    Voir & Valider
+                  </button>
                 </div>
-                <button
-                  onClick={() => setRecapModal(r)}
-                  className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 font-medium shrink-0"
-                >
-                  Voir & Valider
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "À venir", value: avenir, icon: CalendarDays, color: "text-blue-600 bg-blue-50" },
-          { label: "Effectués", value: passes, icon: CheckCircle, color: "text-green-600 bg-green-50" },
-          { label: "Heures totales", value: `${totalHeures.toFixed(1)}h`, icon: Clock, color: "text-purple-600 bg-purple-50" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-border p-4 text-center">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-2 ${s.color}`}>
-              <s.icon className="w-4 h-4" />
-            </div>
-            <p className="text-xl font-bold text-gray-900">{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filter */}
-      <div className="flex bg-white border border-border rounded-lg p-1 w-fit">
-        {(["tous", "à venir", "passés"] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-md text-sm transition-colors ${
-              filter === f ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Course list */}
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-sm bg-white rounded-xl border border-border">
-            <AlertCircle className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50" />
-            Aucun cours à afficher
-          </div>
-        )}
-        {filtered.map((c: CoursRow) => {
-          const isPast = new Date(c.date) < now;
-          const statut = isPast && c.statut === "planifié" ? "effectué" : c.statut;
-          const matStyle = matiereStyle[c.matiere] ?? "bg-gray-50 text-gray-600 border-gray-100";
-          const stStyle = statutStyle[statut] ?? "bg-gray-50 text-gray-600";
-          return (
-            <div key={c.id} className="bg-white rounded-xl border border-border px-5 py-4 flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isPast ? "bg-green-50" : "bg-blue-50"}`}>
-                <BookOpen className={`w-4 h-4 ${isPast ? "text-green-600" : "text-blue-600"}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-medium text-gray-900">{c.matiere}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${matStyle}`}>
-                    {c.matiere}
-                  </span>
+      {/* Contested validations */}
+      {contested.length > 0 && (
+        <div style={{ background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 16, padding: "16px 20px" }}>
+          <p style={{ fontWeight: 600, fontSize: 13, color: "#9F1239", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+            <Flag style={{ width: 14, height: 14 }} />
+            {contested.length === 1 ? "1 mois contesté" : `${contested.length} mois contestés`}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {contested.map((r) => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 10, padding: "10px 14px", border: "1px solid #FECDD3" }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
+                  <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2, marginBottom: 0 }}>En cours de traitement par Colibri</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatDate(c.date)} · {c.duree}
-                </p>
+                <span style={{ fontSize: 11, background: "#FFF1F2", color: "#9F1239", border: "1px solid #FECDD3", padding: "3px 10px", borderRadius: 8, fontWeight: 600 }}>
+                  Contesté
+                </span>
               </div>
-              <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 ${stStyle}`}>
-                {statut}
-              </span>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Month navigation */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          onClick={prevMonth}
+          style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <ChevronLeft style={{ width: 16, height: 16, color: "#64748B" }} />
+        </button>
+        <h2 style={{ ...S.serif, fontSize: 22, fontWeight: 400, color: "#0F172A", margin: 0, minWidth: 190, textAlign: "center" }}>
+          {MOIS[selectedMonth]} {selectedYear}
+        </h2>
+        <button
+          onClick={nextMonth}
+          disabled={isCurrentMonth}
+          style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: isCurrentMonth ? "not-allowed" : "pointer", opacity: isCurrentMonth ? 0.35 : 1 }}
+        >
+          <ChevronRight style={{ width: 16, height: 16, color: "#64748B" }} />
+        </button>
       </div>
 
-      {/* Modale de validation */}
+      {/* Calendar + course list */}
+      <div className="grid md:grid-cols-[280px_1fr] grid-cols-1" style={{ gap: 20, alignItems: "start" }}>
+
+        {/* Calendar card */}
+        <div style={{ ...S.card, padding: "20px 18px" }}>
+          <p style={{ ...S.eyebrow, marginBottom: 16 }}>{MOIS[selectedMonth]} {selectedYear}</p>
+          <MiniCalendar year={selectedYear} month={selectedMonth} activeDays={activeDays} />
+          {/* Legend */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, paddingTop: 12, borderTop: "1px solid #F1F5F9" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#2563EB" }} />
+            <span style={{ fontSize: 11, color: "#64748B" }}>Jour avec cours</span>
+          </div>
+          {/* Stats */}
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "#64748B" }}>Séances</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{coursOfMonth.length}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "#64748B" }}>Durée totale</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{totalHeures.toFixed(1)} h</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "#64748B" }}>Montant brut</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", textDecoration: "line-through" }}>{totalMontant} €</span>
+            </div>
+            {totalMontant > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", background: "#ECFDF5", borderRadius: 8, marginTop: 2 }}>
+                <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600 }}>Votre part (50%)</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#065F46" }}>{Math.round(totalMontant * 0.5)} €</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Course list */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {sorted.length === 0 ? (
+            <div style={{ ...S.card, padding: 48, textAlign: "center" }}>
+              <AlertCircle style={{ width: 24, height: 24, color: "#CBD5E1", margin: "0 auto 12px" }} />
+              <p style={{ fontSize: 13, color: "#94A3B8", margin: 0 }}>Aucun cours ce mois-ci</p>
+            </div>
+          ) : (
+            sorted.map((c) => {
+              const colors = MATIERE_COLORS[c.matiere] ?? { bg: "#F8FAFC", dot: "#475569" };
+              const profNom = profByEleve[c.eleve_id ?? ""] ?? "Professeur";
+              return (
+                <div key={c.id} style={{ ...S.card, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px" }}>
+                  <div style={{ width: 3, height: 48, borderRadius: 3, background: colors.dot, flexShrink: 0 }} />
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: colors.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <BookOpen style={{ width: 15, height: 15, color: colors.dot }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{c.matiere}</span>
+                      <span style={{ fontSize: 11, background: colors.bg, color: colors.dot, padding: "1px 8px", borderRadius: 6, fontWeight: 600 }}>{c.duree}</span>
+                    </div>
+                    <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>{formatDateFull(c.date)}</p>
+                    <p style={{ fontSize: 11, color: "#94A3B8", margin: "2px 0 0" }}>
+                      Prof : {profNom}{c.eleve_nom ? ` · Élève : ${c.eleve_nom}` : ""}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Recap validation modal */}
       {recapModal && (() => {
         const items = coursDuRecap(recapModal);
         const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
         const totalM = items.reduce((s, c) => s + c.montant, 0);
+        const partParent = Math.round(totalM * 0.5);
         return (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] flex flex-col">
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "0 16px" }}>
+            <div style={{ background: "#fff", borderRadius: 22, boxShadow: "0 8px 48px rgba(15,23,42,.22)", width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
+
               {validated ? (
-                /* ── État succès ── */
-                <div className="text-center py-4">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                /* ── Succès ── */
+                <div style={{ padding: 32, textAlign: "center" }}>
+                  <div style={{ width: 72, height: 72, background: "#ECFDF5", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                    <CheckCircle style={{ width: 36, height: 36, color: "#22C55E" }} />
                   </div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-1">Mois validé !</h3>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    {moisLabel(recapModal)} a bien été validé. Le professeur en sera notifié.
+                  <h3 style={{ fontWeight: 700, color: "#0F172A", fontSize: 20, margin: "0 0 8px" }}>Mois validé !</h3>
+                  <p style={{ fontSize: 14, color: "#64748B", margin: "0 0 28px", lineHeight: 1.6 }}>
+                    {moisLabel(recapModal)} a été validé avec succès. Une facture va être générée et votre professeur sera notifié.
                   </p>
-                  <div className="flex flex-col gap-3">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <Link
                       to="/parent/factures"
-                      className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 text-sm font-medium transition-colors"
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#2E6BEA", color: "#fff", padding: "12px 20px", borderRadius: 14, fontWeight: 600, fontSize: 14, textDecoration: "none" }}
                     >
-                      <FileText className="w-4 h-4" />
-                      Voir mes factures
+                      <FileText style={{ width: 16, height: 16 }} /> Voir mes factures
                     </Link>
-                    <button
-                      onClick={closeModal}
-                      className="px-4 py-2.5 rounded-lg border border-border hover:bg-muted text-sm"
-                    >
+                    <button onClick={closeModal} style={{ padding: "12px 20px", borderRadius: 14, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 14, color: "#64748B" }}>
                       Fermer
                     </button>
                   </div>
                 </div>
               ) : (
-                /* ── État normal : détails + bouton valider ── */
                 <>
-                  <div className="flex items-center justify-between mb-5">
+                  {/* ── Header ── */}
+                  <div style={{ padding: "24px 28px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Valider {moisLabel(recapModal)}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{items.length} cours · {totalH}h · {totalM.toLocaleString("fr-FR")} €</p>
+                      <h3 style={{ fontWeight: 700, color: "#0F172A", fontSize: 17, margin: "0 0 4px" }}>
+                        Valider {moisLabel(recapModal)}
+                      </h3>
+                      <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>
+                        {items.length} séance{items.length > 1 ? "s" : ""} · {totalH.toFixed(1)} h · {totalM.toLocaleString("fr-FR")} €
+                      </p>
                     </div>
-                    <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-muted">
-                      <X className="w-4 h-4 text-muted-foreground" />
+                    <button
+                      onClick={closeModal}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+                    >
+                      <X style={{ width: 14, height: 14, color: "#64748B" }} />
                     </button>
                   </div>
 
-                  <div className="overflow-y-auto flex-1 space-y-1.5 mb-5">
-                    {items.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between px-3 py-2.5 bg-muted rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{c.matiere}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(c.date)} · {c.duree}</p>
+                  {/* ── Warning irreversible ── */}
+                  <div style={{ margin: "16px 28px 0", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: "12px 16px", display: "flex", gap: 10 }}>
+                    <AlertTriangle style={{ width: 16, height: 16, color: "#B45309", flexShrink: 0, marginTop: 1 }} />
+                    <p style={{ fontSize: 12, color: "#92400E", margin: 0, lineHeight: 1.6 }}>
+                      <strong>Action irréversible.</strong> Une fois validé, le récapitulatif est clôturé et la facture est générée. Vous ne pourrez plus apporter de modifications.
+                    </p>
+                  </div>
+
+                  {/* ── Course list ── */}
+                  <div style={{ overflowY: "auto", flex: 1, margin: "16px 28px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {items.map((c) => {
+                      const colors = MATIERE_COLORS[c.matiere] ?? { bg: "#F8FAFC", dot: "#475569" };
+                      const profNom = profByEleve[c.eleve_id ?? ""] ?? "Professeur";
+                      return (
+                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 12 }}>
+                          <div style={{ width: 3, height: 40, borderRadius: 3, background: colors.dot, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.matiere}</p>
+                              <span style={{ fontSize: 10, background: colors.bg, color: colors.dot, padding: "1px 6px", borderRadius: 5, fontWeight: 600 }}>{c.duree}</span>
+                            </div>
+                            <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
+                              {formatDateFull(c.date)} · {profNom}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", margin: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium">{c.montant} €</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-border mb-4">
-                    <span className="text-sm font-semibold">Total</span>
-                    <span className="text-sm font-semibold">{totalM.toLocaleString("fr-FR")} €</span>
+                  {/* ── Totals ── */}
+                  <div style={{ margin: "14px 28px 0", background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>Total brut</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8", textDecoration: "line-through" }}>{totalM.toLocaleString("fr-FR")} €</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>Prise en charge Urssaf (50%)</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{Math.round(totalM * 0.5)} €</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Votre part</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>{partParent} €</span>
+                    </div>
                   </div>
 
+                  {/* ── Confirmation checkbox ── */}
+                  <div style={{ margin: "14px 28px 0" }}>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={confirmed}
+                        onChange={(e) => setConfirmed(e.target.checked)}
+                        style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2E6BEA", flexShrink: 0, cursor: "pointer" }}
+                      />
+                      <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.55 }}>
+                        J'ai vérifié le détail des séances et je confirme l'exactitude de ce récapitulatif.
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* ── Error ── */}
                   {validError && (
-                    <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">{validError}</p>
+                    <p style={{ fontSize: 12, color: "#DC2626", background: "#FEF2F2", borderRadius: 8, padding: "8px 12px", margin: "10px 28px 0" }}>{validError}</p>
                   )}
 
-                  <div className="flex gap-3">
-                    <button onClick={closeModal} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-muted text-sm">
-                      Annuler
-                    </button>
+                  {/* ── Actions ── */}
+                  <div style={{ padding: "16px 28px 28px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={closeModal}
+                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 13, color: "#64748B", fontWeight: 500 }}
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={() => { closeModal(); navigate(`/parent/contestation/${recapModal.id}`); }}
+                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1.5px solid #FB923C", background: "#FFF7ED", cursor: "pointer", fontSize: 13, color: "#EA580C", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        <Flag style={{ width: 13, height: 13 }} /> Contester
+                      </button>
+                    </div>
                     <button
                       onClick={handleValider}
-                      disabled={validating}
-                      className="flex-1 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                      disabled={validating || !confirmed}
+                      style={{
+                        width: "100%", background: confirmed ? "#2E6BEA" : "#94A3B8", color: "#fff",
+                        padding: "13px", borderRadius: 12, border: "none",
+                        cursor: confirmed && !validating ? "pointer" : "not-allowed",
+                        fontSize: 14, fontWeight: 600,
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        transition: "background .15s",
+                      }}
                     >
-                      {validating && <Loader2 className="w-4 h-4 animate-spin" />}
-                      Confirmer la validation
+                      {validating && <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />}
+                      Valider le mois
                     </button>
                   </div>
                 </>

@@ -1,8 +1,18 @@
 import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ChevronLeft, Loader2 } from "lucide-react";
-import { useCours } from "../../lib/hooks/useCours";
-import { useRecapMensuel } from "../../lib/hooks/useRecapMensuel";
+import { useCours } from "../../../lib/hooks/useCours";
+import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
+import { useAuth } from "../../../lib/auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 
 const MOIS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -17,9 +27,13 @@ function formatDate(dateStr: string) {
 export function RecapMensuel() {
   const { eleveId, mois, annee } = useParams<{ eleveId: string; mois: string; annee: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { cours } = useCours();
   const { validerMois } = useRecapMensuel();
+  const hasIban = !!profile?.iban;
   const [saving, setSaving] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [monthValidationError, setMonthValidationError] = useState<string | null>(null);
 
   const moisNum = Number(mois);
   const anneeNum = Number(annee);
@@ -38,7 +52,28 @@ export function RecapMensuel() {
   const totalMontant = coursDuMois.reduce((s, c) => s + c.montant, 0);
   const eleveNom = coursDuMois[0]?.eleve_nom ?? "";
 
-  async function handleValider() {
+  async function handleValiderClick() {
+    // Vérifier que le mois est passé
+    const lastDayOfMonth = new Date(anneeNum, moisNum, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    lastDayOfMonth.setHours(0, 0, 0, 0);
+
+    if (lastDayOfMonth > today) {
+      const nextMonth = moisNum === 12 ? 1 : moisNum + 1;
+      const nextYear = moisNum === 12 ? anneeNum + 1 : anneeNum;
+      const monthName = MOIS[nextMonth - 1];
+      setMonthValidationError(
+        `Vous pouvez clôturer ce mois à partir du 1er ${monthName} ${nextYear}`
+      );
+      return;
+    }
+
+    setMonthValidationError(null);
+    setShowCloseConfirm(true);
+  }
+
+  async function confirmValider() {
     if (!eleveId) return;
     setSaving(true);
     try {
@@ -51,6 +86,7 @@ export function RecapMensuel() {
       navigate("/app/cours");
     } finally {
       setSaving(false);
+      setShowCloseConfirm(false);
     }
   }
 
@@ -118,14 +154,39 @@ export function RecapMensuel() {
 
       {/* Action */}
       <button
-        onClick={handleValider}
-        disabled={saving || coursDuMois.length === 0}
+        onClick={handleValiderClick}
+        disabled={saving || coursDuMois.length === 0 || !hasIban}
+        title={!hasIban ? "Renseignez votre IBAN pour pouvoir clore un mois" : undefined}
         className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2 transition-opacity"
         style={{ fontWeight: 500 }}
       >
         {saving && <Loader2 className="w-4 h-4 animate-spin" />}
         Valider le mois
       </button>
+
+      {monthValidationError && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {monthValidationError}
+        </div>
+      )}
+
+      {/* Alert Dialog */}
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clore le mois de {MOIS[moisNum - 1]} {annee}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ceci est une action irréversible. Une fois le mois clôturé, vous ne pourrez plus ajouter ou modifier les cours de ce mois. Les parents recevront une demande de validation des heures.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3">
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmValider} className="bg-red-600 hover:bg-red-700">
+              Clôturer définitivement
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

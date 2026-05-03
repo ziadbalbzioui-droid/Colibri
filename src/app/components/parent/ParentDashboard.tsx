@@ -1,34 +1,36 @@
 import { Link, useNavigate } from "react-router";
-import { Calendar, Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, BookOpen, Loader2, Zap, Clock3 } from "lucide-react";
+import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap } from "lucide-react";
+import { LoadingGuard } from "../layout/LoadingGuard";
 import { useParentData } from "../../../lib/hooks/useParentData";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-function formatDate(d: string) {
-  const dt = new Date(d);
-  return `${dt.getDate()} ${MOIS[dt.getMonth()]}`;
-}
+const MATIERE_COLORS: Record<string, { bg: string; dot: string }> = {
+  "Mathématiques":   { bg: "#EFF6FF", dot: "#1D4ED8" },
+  "Physique-Chimie": { bg: "#F5F3FF", dot: "#7C3AED" },
+  "Français":        { bg: "#FFF7ED", dot: "#C2410C" },
+  "Histoire-Géo":    { bg: "#ECFDF5", dot: "#065F46" },
+  "Anglais":         { bg: "#F0FDF4", dot: "#15803D" },
+  "SVT":             { bg: "#FDF4FF", dot: "#A21CAF" },
+  "Philosophie":     { bg: "#FFF1F2", dot: "#BE123C" },
+};
+
+const S = {
+  card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
+  serif: { fontFamily: "'Fraunces', Georgia, serif" } as React.CSSProperties,
+  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#64748B" } as React.CSSProperties,
+};
 
 export function ParentDashboard() {
   const { children, cours, factures, loading, profile } = useParentData();
   const navigate = useNavigate();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement...
-      </div>
-    );
-  }
 
   const isActivationPending = profile?.urssaf_status === "activation_pending";
   const needsActivation = !profile?.onboarding_complete && !isActivationPending;
 
   const prenom = profile?.prenom ?? "parent";
   const today = new Date();
-
-  const prochaines = cours.filter((c) => new Date(c.date) >= today).slice(0, 3);
 
   const heuresCeMois = cours
     .filter((c) => {
@@ -37,258 +39,215 @@ export function ParentDashboard() {
     })
     .reduce((s, c) => s + c.duree_heures, 0);
 
+  const coursCeMois = cours.filter((c) => {
+    const d = new Date(c.date);
+    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  }).length;
+
   const enAttente = factures
     .filter((f) => f.statut === "en attente")
     .reduce((s, f) => s + f.montant_brut, 0);
 
-  const dernieresFactures = factures.slice(0, 2);
+  const dernieresFactures = factures.slice(0, 4);
+
+  const weekLabel = (() => {
+    const weekNum = Math.ceil((today.getDate() + new Date(today.getFullYear(), today.getMonth(), 1).getDay()) / 7);
+    return `${today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · semaine ${weekNum}`;
+  })();
 
   return (
-    <div className="space-y-6">
-      {/* ── Banner: URSSAF activation pending ─────────────── */}
-      {isActivationPending && (
-        <button
-          type="button"
-          onClick={() => navigate("/onboarding")}
-          className="w-full flex items-center gap-3 bg-amber-50 border-2 border-amber-300 rounded-xl px-5 py-4 text-left hover:bg-amber-100 transition-colors group"
-        >
-          <div className="w-10 h-10 bg-amber-200 rounded-xl flex items-center justify-center shrink-0">
-            <Clock3 className="w-5 h-5 text-amber-700" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-amber-800 text-sm">
-              Compte Urssaf en attente d'activation
-            </p>
-            <p className="text-xs text-amber-600 mt-0.5">
-              Cliquez ici pour terminer l'activation et débloquer toutes les fonctionnalités
-            </p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-amber-600 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-        </button>
-      )}
+    <LoadingGuard loading={loading}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* ── CTA: Activate service ─────────────────────────── */}
-      {needsActivation && (
-        <div className="bg-gradient-to-r from-primary to-[#1565C0] rounded-2xl p-6 text-white">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-              <Zap className="w-6 h-6 text-white" />
+        {/* Banner: URSSAF activation pending */}
+        {isActivationPending && (
+          <button
+            type="button"
+            onClick={() => navigate("/parent/profil")}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 14, padding: "12px 16px", cursor: "pointer", textAlign: "left", width: "100%" }}
+          >
+            <div style={{ width: 34, height: 34, background: "#FDE68A", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Clock style={{ width: 16, height: 16, color: "#92400E" }} />
             </div>
-            <div>
-              <h2 className="font-semibold text-lg">Activez votre service d'avance immédiate</h2>
-              <p className="text-blue-100 text-sm mt-0.5">
-                Bénéficiez de l'avance immédiate déduite directement de vos factures
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 600, color: "#92400E", fontSize: 13, margin: 0 }}>
+                Compte Urssaf en attente d'activation
+              </p>
+              <p style={{ fontSize: 11, color: "#B45309", marginTop: 2, marginBottom: 0 }}>
+                Consultez votre boîte mail pour finaliser l'activation
               </p>
             </div>
-          </div>
-          <button
-            onClick={() => navigate("/onboarding", { state: { skipToStep: 2 } })}
-            className="w-full bg-white text-primary font-semibold py-3 rounded-xl hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-          >
-            Activer le service <ChevronRight className="w-4 h-4" />
+            <ChevronRight style={{ width: 16, height: 16, color: "#B45309", flexShrink: 0 }} />
           </button>
-        </div>
-      )}
+        )}
 
-      <div className={isActivationPending ? "opacity-40 pointer-events-none select-none" : ""}>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bonjour, {prenom}</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {children.length > 0
-              ? `Tableau de bord de suivi`
-              : "Tableau de bord parent"}
-          </p>
-        </div>
-
-        {children.length === 0 ? (
-          <div className="max-w-lg mx-auto text-center py-20">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-amber-500" />
+        {/* CTA: Activate service */}
+        {needsActivation && (
+          <button
+            type="button"
+            onClick={() => navigate("/parent/activation")}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: "#FFF7ED", border: "1.5px solid #FB923C", borderRadius: 14, padding: "12px 16px", cursor: "pointer", textAlign: "left", width: "100%" }}
+          >
+            <div style={{ width: 34, height: 34, background: "#FED7AA", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Zap style={{ width: 16, height: 16, color: "#EA580C" }} />
             </div>
-            <h2 className="font-semibold text-gray-900 mb-2">Aucun élève associé</h2>
-            <p className="text-muted-foreground text-sm">
-              Votre compte parent n'est pas encore lié à un élève. Contactez votre professeur
-              pour qu'il fasse le lien.
-            </p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontWeight: 700, color: "#EA580C", fontSize: 13, margin: 0 }}>
+                Activez l'avance immédiate pour utiliser Colibri
+              </p>
+              <p style={{ fontSize: 11, color: "#C2410C", marginTop: 2, marginBottom: 0 }}>
+                50% de réduction sur chaque facture · Requis pour accéder aux paiements
+              </p>
+            </div>
+            <div style={{ flexShrink: 0, background: "#EA580C", color: "#fff", fontWeight: 700, fontSize: 12, padding: "7px 14px", borderRadius: 10, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              Activer <ChevronRight style={{ width: 13, height: 13 }} />
+            </div>
+          </button>
+        )}
+
+        <div style={{ opacity: isActivationPending ? 0.4 : 1, pointerEvents: isActivationPending ? "none" : "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 4 }}>
+            <p style={{ ...S.eyebrow, marginBottom: 10 }}>{weekLabel}</p>
+            <h1 style={{ ...S.serif, fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: "-.02em", color: "#0F172A", margin: 0 }}>
+              Bonjour, {prenom}<br />
+              <span style={{ color: "#94A3B8" }}>
+                {children.length > 0 ? "Tableau de bord de suivi" : "Tableau de bord parent"}
+              </span>
+            </h1>
           </div>
-        ) : (
-          <>
-            {/* Children cards */}
-            <div className={`grid gap-4 mt-4 ${children.length > 1 ? "grid-cols-1 md:grid-cols-2" : ""}`}>
-              {children.map((child) => (
-                <div key={child.id} className="bg-gradient-to-r from-primary to-[#1565C0] rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0">
+
+          {children.length === 0 ? (
+            <div style={{ ...S.card, padding: 48, textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
+              <div style={{ width: 64, height: 64, background: "#FEF3C7", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <AlertCircle style={{ width: 32, height: 32, color: "#F59E0B" }} />
+              </div>
+              <h2 style={{ fontWeight: 600, color: "#0F172A", marginBottom: 8 }}>Aucun élève associé</h2>
+              <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
+                Votre compte parent n'est pas encore lié à un élève. Contactez votre professeur
+                pour qu'il fasse le lien.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Children cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {children.map((child) => {
+                  const colors = MATIERE_COLORS[child.matiere] ?? { bg: "#F8FAFC", dot: "#475569" };
+                  return (
+                    <div key={child.id} style={{ ...S.card, padding: "16px 20px 16px 24px", display: "flex", alignItems: "center", gap: 16, position: "relative", overflow: "hidden" }}>
+                      {/* Left accent bar */}
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: colors.dot }} />
+                      {/* Avatar */}
+                      <div style={{ width: 46, height: 46, background: colors.bg, borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: colors.dot, flexShrink: 0 }}>
                         {child.nom.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <h2 className="text-lg font-semibold">{child.nom}</h2>
-                        <p className="text-blue-100 text-sm">{child.niveau}</p>
-                        <p className="text-blue-100 text-xs mt-0.5">Prof : {child.prof_nom}</p>
+                      {/* Name + level */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h2 style={{ ...S.serif, fontSize: 17, fontWeight: 400, color: "#0F172A", margin: "0 0 3px", lineHeight: 1.2 }}>
+                          {child.nom}
+                        </h2>
+                        <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>{child.niveau}</p>
                       </div>
-                    </div>
-                    <div className="text-right hidden sm:block">
-                      <p className="text-blue-100 text-xs mb-1">Matière</p>
-                      <span className="inline-block bg-white/20 text-xs px-2.5 py-0.5 rounded-full">
-                        {child.matiere}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-              {[
-                {
-                  label: "Prochaine séance",
-                  value: prochaines[0] ? formatDate(prochaines[0].date) : "—",
-                  sub: prochaines[0] ? prochaines[0].matiere : "Aucune planifiée",
-                  icon: Calendar,
-                  color: "bg-blue-50 text-blue-600",
-                },
-                {
-                  label: "Heures ce mois",
-                  value: `${heuresCeMois.toFixed(1)}h`,
-                  sub: `${cours.filter((c) => {
-                    const d = new Date(c.date);
-                    return (
-                      d.getMonth() === today.getMonth() &&
-                      d.getFullYear() === today.getFullYear()
-                    );
-                  }).length} séances`,
-                  icon: Clock,
-                  color: "bg-green-50 text-green-600",
-                },
-                {
-                  label: "Montant en attente",
-                  value: enAttente > 0 ? `${enAttente} €` : "À jour",
-                  sub:
-                    enAttente > 0
-                      ? `Avec avance immédiate : ${Math.round(enAttente * 0.5)} €`
-                      : "Tout est payé ✓",
-                  icon: CreditCard,
-                  color:
-                    enAttente > 0
-                      ? "bg-amber-50 text-amber-600"
-                      : "bg-green-50 text-green-600",
-                },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-white rounded-xl border border-border p-5">
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${stat.color}`}
-                  >
-                    <stat.icon className="w-4 h-4" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-0.5">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.sub}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-              {/* Upcoming sessions */}
-              <div className="bg-white rounded-xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                  <h3 className="font-semibold text-gray-900">Prochaines séances</h3>
-                  <Link
-                    to="/parent/cours"
-                    className="text-xs text-primary hover:underline flex items-center gap-0.5"
-                  >
-                    Voir tout <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-                <div className="divide-y divide-border">
-                  {prochaines.length === 0 ? (
-                    <p className="px-5 py-6 text-sm text-muted-foreground text-center">
-                      Aucune séance planifiée
-                    </p>
-                  ) : (
-                    prochaines.map((c) => (
-                      <div key={c.id} className="px-5 py-3.5 flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                          <BookOpen className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{c.matiere}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(c.date)} · {c.duree}
-                          </p>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
-                          {c.statut}
+                      {/* Matière + prof */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <span style={{ display: "inline-block", background: colors.bg, color: colors.dot, fontSize: 11, padding: "3px 10px", borderRadius: 999, fontWeight: 700 }}>
+                          {child.matiere}
                         </span>
+                        <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 5, marginBottom: 0 }}>{child.prof_nom}</p>
                       </div>
-                    ))
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Stats */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                {/* Heures ce mois */}
+                <div style={{ ...S.card, padding: 20 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <Clock style={{ width: 16, height: 16, color: "#16A34A" }} />
+                  </div>
+                  <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Heures ce mois</p>
+                  <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#0F172A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
+                    {heuresCeMois.toFixed(1)}h
+                  </p>
+                  <p style={{ fontSize: 11, color: "#64748B", marginTop: 4, marginBottom: 0 }}>{coursCeMois} séance{coursCeMois > 1 ? "s" : ""}</p>
+                </div>
+                {/* Montant */}
+                <div style={{ ...S.card, padding: 20 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: enAttente > 0 ? "#FFFBEB" : "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                    <CreditCard style={{ width: 16, height: 16, color: enAttente > 0 ? "#D97706" : "#16A34A" }} />
+                  </div>
+                  <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Montant en attente</p>
+                  {enAttente > 0 ? (
+                    <>
+                      <p style={{ fontSize: 12, color: "#94A3B8", textDecoration: "line-through", marginTop: 4, marginBottom: 0 }}>{enAttente} € brut</p>
+                      <p style={{ ...S.serif, fontSize: 24, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
+                        {Math.round(enAttente * 0.5)} €
+                      </p>
+                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>après crédit d'impôt</p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>À jour</p>
+                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 4, marginBottom: 0 }}>Tout est payé ✓</p>
+                    </>
                   )}
                 </div>
               </div>
 
-              {/* Recent invoices */}
-              <div className="bg-white rounded-xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                  <h3 className="font-semibold text-gray-900">Dernières factures</h3>
-                  <Link
-                    to="/parent/factures"
-                    className="text-xs text-primary hover:underline flex items-center gap-0.5"
-                  >
-                    Voir tout <ChevronRight className="w-3.5 h-3.5" />
+              {/* Dernières factures — full width */}
+              <div style={{ ...S.card, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid #F1F5F9" }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "#0F172A", margin: 0 }}>Dernières factures</h3>
+                  <Link to="/parent/factures" style={{ fontSize: 12, color: "#2E6BEA", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 2 }}>
+                    Voir tout <ChevronRight style={{ width: 14, height: 14 }} />
                   </Link>
                 </div>
-                <div className="divide-y divide-border">
-                  {dernieresFactures.length === 0 ? (
-                    <p className="px-5 py-6 text-sm text-muted-foreground text-center">
-                      Aucune facture
-                    </p>
-                  ) : (
-                    dernieresFactures.map((f) => (
-                      <div key={f.id} className="px-5 py-3.5 flex items-center gap-4">
-                        <div
-                          className={`shrink-0 ${
-                            f.statut === "payée" ? "text-green-500" : "text-amber-500"
-                          }`}
-                        >
-                          {f.statut === "payée" ? (
-                            <CheckCircle className="w-4 h-4" />
-                          ) : (
-                            <AlertCircle className="w-4 h-4" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{f.mois}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {f.montant_brut}€ brut
-                          </p>
-                        </div>
-                        {f.statut === "en attente" ? (
-                          <Link
-                            to="/parent/factures"
-                            className="text-xs bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 font-medium shrink-0"
-                          >
-                            Payer
-                          </Link>
-                        ) : (
-                          <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1.5 rounded-lg shrink-0">
-                            Payée
-                          </span>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="px-5 py-3 bg-blue-50/60 border-t border-blue-100">
-                  <p className="text-xs text-blue-700">
-                    Avance immédiate Urssaf — le montant est déduit directement de vos factures.
+                {dernieresFactures.length === 0 ? (
+                  <p style={{ padding: "24px", fontSize: 13, color: "#94A3B8", textAlign: "center", margin: 0 }}>
+                    Aucune facture
                   </p>
-                </div>
+                ) : (
+                  dernieresFactures.map((f, i) => (
+                    <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", borderBottom: i < dernieresFactures.length - 1 ? "1px solid #F8FAFC" : "none" }}>
+                      <div style={{ flexShrink: 0, color: f.statut === "payée" ? "#22C55E" : "#F59E0B" }}>
+                        {f.statut === "payée"
+                          ? <CheckCircle style={{ width: 16, height: 16 }} />
+                          : <AlertCircle style={{ width: 16, height: 16 }} />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{f.mois}</p>
+                        <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
+                          {MOIS[new Date(f.date_emission).getMonth()]} {new Date(f.date_emission).getFullYear()}
+                        </p>
+                      </div>
+                      {/* Prix barré + net */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{f.montant_brut} €</p>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: f.statut === "payée" ? "#64748B" : "#16A34A", margin: 0 }}>
+                          {Math.round(f.montant_brut * 0.5)} €
+                        </p>
+                      </div>
+                      {f.statut === "en attente" ? (
+                        <Link to="/parent/factures" style={{ fontSize: 12, background: "#2E6BEA", color: "#fff", padding: "5px 12px", borderRadius: 10, fontWeight: 600, textDecoration: "none", flexShrink: 0 }}>
+                          Payer
+                        </Link>
+                      ) : (
+                        <span style={{ fontSize: 11, background: "#ECFDF5", color: "#065F46", padding: "4px 10px", borderRadius: 8, fontWeight: 600, flexShrink: 0 }}>
+                          Payée
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </LoadingGuard>
   );
 }

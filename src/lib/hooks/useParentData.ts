@@ -5,7 +5,11 @@ import type { CoursRow } from "./useCours";
 import type { FactureRow } from "./useFactures";
 import type { RecapEleveValidationRow } from "./useRecapMensuel";
 
-export interface ValidationWithRecap extends RecapEleveValidationRow {
+export interface ValidationWithRecap {
+  id: string;
+  recap_id: string;
+  eleve_id: string;
+  statut: "en_attente_parent" | "valide" | "conteste";
   recap_mensuel: { id: string; mois: number; annee: number; statut: string };
 }
 
@@ -109,7 +113,7 @@ export function useParentData() {
         id: v.id,
         recap_id: v.recap_id,
         eleve_id: v.eleve_id,
-        statut: v.statut as "en_attente_parent" | "valide",
+        statut: v.statut as "en_attente_parent" | "valide" | "conteste",
         recap_mensuel: recapMap.get(v.recap_id) ?? { id: v.recap_id, mois: 0, annee: 0, statut: "en_cours" },
       }));
 
@@ -178,6 +182,32 @@ export function useParentData() {
     );
   };
 
+  const contesterRecap = async (
+    validationId: string,
+    contestations: Array<{ cours_id: string; raison: string }>
+  ) => {
+    const { error } = await (supabase as any)
+      .from("recap_eleve_validation")
+      .update({ statut: "conteste" })
+      .eq("id", validationId);
+    if (error) throw error;
+
+    if (contestations.length > 0) {
+      const { error: ce } = await (supabase as any)
+        .from("contestation_cours")
+        .insert(contestations.map((c) => ({
+          validation_id: validationId,
+          cours_id: c.cours_id,
+          raison: c.raison,
+        })));
+      if (ce) console.warn("[contesterRecap] contestation_cours:", ce.message);
+    }
+
+    setValidations((prev) =>
+      prev.map((v) => v.id === validationId ? { ...v, statut: "conteste" as const } : v)
+    );
+  };
+
   const ajouterCode = async (code: string) => {
     const { error } = await (supabase as any).rpc("lier_parent_eleve", { code_secret: code.trim().toUpperCase() });
     if (error) throw new Error("Code invalide ou déjà utilisé. Vérifiez avec votre professeur.");
@@ -187,5 +217,5 @@ export function useParentData() {
   // Compat: expose `child` as first child
   const child = children.length > 0 ? children[0] : null;
 
-  return { child, children, cours, factures, validations, loading, error, reload: load, payFacture, validerRecap, ajouterCode, profile };
+  return { child, children, cours, factures, validations, loading, error, reload: load, payFacture, validerRecap, contesterRecap, ajouterCode, profile };
 }

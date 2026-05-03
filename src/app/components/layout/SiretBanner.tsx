@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../../lib/auth";
 
 export function SiretBanner() {
   const { profile, updateProfile } = useAuth();
