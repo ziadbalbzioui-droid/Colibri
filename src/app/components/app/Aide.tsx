@@ -15,10 +15,10 @@ const MS = {
   eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#64748B" } as React.CSSProperties,
 };
 
-function MockWrap({ children, caption }: { children: React.ReactNode; caption: string }) {
+function MockWrap({ children, caption, maxWidth = 480 }: { children: React.ReactNode; caption: string; maxWidth?: number }) {
   return (
     <div className="my-6 pointer-events-none select-none">
-      <div style={{ ...MS.card, borderRadius: 18 }}>{children}</div>
+      <div style={{ ...MS.card, borderRadius: 18, maxWidth }}>{children}</div>
       <p className="text-xs text-slate-400 mt-2 text-center italic">{caption}</p>
     </div>
   );
@@ -140,7 +140,7 @@ function MockFinirMois() {
   return (
     <div className="my-6 pointer-events-none select-none space-y-4">
       {/* Carte mois en cours */}
-      <MockWrap caption="Étape 1 — Sur la page Cours, chaque mois affiche son total. Cliquez « Finir le mois » pour lancer la clôture.">
+      <MockWrap maxWidth={560} caption="Étape 1 — Sur la page Cours, chaque mois affiche son total. Cliquez « Finir le mois » pour lancer la clôture.">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, padding: 20 }}>
           {/* Carte mois clôturé */}
           <div style={{ ...MS.card, padding: 20, background: "#F8FAFC" }}>
@@ -175,7 +175,7 @@ function MockFinirMois() {
       </MockWrap>
 
       {/* Modal récap */}
-      <MockWrap caption="Étape 2 — Le récapitulatif affiche tous les cours du mois par élève. Vérifiez, puis cliquez « Valider le mois ».">
+      <MockWrap maxWidth={500} caption="Étape 2 — Le récapitulatif affiche tous les cours du mois par élève. Vérifiez, puis cliquez « Valider le mois ».">
         <div style={{ padding: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
@@ -228,7 +228,7 @@ function MockFinirMois() {
 // ── Mockup : Dashboard stats ──
 function MockDashboard() {
   return (
-    <MockWrap caption="Dashboard — les 3 indicateurs clés calculés automatiquement à partir de vos cours déclarés">
+    <MockWrap maxWidth={580} caption="Dashboard — les 3 indicateurs clés calculés automatiquement à partir de vos cours déclarés">
       <div style={{ padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
           <div>
@@ -297,6 +297,30 @@ function MockProfil() {
   );
 }
 
+// ─── Rich content components for guides ───────────────────────
+
+function ReassuranceBox({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "14px 16px", marginTop: 14 }}>
+      <p style={{ fontWeight: 700, fontSize: 13, color: "#166534", marginBottom: 6 }}>✓ {title}</p>
+      <div style={{ fontSize: 13, color: "#166534", lineHeight: 1.65 }}>{children}</div>
+    </div>
+  );
+}
+
+function TermsList({ terms }: { terms: { term: string; def: string }[] }) {
+  return (
+    <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+      {terms.map((t, i) => (
+        <div key={i} style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0", alignItems: "start" }}>
+          <span style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{t.term}</span>
+          <span style={{ fontSize: 13, color: "#64748B", lineHeight: 1.55 }}>{t.def}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Guide data ────────────────────────────────────────────────
 
 type GuideItem = {
@@ -306,6 +330,7 @@ type GuideItem = {
   linkLabel?: string;
   MockComponent?: () => React.ReactElement;
   fieldHints?: { label: string; desc: string }[];
+  extraContent?: React.ReactNode;
 };
 
 const GUIDES: {
@@ -440,17 +465,106 @@ const GUIDES: {
     id: "finance",
     Icon: TrendingUp,
     title: "Guide financier",
-    desc: "Net réel, versement libératoire, crédit d'impôt — comprenez vos chiffres.",
+    desc: "Comprendre ce que vous gagnez vraiment, sans mauvaises surprises. Bourses, APL, impôts — tout est expliqué.",
     color: "text-emerald-600",
     iconBg: "bg-emerald-50",
     accent: "#059669",
     items: [
-      { title: "Calculer votre net réel", desc: "Net = CA × (1 − 21,2%). Exemple : 1 000 € encaissés → 788 € nets. Avec versement libératoire IR : 766 €. Affiché automatiquement dans votre dashboard." },
-      { title: "Le versement libératoire de l'IR", desc: "Option URSSAF permettant de régler l'IR en même temps que les cotisations (+2,2%). Accessible si revenus N-2 < 27 478 €/part fiscale." },
-      { title: "Plafond auto-entrepreneur", desc: "Maximum 77 700 € de CA annuel pour les prestations de services. Dépassé deux années consécutives → bascule vers le régime réel." },
-      { title: "Crédit d'impôt de vos familles", desc: "Si agréé SAP, vos élèves récupèrent 50% du coût lors de leur déclaration annuelle. Un cours à 30 €/h ne leur coûte réellement que 15 €." },
-      { title: "TVA et mentions obligatoires", desc: "Exonéré de TVA en micro-entreprise. Mention obligatoire sur factures : « TVA non applicable – art. 293 B du CGI ». Colibri l'ajoute automatiquement." },
-      { title: "Abattement forfaitaire", desc: "Sans versement libératoire : abattement de 50% du CA avant calcul de l'IR. Pas de déduction de frais réels possible." },
+      {
+        title: "Les termes essentiels",
+        desc: "Avant tout, quelques définitions claires pour ne plus être perdu face aux mots techniques.",
+        extraContent: (
+          <TermsList terms={[
+            { term: "CA brut", def: "Chiffre d'affaires brut — la somme totale que vous encaissez pour vos cours, avant toute déduction." },
+            { term: "Cotisations URSSAF", def: "La part prélevée pour financer la sécurité sociale, la retraite, et la maladie. Taux fixe : 21,2% de votre CA brut." },
+            { term: "Net", def: "Ce qu'il vous reste réellement en poche après avoir payé vos cotisations URSSAF. Net = CA brut × 78,8%." },
+            { term: "Impôt sur le revenu (IR)", def: "Calculé en fin d'année par le fisc, séparé des cotisations URSSAF. Seule la moitié de votre CA est considérée comme imposable (abattement 50%)." },
+            { term: "ACRE", def: "Aide à la création d'entreprise. Réduit vos cotisations de moitié (~10,6% au lieu de 21,2%) pendant votre 1ère année. À demander sous 45 jours." },
+            { term: "Abattement forfaitaire", def: "Réduction de 50% appliquée automatiquement par le fisc sur votre CA avant calcul de l'IR. Vous n'êtes imposé que sur la moitié de ce que vous gagnez." },
+            { term: "Versement libératoire", def: "Option URSSAF pour payer l'IR chaque mois (+2,2% du CA), évitant une régularisation en fin d'année. Pratique si vous voulez lisser vos dépenses." },
+            { term: "Foyer fiscal", def: "L'ensemble des personnes dont les revenus sont déclarés ensemble. Rester rattaché au foyer de vos parents vous permet de ne pas déclarer seul." },
+          ]} />
+        ),
+      },
+      {
+        title: "Calculer votre revenu net réel",
+        desc: "La formule est simple : Net = CA brut × (1 − 21,2%). Sur 1 000 € de cours facturés, vous touchez 788 € nets. Avec ACRE en 1ère année : 894 €. Votre dashboard Colibri affiche ce calcul automatiquement en temps réel.",
+        extraContent: (
+          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              { scenario: "Sans ACRE", ca: "1 000 €", cot: "−212 €", net: "788 €", sub: "taux 21,2%" },
+              { scenario: "Avec ACRE", ca: "1 000 €", cot: "−106 €", net: "894 €", sub: "taux ~10,6% (1ère année)", highlight: true },
+              { scenario: "Exemple mensuel", ca: "800 €", cot: "−170 €", net: "630 €", sub: "≈ 3 cours/sem à 25€/h" },
+            ].map((s, i) => (
+              <div key={i} style={{ background: s.highlight ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.highlight ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 12, padding: "14px 16px" }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: s.highlight ? "#166534" : "#64748B", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{s.scenario}</p>
+                <div style={{ fontSize: 12, color: "#64748B", marginBottom: 2 }}>CA brut : <strong style={{ color: "#0F172A" }}>{s.ca}</strong></div>
+                <div style={{ fontSize: 12, color: "#64748B", marginBottom: 2 }}>Cotisations : <strong style={{ color: "#DC2626" }}>{s.cot}</strong></div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: s.highlight ? "#166534" : "#0F172A", marginTop: 6 }}>Net : {s.net}</div>
+                <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>{s.sub}</p>
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: "Foyer fiscal : restez rattaché à vos parents jusqu'à 25 ans",
+        desc: "Vous pouvez rester rattaché au foyer fiscal de vos parents jusqu'à vos 25 ans (et au-delà si vous êtes encore étudiant). Ce choix est purement avantageux dans la plupart des cas.",
+        extraContent: (
+          <ReassuranceBox title="Ce que ça change concrètement">
+            <p>Vos parents conservent une <strong>demi-part fiscale supplémentaire</strong> pour vous, ce qui réduit leur impôt.</p>
+            <p style={{ marginTop: 8 }}>Vos revenus de cours sont déclarés dans votre propre déclaration complémentaire — ils ne gonflent pas directement les revenus de vos parents. L'administration fiscale les traite séparément.</p>
+            <p style={{ marginTop: 8 }}>Si votre CA annuel reste modeste (quelques milliers d'euros), l'abattement de 50% fait que votre revenu imposable est très faible, souvent en dessous du seuil d'imposition. <strong>Vous ne payez souvent rien en IR.</strong></p>
+          </ReassuranceBox>
+        ),
+      },
+      {
+        title: "APL : pas de mauvaise surprise",
+        desc: "C'est souvent la première inquiétude. La réponse est rassurante : l'impact est quasi nul, surtout au début.",
+        extraContent: (
+          <ReassuranceBox title="Pourquoi vos APL ne bougent pas (ou très peu)">
+            <p>Les APL sont calculées sur les revenus de <strong>l'année N-2</strong> (deux ans avant). Vos revenus de cette année n'auront aucun impact avant deux ans.</p>
+            <p style={{ marginTop: 8 }}>De plus, si vous restez rattaché au foyer fiscal de vos parents, <strong>la CAF prend en compte votre situation de rattachement</strong>, pas vos revenus personnels isolés.</p>
+            <p style={{ marginTop: 8 }}>En pratique, avec un CA de quelques centaines d'euros par mois, l'impact éventuel sur les APL est marginal — souvent moins de 10-15 €/mois, et seulement deux ans plus tard.</p>
+          </ReassuranceBox>
+        ),
+      },
+      {
+        title: "Bourses CROUS : vos droits sont totalement préservés",
+        desc: "Bonne nouvelle : avoir un statut auto-entrepreneur n'affecte pas vos droits à la bourse sur critères sociaux.",
+        extraContent: (
+          <ReassuranceBox title="Pourquoi la bourse ne change pas">
+            <p>Les bourses CROUS sont calculées <strong>exclusivement sur les revenus de vos parents</strong> (via leur avis d'imposition). Vos propres revenus n'entrent pas dans le calcul.</p>
+            <p style={{ marginTop: 8 }}>Tant que vous restez rattaché au foyer fiscal de vos parents, <strong>vos revenus de cours particuliers sont invisibles pour le calcul de la bourse</strong>. Seule une modification de la situation financière de vos parents peut faire varier votre bourse.</p>
+            <p style={{ marginTop: 8 }}>Vous pouvez donc donner des cours, gagner de l'argent, et continuer à percevoir votre bourse exactement comme avant.</p>
+          </ReassuranceBox>
+        ),
+      },
+      {
+        title: "Impôt sur le revenu : moins que vous ne le pensez",
+        desc: "L'IR sur les revenus auto-entrepreneur est calculé après un abattement automatique de 50%. Concrètement, vous n'êtes imposé que sur la moitié de votre CA.",
+        extraContent: (
+          <>
+            <div style={{ marginTop: 14, padding: "12px 16px", background: "#F8FAFC", borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 13, color: "#64748B" }}>
+              <strong style={{ color: "#0F172A" }}>Exemple :</strong> 6 000 € de CA sur l'année → 3 000 € imposables (après abattement 50%) → à votre tranche marginale. Si vous êtes rattaché au foyer de vos parents et que ce revenu vous place dans la tranche à 11%, vous payez <strong style={{ color: "#0F172A" }}>330 €</strong> d'IR sur l'année — soit moins de 28 €/mois.
+            </div>
+            <ReassuranceBox title="Option versement libératoire : payez chaque mois, évitez les surprises">
+              Si vous préférez ne pas avoir de régularisation en fin d'année, demandez le <strong>versement libératoire de l'IR</strong> à l'URSSAF : vous payez +2,2% chaque mois en même temps que vos cotisations. Accessible si les revenus de votre foyer fiscal N-2 sont inférieurs à 27 478 €/part.
+            </ReassuranceBox>
+          </>
+        ),
+      },
+      {
+        title: "Plafonds et seuils à connaître",
+        desc: "En tant qu'auto-entrepreneur dans les cours particuliers, vous êtes très loin des limites. Mais voici les chiffres pour ne jamais être pris par surprise.",
+        extraContent: (
+          <TermsList terms={[
+            { term: "Plafond CA annuel", def: "77 700 € de CA par an maximum pour rester en micro-entreprise. En dessous de ce seuil, aucun changement de régime. Pour comparaison, 77 700 € = ~48 cours par semaine à 30 €/h toute l'année." },
+            { term: "Seuil de franchise TVA", def: "En dessous de 36 800 € de CA, vous êtes exonéré de TVA. Mention obligatoire sur vos factures : « TVA non applicable – art. 293 B du CGI ». Colibri l'ajoute automatiquement." },
+            { term: "Seuil d'imposition IR", def: "En dessous de ~11 294 € de revenu imposable (après abattement 50%), vous ne payez pas d'IR du tout. Pour un étudiant, ce seuil est rarement dépassé." },
+          ]} />
+        ),
+      },
     ],
   },
 ];
@@ -507,6 +621,7 @@ function GuidePage({ guide, onBack }: { guide: typeof GUIDES[0]; onBack: () => v
               )}
               {item.MockComponent && <item.MockComponent />}
               {item.fieldHints && <FieldHints hints={item.fieldHints} />}
+              {item.extraContent}
             </div>
           </div>
         ))}
