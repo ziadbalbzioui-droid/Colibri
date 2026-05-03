@@ -18,7 +18,7 @@ const MS = {
 function MockWrap({ children, caption, maxWidth = 480 }: { children: React.ReactNode; caption: string; maxWidth?: number }) {
   return (
     <div className="my-6 pointer-events-none select-none">
-      <div style={{ ...MS.card, borderRadius: 18, maxWidth }}>{children}</div>
+      <div style={{ ...MS.card, borderRadius: 18, maxWidth, margin: "0 auto" }}>{children}</div>
       <p className="text-xs text-slate-400 mt-2 text-center italic">{caption}</p>
     </div>
   );
@@ -465,104 +465,79 @@ const GUIDES: {
     id: "finance",
     Icon: TrendingUp,
     title: "Guide financier",
-    desc: "Comprendre ce que vous gagnez vraiment, sans mauvaises surprises. Bourses, APL, impôts — tout est expliqué.",
+    desc: "Ce que vous gagnez vraiment, et pourquoi vous n'avez rien à craindre — APL, bourses, impôts.",
     color: "text-emerald-600",
     iconBg: "bg-emerald-50",
     accent: "#059669",
     items: [
       {
-        title: "Les termes essentiels",
-        desc: "Avant tout, quelques définitions claires pour ne plus être perdu face aux mots techniques.",
-        extraContent: (
-          <TermsList terms={[
-            { term: "CA brut", def: "Chiffre d'affaires brut — la somme totale que vous encaissez pour vos cours, avant toute déduction." },
-            { term: "Cotisations URSSAF", def: "La part prélevée pour financer la sécurité sociale, la retraite, et la maladie. Taux fixe : 21,2% de votre CA brut." },
-            { term: "Net", def: "Ce qu'il vous reste réellement en poche après avoir payé vos cotisations URSSAF. Net = CA brut × 78,8%." },
-            { term: "Impôt sur le revenu (IR)", def: "Calculé en fin d'année par le fisc, séparé des cotisations URSSAF. Seule la moitié de votre CA est considérée comme imposable (abattement 50%)." },
-            { term: "ACRE", def: "Aide à la création d'entreprise. Réduit vos cotisations de moitié (~10,6% au lieu de 21,2%) pendant votre 1ère année. À demander sous 45 jours." },
-            { term: "Abattement forfaitaire", def: "Réduction de 50% appliquée automatiquement par le fisc sur votre CA avant calcul de l'IR. Vous n'êtes imposé que sur la moitié de ce que vous gagnez." },
-            { term: "Versement libératoire", def: "Option URSSAF pour payer l'IR chaque mois (+2,2% du CA), évitant une régularisation en fin d'année. Pratique si vous voulez lisser vos dépenses." },
-            { term: "Foyer fiscal", def: "L'ensemble des personnes dont les revenus sont déclarés ensemble. Rester rattaché au foyer de vos parents vous permet de ne pas déclarer seul." },
-          ]} />
-        ),
-      },
-      {
-        title: "Calculer votre revenu net réel",
-        desc: "La formule est simple : Net = CA brut × (1 − 21,2%). Sur 1 000 € de cours facturés, vous touchez 788 € nets. Avec ACRE en 1ère année : 894 €. Votre dashboard Colibri affiche ce calcul automatiquement en temps réel.",
+        title: "Ce que vous gagnez vraiment",
+        desc: "Sur chaque euro encaissé, vous reversez 21,2% à l'URSSAF (cotisations sociales). Le reste est à vous. Votre dashboard Colibri calcule tout ça automatiquement.",
         extraContent: (
           <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {[
-              { scenario: "Sans ACRE", ca: "1 000 €", cot: "−212 €", net: "788 €", sub: "taux 21,2%" },
-              { scenario: "Avec ACRE", ca: "1 000 €", cot: "−106 €", net: "894 €", sub: "taux ~10,6% (1ère année)", highlight: true },
-              { scenario: "Exemple mensuel", ca: "800 €", cot: "−170 €", net: "630 €", sub: "≈ 3 cours/sem à 25€/h" },
+              { label: "Petit mois", ca: "500 €", net: "394 €" },
+              { label: "Mois moyen", ca: "1 000 €", net: "788 €", highlight: true },
+              { label: "Gros mois", ca: "2 000 €", net: "1 576 €" },
             ].map((s, i) => (
-              <div key={i} style={{ background: s.highlight ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.highlight ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 12, padding: "14px 16px" }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: s.highlight ? "#166534" : "#64748B", marginBottom: 8, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{s.scenario}</p>
-                <div style={{ fontSize: 12, color: "#64748B", marginBottom: 2 }}>CA brut : <strong style={{ color: "#0F172A" }}>{s.ca}</strong></div>
-                <div style={{ fontSize: 12, color: "#64748B", marginBottom: 2 }}>Cotisations : <strong style={{ color: "#DC2626" }}>{s.cot}</strong></div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: s.highlight ? "#166534" : "#0F172A", marginTop: 6 }}>Net : {s.net}</div>
-                <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>{s.sub}</p>
+              <div key={i} style={{ background: s.highlight ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.highlight ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 12, padding: "16px", textAlign: "center" as const }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 10, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{s.label}</p>
+                <p style={{ fontSize: 12, color: "#64748B", marginBottom: 8 }}>Encaissé : <strong style={{ color: "#0F172A" }}>{s.ca}</strong></p>
+                <p style={{ fontSize: 22, fontWeight: 800, color: s.highlight ? "#166534" : "#0F172A" }}>{s.net}</p>
+                <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>net en poche</p>
               </div>
             ))}
           </div>
         ),
       },
       {
-        title: "Foyer fiscal : restez rattaché à vos parents jusqu'à 25 ans",
-        desc: "Vous pouvez rester rattaché au foyer fiscal de vos parents jusqu'à vos 25 ans (et au-delà si vous êtes encore étudiant). Ce choix est purement avantageux dans la plupart des cas.",
+        title: "APL : vous les gardez",
+        desc: "C'est la première question que tout le monde se pose. La réponse est simple.",
         extraContent: (
-          <ReassuranceBox title="Ce que ça change concrètement">
-            <p>Vos parents conservent une <strong>demi-part fiscale supplémentaire</strong> pour vous, ce qui réduit leur impôt.</p>
-            <p style={{ marginTop: 8 }}>Vos revenus de cours sont déclarés dans votre propre déclaration complémentaire — ils ne gonflent pas directement les revenus de vos parents. L'administration fiscale les traite séparément.</p>
-            <p style={{ marginTop: 8 }}>Si votre CA annuel reste modeste (quelques milliers d'euros), l'abattement de 50% fait que votre revenu imposable est très faible, souvent en dessous du seuil d'imposition. <strong>Vous ne payez souvent rien en IR.</strong></p>
+          <ReassuranceBox title="Vous conservez vos APL. Intégralement.">
+            Les APL sont calculées sur vos revenus de <strong>deux ans avant</strong>. En commençant à donner des cours aujourd'hui, il n'y a <strong>aucun impact sur vos APL actuelles</strong> — ni maintenant, ni l'année prochaine. Et même à très long terme, avec les revenus typiques des cours particuliers étudiants, l'impact reste de quelques euros au maximum. <strong>Continuez à donner des cours sans vous inquiéter.</strong>
           </ReassuranceBox>
         ),
       },
       {
-        title: "APL : pas de mauvaise surprise",
-        desc: "C'est souvent la première inquiétude. La réponse est rassurante : l'impact est quasi nul, surtout au début.",
+        title: "Bourse CROUS : rien ne change",
+        desc: "Votre bourse repose sur les revenus de vos parents, pas les vôtres.",
         extraContent: (
-          <ReassuranceBox title="Pourquoi vos APL ne bougent pas (ou très peu)">
-            <p>Les APL sont calculées sur les revenus de <strong>l'année N-2</strong> (deux ans avant). Vos revenus de cette année n'auront aucun impact avant deux ans.</p>
-            <p style={{ marginTop: 8 }}>De plus, si vous restez rattaché au foyer fiscal de vos parents, <strong>la CAF prend en compte votre situation de rattachement</strong>, pas vos revenus personnels isolés.</p>
-            <p style={{ marginTop: 8 }}>En pratique, avec un CA de quelques centaines d'euros par mois, l'impact éventuel sur les APL est marginal — souvent moins de 10-15 €/mois, et seulement deux ans plus tard.</p>
+          <ReassuranceBox title="Votre bourse reste exactement la même.">
+            Les bourses sur critères sociaux sont calculées <strong>uniquement sur les revenus de vos parents</strong>. Vos revenus personnels de cours particuliers n'entrent absolument pas dans le calcul. Vous pouvez donner des cours, encaisser de l'argent, et <strong>continuer à percevoir votre bourse comme avant</strong> — sans aucune démarche supplémentaire.
           </ReassuranceBox>
         ),
       },
       {
-        title: "Bourses CROUS : vos droits sont totalement préservés",
-        desc: "Bonne nouvelle : avoir un statut auto-entrepreneur n'affecte pas vos droits à la bourse sur critères sociaux.",
+        title: "Foyer fiscal : restez avec vos parents jusqu'à 25 ans",
+        desc: "Tant que vous êtes étudiant, vous pouvez rester rattaché au foyer fiscal de vos parents. C'est presque toujours le meilleur choix.",
         extraContent: (
-          <ReassuranceBox title="Pourquoi la bourse ne change pas">
-            <p>Les bourses CROUS sont calculées <strong>exclusivement sur les revenus de vos parents</strong> (via leur avis d'imposition). Vos propres revenus n'entrent pas dans le calcul.</p>
-            <p style={{ marginTop: 8 }}>Tant que vous restez rattaché au foyer fiscal de vos parents, <strong>vos revenus de cours particuliers sont invisibles pour le calcul de la bourse</strong>. Seule une modification de la situation financière de vos parents peut faire varier votre bourse.</p>
-            <p style={{ marginTop: 8 }}>Vous pouvez donc donner des cours, gagner de l'argent, et continuer à percevoir votre bourse exactement comme avant.</p>
+          <ReassuranceBox title="Double avantage : vos parents et vous y gagnez.">
+            Vos parents conservent une <strong>demi-part fiscale</strong> qui réduit leur impôt. De votre côté, vous bénéficiez d'un <strong>abattement de 50%</strong> sur vos revenus avant calcul de l'impôt — en pratique, avec quelques milliers d'euros de CA par an, <strong>vous ne payez rien en impôt sur le revenu</strong>.
           </ReassuranceBox>
         ),
       },
       {
-        title: "Impôt sur le revenu : moins que vous ne le pensez",
-        desc: "L'IR sur les revenus auto-entrepreneur est calculé après un abattement automatique de 50%. Concrètement, vous n'êtes imposé que sur la moitié de votre CA.",
+        title: "Impôt sur le revenu : probablement 0 €",
+        desc: "L'État applique automatiquement un abattement de 50% sur vos revenus. Vous n'êtes imposé que sur la moitié de ce que vous encaissez.",
         extraContent: (
           <>
-            <div style={{ marginTop: 14, padding: "12px 16px", background: "#F8FAFC", borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 13, color: "#64748B" }}>
-              <strong style={{ color: "#0F172A" }}>Exemple :</strong> 6 000 € de CA sur l'année → 3 000 € imposables (après abattement 50%) → à votre tranche marginale. Si vous êtes rattaché au foyer de vos parents et que ce revenu vous place dans la tranche à 11%, vous payez <strong style={{ color: "#0F172A" }}>330 €</strong> d'IR sur l'année — soit moins de 28 €/mois.
+            <div style={{ marginTop: 14, padding: "14px 16px", background: "#F8FAFC", borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 13, color: "#64748B", lineHeight: 1.65 }}>
+              <strong style={{ color: "#0F172A" }}>Exemple :</strong> 5 000 € encaissés sur l'année → 2 500 € imposables (après abattement 50%). En dessous de ~11 300 € de revenus imposables, le taux est <strong style={{ color: "#166534" }}>0%</strong>. La plupart des étudiants qui donnent des cours <strong style={{ color: "#0F172A" }}>ne paient aucun impôt sur le revenu</strong>.
             </div>
-            <ReassuranceBox title="Option versement libératoire : payez chaque mois, évitez les surprises">
-              Si vous préférez ne pas avoir de régularisation en fin d'année, demandez le <strong>versement libératoire de l'IR</strong> à l'URSSAF : vous payez +2,2% chaque mois en même temps que vos cotisations. Accessible si les revenus de votre foyer fiscal N-2 sont inférieurs à 27 478 €/part.
+            <ReassuranceBox title="Pas de mauvaise surprise en fin d'année">
+              Si vous voulez lisser vos dépenses, vous pouvez opter pour le <strong>versement libératoire</strong> : vous payez l'IR chaque mois (+2,2% du CA) en même temps que vos cotisations URSSAF. Plus de régularisation, plus de surprise.
             </ReassuranceBox>
           </>
         ),
       },
       {
-        title: "Plafonds et seuils à connaître",
-        desc: "En tant qu'auto-entrepreneur dans les cours particuliers, vous êtes très loin des limites. Mais voici les chiffres pour ne jamais être pris par surprise.",
+        title: "L'ACRE : la 1ère année à moitié prix",
+        desc: "En le demandant dès la création (dans les 45 jours), vos cotisations URSSAF sont divisées par 2 pendant toute votre première année.",
         extraContent: (
-          <TermsList terms={[
-            { term: "Plafond CA annuel", def: "77 700 € de CA par an maximum pour rester en micro-entreprise. En dessous de ce seuil, aucun changement de régime. Pour comparaison, 77 700 € = ~48 cours par semaine à 30 €/h toute l'année." },
-            { term: "Seuil de franchise TVA", def: "En dessous de 36 800 € de CA, vous êtes exonéré de TVA. Mention obligatoire sur vos factures : « TVA non applicable – art. 293 B du CGI ». Colibri l'ajoute automatiquement." },
-            { term: "Seuil d'imposition IR", def: "En dessous de ~11 294 € de revenu imposable (après abattement 50%), vous ne payez pas d'IR du tout. Pour un étudiant, ce seuil est rarement dépassé." },
-          ]} />
+          <ReassuranceBox title="Comment l'obtenir en 2 minutes">
+            Espace URSSAF → Mon compte → Demande d'ACRE. Gratuit, accordé automatiquement. Sur 1 000 € de CA, vous payez <strong>106 € de cotisations au lieu de 212 €</strong>. À faire <strong>dans les 45 jours</strong> après votre déclaration de création — après, c'est définitivement perdu.
+          </ReassuranceBox>
         ),
       },
     ],
