@@ -113,23 +113,21 @@ export function ParentDashboard() {
 
         {/* CTA: Activate service */}
         {needsActivation && (
-          <div style={{ background: "linear-gradient(135deg, #2E6BEA, #1565C0)", borderRadius: 20, padding: "24px 28px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, background: "rgba(255,255,255,.2)", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Zap style={{ width: 24, height: 24, color: "#fff" }} />
-              </div>
-              <div>
-                <h2 style={{ fontWeight: 600, fontSize: 16, color: "#fff", margin: 0 }}>Activez votre service d'avance immédiate</h2>
-                <p style={{ fontSize: 13, color: "#BFDBFE", marginTop: 2, marginBottom: 0 }}>
-                  Bénéficiez de l'avance immédiate déduite directement de vos factures
-                </p>
-              </div>
+          <div style={{ ...S.card, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 38, height: 38, background: "#EFF6FF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Zap style={{ width: 18, height: 18, color: "#2563EB" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>Activez l'avance immédiate</p>
+              <p style={{ fontSize: 12, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
+                Bénéficiez de 50% de réduction directement sur chaque facture — dispositif officiel Urssaf
+              </p>
             </div>
             <button
-              onClick={() => navigate("/parent/profil")}
-              style={{ width: "100%", background: "#fff", color: "#2E6BEA", fontWeight: 600, fontSize: 14, padding: "12px", borderRadius: 14, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              onClick={() => navigate("/parent/activation")}
+              style={{ flexShrink: 0, background: "#2E6BEA", color: "#fff", fontWeight: 600, fontSize: 12, padding: "7px 14px", borderRadius: 10, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
             >
-              Activer le service <ChevronRight style={{ width: 16, height: 16 }} />
+              Activer <ChevronRight style={{ width: 14, height: 14 }} />
             </button>
           </div>
         )}
@@ -273,11 +271,6 @@ export function ParentDashboard() {
                       </div>
                     ))
                   )}
-                  <div style={{ padding: "12px 24px", background: "#EFF6FF", borderTop: "1px solid #DBEAFE" }}>
-                    <p style={{ fontSize: 11, color: "#1E40AF", margin: 0 }}>
-                      Avance immédiate Urssaf — le montant est déduit directement de vos factures.
-                    </p>
-                  </div>
                 </div>
 
               </div>

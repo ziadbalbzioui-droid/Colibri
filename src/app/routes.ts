@@ -22,6 +22,7 @@ import { ParentCours } from "./components/parent/ParentCours";
 import { ParentFactures } from "./components/parent/ParentFactures";
 import { ParentProfil } from "./components/parent/ParentProfil";
 import { ParentAide } from "./components/parent/ParentAide";
+import { ParentActivation } from "./components/parent/ParentActivation";
 import { Onboarding } from "./components/onboarding/Onboarding";
 
 export const router = createBrowserRouter([
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
           { path: "cours", Component: ParentCours },
           { path: "factures", Component: ParentFactures },
           { path: "aide", Component: ParentAide },
+          { path: "activation", Component: ParentActivation },
           { path: "profil", Component: ParentProfil },
         ],
       },
