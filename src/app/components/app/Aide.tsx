@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, Laptop, Store, Sparkles, CalendarClock, TrendingUp, HelpCircle, Mail, Phone, ExternalLink, AlertTriangle, X, BookOpen, Plus } from "lucide-react";
+import { ChevronDown, ChevronLeft, Laptop, Store, Sparkles, CalendarClock, TrendingUp, HelpCircle, Mail, Phone, ExternalLink, AlertTriangle, X, BookOpen, Plus, Users } from "lucide-react";
 
 // ─── Mock style system (matching exact app styles) ─────────────
 
