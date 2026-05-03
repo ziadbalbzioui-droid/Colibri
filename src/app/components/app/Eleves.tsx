@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, X, ChevronRight, Copy } from "lucide-react";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
+import { useCours } from "../../../lib/hooks/useCours";
+import type { CoursRow } from "../../../lib/hooks/useCours";
+import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { supabase } from "../../../lib/supabase";
@@ -48,6 +51,8 @@ function StatutBadge({ statut }: { statut: string }) {
 export function Eleves() {
   const { profile } = useAuth();
   const { eleves, loading, error, reload, addEleve } = useEleves();
+  const { cours } = useCours();
+  const { grille } = useGrilleCommission();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,6 +97,16 @@ export function Eleves() {
   );
 
   const selectedEleve = eleves.find((e: EleveRow) => e.id === selectedId) ?? null;
+
+  const selectedEleveNet = useMemo(() => {
+    if (!selectedId) return 0;
+    return cours
+      .filter((c: CoursRow) => c.eleve_id === selectedId)
+      .reduce((s: number, c: CoursRow) => {
+        const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+        return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+      }, 0);
+  }, [cours, grille, selectedId]);
 
   async function handleAdd() {
     if (!form.nom || form.matieres.length === 0) return;
@@ -181,7 +196,7 @@ export function Eleves() {
 
                 {/* Stats */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-                  {[{ label: "Total heures", val: `${selectedEleve.total_heures ?? 0}h` }, { label: "Total payé", val: `${selectedEleve.total_paye ?? 0} €` }].map((s) => (
+                  {[{ label: "Total heures", val: `${selectedEleve.total_heures ?? 0}h` }, { label: "Total gagné, après impôts et cotisations", val: `${selectedEleveNet.toLocaleString("fr-FR")} €` }].map((s) => (
                     <div key={s.label} style={{ background: "#F1F5F9", borderRadius: 12, padding: 16 }}>
                       <div style={S.eyebrow}>{s.label}</div>
                       <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{s.val}</div>

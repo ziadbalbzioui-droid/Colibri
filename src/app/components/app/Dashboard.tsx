@@ -146,6 +146,19 @@ export function Dashboard() {
   );
   const netThisMonth = Math.round(revenuBrutMois);
   const heuresThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0), [coursThisMonth]);
+
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+  const prevMonthName = MOIS[prevMonthDate.getMonth()];
+  const coursPrevMonth = useMemo(() => cours.filter((c: CoursRow) => c.date.startsWith(prevMonthKey)), [cours, prevMonthKey]);
+  const netPrevMonth = useMemo(() =>
+    Math.round(coursPrevMonth.reduce((s: number, c: CoursRow) => {
+      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+      const taux = getTauxPlusvalue(grille, tarifH);
+      return s + c.montant * (1 + taux);
+    }, 0)),
+    [coursPrevMonth, grille]
+  );
   const elevesActifs = useMemo(() => eleves.filter((e: EleveRow) => e.statut === "actif").length, [eleves]);
 
   const recentCours = useMemo(() => [...cours].sort((a: CoursRow, b: CoursRow) => b.date.localeCompare(a.date)).slice(0, 5), [cours]);
@@ -198,13 +211,13 @@ export function Dashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 48, position: "relative" }}>
             <div>
               <div style={{ ...S.eyebrow, display: "flex", alignItems: "center", gap: 6, marginBottom: 12, color: "#1E3A8A" }}>
-                <Euro className="w-3 h-3 text-blue-600" /> Revenu net du mois
+                <Euro className="w-3 h-3 text-blue-600" /> Revenu du mois après impots et cotisations
               </div>
               <div style={{ ...S.serif, fontSize: 88, fontWeight: 400, letterSpacing: "-.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums", color: "#0F172A" }}>
                 {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
               </div>
               <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
-                Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci, commission Colibri incluse.
+                Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci.
               </p>
               <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
                 <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
@@ -212,13 +225,14 @@ export function Dashboard() {
                 <span style={S.badge("#0F172A", "#fff")}><Users className="w-3 h-3" />{elevesActifs} élèves</span>
               </div>
             </div>
-            {/* Prochain virement */}
+            {/* Dernier virement */}
             <div style={{ background: "#F8FAFC", border: "1px dashed #C7D8FB", borderRadius: 14, padding: 20, alignSelf: "start" }}>
-              <p style={{ ...S.eyebrow, color: "#1E3A8A" }}>Prochain virement</p>
-              <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 8, lineHeight: 1, color: "#0F172A" }}>
-                {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
+              <p style={{ ...S.eyebrow, color: "#1E3A8A" }}>Dernier virement</p>
+              <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4, marginBottom: 0 }}>{prevMonthName}</p>
+              <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 4, lineHeight: 1, color: "#0F172A" }}>
+                {netPrevMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
               </div>
-              <p style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>Versés automatiquement sur votre compte bancaire.</p>
+              <p style={{ marginTop: 10, fontSize: 12, color: "#64748B" }}>Versé automatiquement sur votre compte bancaire.</p>
               <div style={{ marginTop: 14, padding: "9px 12px", background: "#fff", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
                 <CreditCard className="w-3.5 h-3.5" /> IBAN · {profile?.iban ? profile.iban.slice(-4) : "****"}
               </div>
@@ -252,7 +266,7 @@ export function Dashboard() {
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
                         <div style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.duree}</div>
-                        <div style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</div>
+                        <div style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</div>
                       </div>
                     </div>
                   );
@@ -261,7 +275,7 @@ export function Dashboard() {
                   {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}€ famille · <span style={{ color: "#16A34A" }}>{recentCours.reduce((a: number, r: CoursRow) => {
                     const tarifH = r.duree_heures > 0 ? r.montant / r.duree_heures : 0;
                     return a + Math.round(r.montant * (1 + getTauxPlusvalue(grille, tarifH)));
-                  }, 0).toLocaleString("fr-FR")}€ net prof</span>
+                  }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations</span>
                 </p>
               </>
             )}
@@ -290,7 +304,7 @@ export function Dashboard() {
                     <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 2, color: "#0F172A" }}>{e.nom.split(" ")[0]}</div>
                     <div style={{ fontSize: 11, color: "#64748B", marginBottom: 8 }}>{e.niveau}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 2 }}>{totalPaye.toLocaleString("fr-FR")}€ famille</div>
-                    <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR")}€ <span style={{ fontSize: 11, fontFamily: "inherit", color: "#64748B" }}>net</span></div>
+                    <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR")}€ <span style={{ fontSize: 10, fontFamily: "inherit", color: "#64748B" }}>pour vous</span></div>
                     {e.statut === "en pause" && <span style={{ ...S.badge("#FFFBEB", "#92400E"), marginTop: 6 }}>Relancer</span>}
                   </div>
                 );
@@ -335,7 +349,7 @@ export function Dashboard() {
                         <span style={{ fontWeight: 700 }}>{montantFamille.toFixed(2)} €</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                        <span style={{ color: "#059669" }}>Votre net (+{Math.round(taux * 100)}% plus-value)</span>
+                        <span style={{ color: "#059669" }}>Pour vous (+{Math.round(taux * 100)}%, après impôts et cotisations)</span>
                         <span style={{ fontWeight: 700, color: "#059669" }}>{netProf} €</span>
                       </div>
                     </div>

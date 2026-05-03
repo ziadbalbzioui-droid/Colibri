@@ -267,7 +267,7 @@ export function Cours() {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.montant}€ famille</span>
-                      <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</span>
+                      <span style={{ fontSize: 11, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</span>
                     </div>
                   </div>
                 );
@@ -305,7 +305,7 @@ export function Cours() {
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.duree}</td>
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 12, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</td>
                           <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{c.montant}€ famille</td>
-                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ net</td>
+                          <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#16A34A" }}>+{Math.round(taux * 100)}% → {netProf}€ pour vous</td>
                         </tr>
                       );
                     })}
@@ -363,7 +363,7 @@ export function Cours() {
                         {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")}€ famille · {items.reduce((s, c) => {
                           const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
                           return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
-                        }, 0).toLocaleString("fr-FR")}€ net
+                        }, 0).toLocaleString("fr-FR")}€ pour vous
                       </span>
                     </div>
                     {items.map((c) => {
@@ -378,7 +378,7 @@ export function Cours() {
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
                             <span style={{ fontSize: 11, color: "#94A3B8" }}>{Math.round(tarifH)}€/h</span>
-                            <span style={{ fontSize: 11, color: "#16A34A" }}>{netProf}€ net</span>
+                            <span style={{ fontSize: 11, color: "#16A34A" }}>{netProf}€ pour vous</span>
                           </div>
                         </div>
                       );
@@ -392,7 +392,7 @@ export function Cours() {
                   <span style={{ fontSize: 13, fontWeight: 600, color: "#64748B" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 700, color: "#0F172A" }}>Votre net</span>
+                  <span style={{ fontWeight: 700, color: "#0F172A" }}>Pour vous, après impôts et cotisations</span>
                   <span style={{ fontWeight: 700, color: "#16A34A" }}>{recapModal.coursList.reduce((s, c) => {
                     const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
                     return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
@@ -509,7 +509,7 @@ export function Cours() {
                         <span style={{ fontWeight: 700 }}>{montantFamille.toFixed(2)} €</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                        <span style={{ color: "#059669" }}>Votre net (+{Math.round(taux * 100)}% plus-value)</span>
+                        <span style={{ color: "#059669" }}>Pour vous (+{Math.round(taux * 100)}%, après impôts et cotisations)</span>
                         <span style={{ fontWeight: 700, color: "#059669" }}>{netProf} €</span>
                       </div>
                     </div>

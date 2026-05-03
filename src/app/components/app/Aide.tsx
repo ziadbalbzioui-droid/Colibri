@@ -127,7 +127,7 @@ function MockDeclarerCours() {
             <span style={{ fontWeight: 700, color: "#1E3A8A" }}>45,00 €</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 12, color: "#059669" }}>Votre net (+28% plus-value) ⑦</span>
+            <span style={{ fontSize: 12, color: "#059669" }}>Pour vous (+28%, après impôts et cotisations) ⑦</span>
             <span style={{ fontWeight: 700, fontSize: 13, color: "#059669" }}>57,60 €</span>
           </div>
         </div>
@@ -246,7 +246,7 @@ function MockDashboard() {
           </div>
         </div>
         <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
-          <p style={MS.eyebrow}>Revenu net du mois</p>
+          <p style={MS.eyebrow}>Revenu après impôts et cotisations</p>
           <div style={{ ...MS.serif, fontSize: 48, letterSpacing: "-.02em", color: "#0F172A", margin: "8px 0 4px" }}>978 €</div>
           <p style={{ fontSize: 12, color: "#94A3B8" }}>Sur 10h de cours déclarés ce mois · commission Colibri incluse</p>
         </div>
@@ -254,8 +254,8 @@ function MockDashboard() {
         <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 14, padding: 16 }}>
           <p style={{ ...MS.eyebrow, marginBottom: 10 }}>Journal récent</p>
           {[
-            { nom: "Emma L.", mat: "Maths", tarif: "30€/h · 2h", famille: "60€ famille", net: "77€ net" },
-            { nom: "Lucas M.", mat: "Physique", tarif: "25€/h · 1h30", famille: "37,50€ famille", net: "46€ net" },
+            { nom: "Emma L.", mat: "Maths", tarif: "30€/h · 2h", famille: "60€ famille", net: "77€ pour vous" },
+            { nom: "Lucas M.", mat: "Physique", tarif: "25€/h · 1h30", famille: "37,50€ famille", net: "46€ pour vous" },
           ].map((c, i, arr) => (
             <div key={i} style={{ paddingBottom: i < arr.length - 1 ? 10 : 0, marginBottom: i < arr.length - 1 ? 10 : 0, borderBottom: i < arr.length - 1 ? "1px dashed #E2E8F0" : "none" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -268,7 +268,7 @@ function MockDashboard() {
               </div>
             </div>
           ))}
-          <p style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>2 séances récentes — 97,50€ famille · <span style={{ color: "#16A34A" }}>123€ net prof</span></p>
+          <p style={{ fontSize: 11, color: "#64748B", marginTop: 12 }}>2 séances récentes — 97,50€ famille · <span style={{ color: "#16A34A" }}>123€ pour vous, après impôts et cotisations</span></p>
         </div>
       </div>
     </MockWrap>
@@ -568,7 +568,7 @@ const GUIDES: {
           { label: "Durée (minutes)", desc: "Entrez la durée en minutes. Colibri convertit automatiquement : 90 = 1h30min." },
           { label: "Tarif / heure", desc: "Pré-rempli depuis le profil élève. Modifiez si ce cours a un tarif exceptionnel." },
           { label: "Prix famille", desc: "Calculé automatiquement : tarif × (durée ÷ 60). Mis à jour en temps réel." },
-          { label: "Votre net", desc: "Ce que vous toucherez après commission Colibri. La plus-value affichée dépend de votre tarif horaire et est déjà nette de cotisations URSSAF et d'impôts." },
+          { label: "Pour vous (après impôts et cotisations)", desc: "Ce que vous toucherez réellement. La plus-value Colibri est calculée pour être déjà nette de cotisations URSSAF et d'impôt sur le revenu — aucune déduction supplémentaire." },
         ],
       },
       {
@@ -586,7 +586,7 @@ const GUIDES: {
         desc: "Le dashboard affiche en temps réel votre revenu net du mois. Ce montant se calcule automatiquement à chaque cours enregistré, en tenant compte de la plus-value Colibri — déjà nette de cotisations et d'impôts.",
         MockComponent: MockDashboard,
         fieldHints: [
-          { label: "Revenu net du mois", desc: "Total de vos gains pour le mois, après application de la plus-value Colibri. C'est le montant qui arrivera sur votre compte bancaire." },
+          { label: "Revenu après impôts et cotisations", desc: "Total de vos gains pour le mois, après application de la plus-value Colibri. C'est le montant qui arrivera sur votre compte bancaire." },
           { label: "Plus-value Colibri", desc: "Pourcentage ajouté à chaque cours selon votre tarif horaire (plus le tarif est abordable, plus la subvention est forte). Il est calculé pour être déjà net de cotisations URSSAF et d'impôt sur le revenu." },
         ],
       },
