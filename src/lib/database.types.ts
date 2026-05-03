@@ -1,6 +1,6 @@
 export type UserRole = "prof" | "parent" | "admin";
 export type EleveStatut = "actif" | "en attente" | "en pause" | "terminé";
-export type CoursStatut = "payé" | "en attente" | "planifié";
+export type CoursStatut = "déclaré" | "contesté" | "payé";
 export type FactureStatut = "payée" | "en attente";
 export type RecapStatut = "en_cours" | "en_attente_parent" | "en_attente_paiement" | "valide";
 

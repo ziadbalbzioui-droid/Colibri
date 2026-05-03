@@ -115,7 +115,7 @@ export function Dashboard() {
     setSaving(true);
     try {
       const heures = dureeToHours[coursForm.duree] ?? 1;
-      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: coursForm.duree, duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "planifié" });
+      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: coursForm.duree, duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "déclaré" });
       setSuccess(true);
     } finally { setSaving(false); }
   }
@@ -199,9 +199,6 @@ export function Dashboard() {
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             <button style={S.btnGhost}>Exporter</button>
-            <button style={S.btnPrimary} onClick={() => hasSiret && openModal("cours")} disabled={!hasSiret}>
-              <Plus className="w-4 h-4" />Déclarer un cours
-            </button>
           </div>
         </div>
 
@@ -265,7 +262,7 @@ export function Dashboard() {
                         <div style={{ fontSize: 13, color: "#64748B" }}>{c.montant}€ famille</div>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
-                        <div style={{ fontSize: 11, color: "#64748B" }}>{Math.round(tarifH)}€/h · {c.duree}</div>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>{new Date(c.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {Math.round(tarifH)}€/h · {c.duree}</div>
                         <div style={{ fontSize: 11 }}><span style={{ color: "#6366F1" }}>+{Math.round(taux * 100)}%</span><span style={{ color: "#16A34A" }}> → {netProf}€ pour vous, après impôts et cotisations</span></div>
                       </div>
                     </div>

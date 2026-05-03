@@ -201,6 +201,11 @@ export function useParentData() {
           raison: c.raison,
         })));
       if (ce) console.warn("[contesterRecap] contestation_cours:", ce.message);
+
+      await supabase
+        .from("cours")
+        .update({ statut: "contesté" })
+        .in("id", contestations.map((c) => c.cours_id));
     }
 
     setValidations((prev) =>

@@ -32,7 +32,7 @@ function formatDate(dateStr: string) {
 function getFirstDayOfWeek(year: number, month: number) { return (new Date(year, month, 1).getDay() + 6) % 7; }
 function getDaysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate(); }
 
-const initialFormState = { eleve_id: "", eleve_nom: "", matiere: "", date: "", duree_minutes: 60, tarif_heure: 30, statut: "planifié" as CoursRow["statut"] };
+const initialFormState = { eleve_id: "", eleve_nom: "", matiere: "", date: "", duree_minutes: 60, tarif_heure: 30, statut: "déclaré" as CoursRow["statut"] };
 
 const S = {
   card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,

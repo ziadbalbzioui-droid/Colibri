@@ -12,7 +12,7 @@ export interface CoursRow {
   duree: string;
   duree_heures: number;
   montant: number;
-  statut: "payé" | "en attente" | "planifié";
+  statut: "déclaré" | "contesté" | "payé";
   recap_id: string | null;
 }
 
