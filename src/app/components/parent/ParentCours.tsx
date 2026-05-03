@@ -197,8 +197,8 @@ export function ParentCours() {
                     <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
                     <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
                       {items.length} cours · {totalH}h ·{" "}
-                      <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>{totalM.toLocaleString("fr-FR")} €</span>
-                      {" "}<span style={{ color: "#16A34A", fontWeight: 600 }}>{Math.round(totalM * 0.5)} €</span>
+                      <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>{(totalM * 2).toLocaleString("fr-FR")} €</span>
+                      {" "}<span style={{ color: "#16A34A", fontWeight: 600 }}>{totalM.toLocaleString("fr-FR")} €</span>
                     </p>
                   </div>
                   <button
@@ -280,13 +280,13 @@ export function ParentCours() {
               <span style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{totalHeures.toFixed(1)} h</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, color: "#64748B" }}>Montant brut</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", textDecoration: "line-through" }}>{totalMontant} €</span>
+              <span style={{ fontSize: 12, color: "#64748B" }}>Prix facturé</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", textDecoration: "line-through" }}>{(totalMontant * 2).toLocaleString("fr-FR")} €</span>
             </div>
             {totalMontant > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 10px", background: "#ECFDF5", borderRadius: 8, marginTop: 2 }}>
-                <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600 }}>Votre part (50%)</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#065F46" }}>{Math.round(totalMontant * 0.5)} €</span>
+                <span style={{ fontSize: 12, color: "#065F46", fontWeight: 600 }}>Votre part (après crédit d'impôt)</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#065F46" }}>{totalMontant.toLocaleString("fr-FR")} €</span>
               </div>
             )}
           </div>
@@ -320,8 +320,8 @@ export function ParentCours() {
                     </p>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+                    <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{(c.montant * 2).toLocaleString("fr-FR")} €</p>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>{c.montant.toLocaleString("fr-FR")} €</p>
                   </div>
                 </div>
               );
@@ -335,7 +335,7 @@ export function ParentCours() {
         const items = coursDuRecap(recapModal);
         const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
         const totalM = items.reduce((s, c) => s + c.montant, 0);
-        const partParent = Math.round(totalM * 0.5);
+        const partParent = totalM;
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "0 16px" }}>
             <div style={{ background: "#fff", borderRadius: 22, boxShadow: "0 8px 48px rgba(15,23,42,.22)", width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
@@ -408,8 +408,8 @@ export function ParentCours() {
                             </p>
                           </div>
                           <div style={{ textAlign: "right", flexShrink: 0 }}>
-                            <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", margin: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+                            <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{(c.montant * 2).toLocaleString("fr-FR")} €</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", margin: 0 }}>{c.montant.toLocaleString("fr-FR")} €</p>
                           </div>
                         </div>
                       );
@@ -419,16 +419,16 @@ export function ParentCours() {
                   {/* ── Totals ── */}
                   <div style={{ margin: "14px 28px 0", background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: "#64748B" }}>Total brut</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8", textDecoration: "line-through" }}>{totalM.toLocaleString("fr-FR")} €</span>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>Prix facturé</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8", textDecoration: "line-through" }}>{(totalM * 2).toLocaleString("fr-FR")} €</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: "#64748B" }}>Prise en charge Urssaf (50%)</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{Math.round(totalM * 0.5)} €</span>
+                      <span style={{ fontSize: 13, color: "#64748B" }}>Crédit d'impôt (50%)</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{totalM.toLocaleString("fr-FR")} €</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Votre part</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>{partParent} €</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>{partParent.toLocaleString("fr-FR")} €</span>
                     </div>
                   </div>
 

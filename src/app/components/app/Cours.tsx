@@ -4,6 +4,7 @@ import { useCours } from "../../../lib/hooks/useCours";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useAuth } from "../../../lib/auth";
 import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
+import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 import type { RecapStatut } from "../../../lib/database.types";
 import { LoadingGuard } from "../layout/LoadingGuard";
@@ -55,6 +56,7 @@ export function Cours() {
   const { cours, loading, error, reload, addCours } = useCours();
   const { eleves } = useEleves();
   const { recaps, validerMois } = useRecapMensuel();
+  const { grille } = useGrilleCommission();
   const hasSiret = !!profile?.siret;
   const hasIban = !!profile?.iban;
 
@@ -81,14 +83,18 @@ export function Cours() {
       const [y, m] = c.date.split("-");
       const key = `${MOIS[Number(m) - 1]} ${y}`;
       if (!map[key]) map[key] = { total: 0, nbCours: 0, moisNum: Number(m), anneeNum: Number(y), coursList: [] };
-      map[key].total += c.montant; map[key].nbCours += 1; map[key].coursList.push(c);
+      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+      const taux = getTauxPlusvalue(grille, tarifH);
+      map[key].total += c.montant * (1 + taux);
+      map[key].nbCours += 1;
+      map[key].coursList.push(c);
     });
     return Object.entries(map).map(([mois, v]) => {
       const recap = recaps.find((r) => r.mois === v.moisNum && r.annee === v.anneeNum);
       const recapStatut: RecapStatut = recap?.statut ?? "en_cours";
       return { mois, ...v, recapStatut, recapId: recap?.id ?? null };
     }).sort((a, b) => a.anneeNum !== b.anneeNum ? b.anneeNum - a.anneeNum : b.moisNum - a.moisNum);
-  }, [cours, recaps]);
+  }, [cours, recaps, grille]);
 
   const monthlySummary = allMonthlySummary.slice(0, 3);
   const olderMonths = allMonthlySummary.slice(3);
@@ -447,7 +453,7 @@ export function Cours() {
                     )}
                   </div>
                 </div>
-                <div><label style={S.label}>Tarif / heure (€)</label><input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} /></div>
+                <div><label style={S.label}>Tarif / heure — net parent (€)</label><input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} /></div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10 }}>
                   <span style={{ fontSize: 13, color: "#1E3A8A" }}>Montant estimé</span>
                   <span style={{ fontWeight: 700, color: "#1E3A8A" }}>{(form.tarif_heure * (form.duree_minutes / 60)).toFixed(2)} €</span>

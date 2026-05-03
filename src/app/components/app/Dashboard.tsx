@@ -4,6 +4,7 @@ import { LoadingGuard } from "../layout/LoadingGuard";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
 import { useAuth } from "../../../lib/auth";
+import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 
@@ -93,6 +94,7 @@ export function Dashboard() {
   const { profile } = useAuth();
   const { eleves, loading: elevesLoading, error: elevesError, reload: reloadEleves, addEleve } = useEleves();
   const { cours, loading: coursLoading, error: coursError, reload: reloadCours, addCours } = useCours();
+  const { grille } = useGrilleCommission();
   const dataLoading = elevesLoading || coursLoading;
   const dataError = elevesError ?? coursError;
 
@@ -135,7 +137,15 @@ export function Dashboard() {
 
   const coursThisMonth = useMemo(() => cours.filter((c: CoursRow) => c.date.startsWith(thisMonth)), [cours, thisMonth]);
   const brutThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.montant, 0), [coursThisMonth]);
-  const netThisMonth = Math.round(brutThisMonth * (1 - URSSAF));
+  const revenuBrutMois = useMemo(() =>
+    coursThisMonth.reduce((s: number, c: CoursRow) => {
+      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+      const taux = getTauxPlusvalue(grille, tarifH);
+      return s + c.montant * (1 + taux);
+    }, 0),
+    [coursThisMonth, grille]
+  );
+  const netThisMonth = Math.round(revenuBrutMois * (1 - URSSAF));
   const heuresThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0), [coursThisMonth]);
   const elevesActifs = useMemo(() => eleves.filter((e: EleveRow) => e.statut === "actif").length, [eleves]);
 
@@ -203,7 +213,7 @@ export function Dashboard() {
                 {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
               </div>
               <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
-                Soit <strong>{brutThisMonth.toLocaleString("fr-FR")}&nbsp;€</strong> brut déclaré à l'URSSAF. Votre retraite cotise, votre assurance chômage aussi.
+                Soit <strong>{Math.round(revenuBrutMois).toLocaleString("fr-FR")}&nbsp;€</strong> brut avec votre commission Colibri, déclaré à l'URSSAF.
               </p>
               <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
                 <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
@@ -215,7 +225,7 @@ export function Dashboard() {
             <div style={{ background: "#F8FAFC", border: "1px dashed #C7D8FB", borderRadius: 14, padding: 20, alignSelf: "start" }}>
               <p style={{ ...S.eyebrow, color: "#1E3A8A" }}>Prochain virement</p>
               <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 8, lineHeight: 1, color: "#0F172A" }}>
-                {Math.round(brutThisMonth * 0.3)}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
+                {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
               </div>
               <p style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>Versés automatiquement sur votre compte bancaire.</p>
               <div style={{ marginTop: 14, padding: "9px 12px", background: "#fff", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
@@ -333,7 +343,7 @@ export function Dashboard() {
                     </select>
                   </div>
                 </div>
-                <div><label style={S.label}>Tarif / heure (€)</label>
+                <div><label style={S.label}>Tarif / heure — net parent (€)</label>
                   <input type="number" style={S.input} value={coursForm.tarif_heure} onChange={(e) => setCoursForm({ ...coursForm, tarif_heure: Number(e.target.value) })} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#EFF6FF", borderRadius: 10 }}>

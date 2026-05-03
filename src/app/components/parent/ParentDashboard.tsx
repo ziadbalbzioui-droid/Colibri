@@ -183,11 +183,11 @@ export function ParentDashboard() {
                   <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Montant en attente</p>
                   {enAttente > 0 ? (
                     <>
-                      <p style={{ fontSize: 12, color: "#94A3B8", textDecoration: "line-through", marginTop: 4, marginBottom: 0 }}>{enAttente} € brut</p>
+                      <p style={{ fontSize: 12, color: "#94A3B8", textDecoration: "line-through", marginTop: 4, marginBottom: 0 }}>{(enAttente * 2).toLocaleString("fr-FR")} € facturé</p>
                       <p style={{ ...S.serif, fontSize: 24, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
-                        {Math.round(enAttente * 0.5)} €
+                        {enAttente.toLocaleString("fr-FR")} €
                       </p>
-                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>après crédit d'impôt</p>
+                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>après crédit d'impôt (50%)</p>
                     </>
                   ) : (
                     <>
@@ -226,9 +226,9 @@ export function ParentDashboard() {
                       </div>
                       {/* Prix barré + net */}
                       <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{f.montant_brut} €</p>
+                        <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{(f.montant_brut * 2).toLocaleString("fr-FR")} €</p>
                         <p style={{ fontSize: 13, fontWeight: 700, color: f.statut === "payée" ? "#64748B" : "#16A34A", margin: 0 }}>
-                          {Math.round(f.montant_brut * 0.5)} €
+                          {f.montant_brut.toLocaleString("fr-FR")} €
                         </p>
                       </div>
                       {f.statut === "en attente" ? (

@@ -277,7 +277,7 @@ export function Eleves() {
                       {niveaux.map((n) => <option key={n}>{n}</option>)}
                     </select>
                   </div>
-                  <div><label style={S.label}>Tarif / heure (€)</label>
+                  <div><label style={S.label}>Tarif / heure — net parent (€)</label>
                     <input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} />
                   </div>
                 </div>

@@ -53,15 +53,15 @@ export function ParentFactures() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-border p-4 text-center">
-          <p className="text-xs line-through text-slate-400 mt-0.5">{totalAnnee} € brut</p>
-          <p className="text-xl font-bold text-green-600">{Math.round(totalAnnee * 0.5)} €</p>
+          <p className="text-xs line-through text-slate-400 mt-0.5">{(totalAnnee * 2).toLocaleString("fr-FR")} € facturé</p>
+          <p className="text-xl font-bold text-green-600">{totalAnnee.toLocaleString("fr-FR")} €</p>
           <p className="text-xs text-muted-foreground mt-0.5">Total payé (année)</p>
         </div>
         <div className="bg-white rounded-xl border border-border p-4 text-center">
           {enAttente > 0 ? (
             <>
-              <p className="text-xs line-through text-slate-400 mt-0.5">{enAttente} € brut</p>
-              <p className="text-xl font-bold text-amber-600">{Math.round(enAttente * 0.5)} €</p>
+              <p className="text-xs line-through text-slate-400 mt-0.5">{(enAttente * 2).toLocaleString("fr-FR")} € facturé</p>
+              <p className="text-xl font-bold text-amber-600">{enAttente.toLocaleString("fr-FR")} €</p>
             </>
           ) : (
             <p className="text-xl font-bold text-muted-foreground">0 €</p>
@@ -93,9 +93,9 @@ export function ParentFactures() {
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">
-                  <p className="text-xs line-through text-slate-400">{f.montant_brut} €</p>
+                  <p className="text-xs line-through text-slate-400">{(f.montant_brut * 2).toLocaleString("fr-FR")} €</p>
                   <p className={`text-sm font-bold ${f.statut === "payée" ? "text-slate-500" : "text-green-600"}`}>
-                    {Math.round(f.montant_brut * 0.5)} €
+                    {f.montant_brut.toLocaleString("fr-FR")} €
                   </p>
                 </div>
                 <div className="shrink-0">
@@ -151,16 +151,16 @@ export function ParentFactures() {
                     <span>{payModal.lignes.reduce((s, l) => s + l.heures, 0)}h</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Montant brut</span>
-                    <span className="line-through text-slate-400">{payModal.montant_brut} €</span>
+                    <span className="text-muted-foreground">Prix facturé</span>
+                    <span className="line-through text-slate-400">{(payModal.montant_brut * 2).toLocaleString("fr-FR")} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Crédit d'impôt Urssaf (50%)</span>
-                    <span className="text-green-600 font-medium">−{Math.round(payModal.montant_brut * 0.5)} €</span>
+                    <span className="text-muted-foreground">Crédit d'impôt (50%)</span>
+                    <span className="text-green-600 font-medium">−{payModal.montant_brut.toLocaleString("fr-FR")} €</span>
                   </div>
                   <div className="flex justify-between text-sm border-t border-border pt-2.5">
                     <span className="font-medium">Votre part</span>
-                    <span className="font-bold text-xl text-green-600">{Math.round(payModal.montant_brut * 0.5)} €</span>
+                    <span className="font-bold text-xl text-green-600">{payModal.montant_brut.toLocaleString("fr-FR")} €</span>
                   </div>
                 </div>
 
@@ -221,7 +221,7 @@ export function ParentFactures() {
                   className="w-full bg-primary text-white py-2.5 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {paying && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Confirmer le paiement — {Math.round(payModal.montant_brut * 0.5)} €
+                  Confirmer le paiement — {payModal.montant_brut.toLocaleString("fr-FR")} €
                 </button>
               </div>
             )}
