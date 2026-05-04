@@ -1428,19 +1428,68 @@ const PAPS_EMPTY = {
 
 function AdminPaps() {
   const { user } = useAuth();
-  const [annonces, setAnnonces] = useState<any[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm]         = useState(PAPS_EMPTY);
-  const [newTag, setNewTag]     = useState("");
-  const [saving, setSaving]     = useState(false);
-  const [search, setSearch]     = useState("");
+  const [annonces, setAnnonces]         = useState<any[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [showForm, setShowForm]         = useState(false);
+  const [editing, setEditing]           = useState<any | null>(null);
+  const [form, setForm]                 = useState(PAPS_EMPTY);
+  const [newTag, setNewTag]             = useState("");
+  const [saving, setSaving]             = useState(false);
+  const [search, setSearch]             = useState("");
+  const [candCounts, setCandCounts]     = useState<Record<string, number>>({});
+  const [viewingCands, setViewingCands] = useState<any | null>(null);
+  const [cands, setCands]               = useState<any[]>([]);
+  const [candsLoading, setCandsLoading] = useState(false);
 
   async function load() {
     const { data } = await supabase.from("paps_annonces").select("*").order("created_at", { ascending: false });
-    setAnnonces(data ?? []); setLoading(false);
+    const list = data ?? [];
+    setAnnonces(list);
+    if (list.length > 0) {
+      const { data: cd } = await supabase.from("paps_candidatures")
+        .select("annonce_id").in("annonce_id", list.map((a) => a.id));
+      const counts: Record<string, number> = {};
+      (cd ?? []).forEach((c) => { counts[c.annonce_id] = (counts[c.annonce_id] ?? 0) + 1; });
+      setCandCounts(counts);
+    }
+    setLoading(false);
   }
   useEffect(() => { load(); }, []);
+
+  async function openCandidatures(a: any) {
+    setViewingCands(a); setCandsLoading(true); setCands([]);
+    const { data: cd } = await supabase.from("paps_candidatures")
+      .select("id, candidat_id, message, created_at").eq("annonce_id", a.id)
+      .order("created_at", { ascending: false });
+    if (cd && cd.length > 0) {
+      const { data: profiles } = await supabase.from("profiles")
+        .select("id, prenom, nom, email, telephone")
+        .in("id", [...new Set(cd.map((c) => c.candidat_id))]);
+      const pm = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]));
+      setCands(cd.map((c) => ({ ...c, profile: pm[c.candidat_id] ?? {} })));
+    }
+    setCandsLoading(false);
+  }
+
+  async function deleteCandidature(id: string, annonceId: string) {
+    if (!window.confirm("Supprimer cette candidature ? Le candidat ne sera pas notifié.")) return;
+    await supabase.from("paps_candidatures").delete().eq("id", id);
+    setCands((prev) => prev.filter((c) => c.id !== id));
+    setCandCounts((prev) => ({ ...prev, [annonceId]: Math.max(0, (prev[annonceId] ?? 1) - 1) }));
+  }
+
+  function openCreate() {
+    setEditing(null); setForm(PAPS_EMPTY); setNewTag(""); setShowForm(true);
+  }
+
+  function openEdit(a: any) {
+    setEditing(a);
+    setForm({ prof_nom: a.prof_nom, matiere: a.matiere, niveau_eleve: a.niveau_eleve,
+      prix: a.prix, frequence: a.frequence ?? "", horaires: a.horaires ?? "",
+      localisation: a.localisation ?? "", description_eleve: a.description_eleve ?? "",
+      tags: a.tags ?? [], urgent: a.urgent ?? false });
+    setNewTag(""); setShowForm(true);
+  }
 
   function addTag() {
     const t = newTag.trim();
@@ -1448,17 +1497,24 @@ function AdminPaps() {
     setNewTag("");
   }
 
-  async function handlePost() {
+  async function handleSave() {
     if (!form.prof_nom.trim() || !user) return;
     setSaving(true);
     try {
-      await supabase.from("paps_annonces").insert({
-        prof_id: user.id, prof_nom: form.prof_nom.trim(), matiere: form.matiere,
-        niveau_eleve: form.niveau_eleve, prix: form.prix, frequence: form.frequence,
-        horaires: form.horaires, localisation: form.localisation,
-        description_eleve: form.description_eleve, tags: form.tags, urgent: form.urgent, active: true,
-      });
-      setShowForm(false); setForm(PAPS_EMPTY); load();
+      const payload = {
+        prof_nom: form.prof_nom.trim(), matiere: form.matiere, niveau_eleve: form.niveau_eleve,
+        prix: form.prix, frequence: form.frequence, horaires: form.horaires,
+        localisation: form.localisation, description_eleve: form.description_eleve,
+        tags: form.tags, urgent: form.urgent,
+      };
+      if (editing) {
+        await supabase.from("paps_annonces").update(payload).eq("id", editing.id);
+        setAnnonces((prev) => prev.map((a) => a.id === editing.id ? { ...a, ...payload } : a));
+      } else {
+        await supabase.from("paps_annonces").insert({ ...payload, prof_id: user.id, active: true });
+        load();
+      }
+      setShowForm(false); setEditing(null); setForm(PAPS_EMPTY);
     } finally { setSaving(false); }
   }
 
@@ -1468,7 +1524,12 @@ function AdminPaps() {
   }
 
   async function deleteAnnonce(id: string) {
-    if (!window.confirm("Supprimer cette annonce définitivement ?")) return;
+    const count = candCounts[id] ?? 0;
+    if (!window.confirm(
+      `Supprimer cette annonce définitivement ?\n\n` +
+      (count > 0 ? `⚠ ${count} candidature(s) associée(s) seront aussi supprimées.\n\n` : "") +
+      `Action irréversible.`
+    )) return;
     await supabase.from("paps_annonces").delete().eq("id", id);
     setAnnonces((prev) => prev.filter((a) => a.id !== id));
   }
@@ -1485,7 +1546,7 @@ function AdminPaps() {
           <h1 className="text-xl font-bold text-slate-900">PAPS</h1>
           <p className="text-xs font-mono text-slate-400 mt-0.5">{annonces.length} rows · paps_annonces</p>
         </div>
-        <button onClick={() => setShowForm(true)}
+        <button onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-primary transition-colors">
           <Plus className="w-4 h-4" /> Nouvelle annonce
         </button>
@@ -1497,48 +1558,132 @@ function AdminPaps() {
           : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>prof_nom</th><th className={TH}>matiere</th><th className={TH}>niveau</th><th className={TH}>prix</th><th className={TH}>localisation</th><th className={TH}>active</th><th className={TH}>created_at</th><th className={TH}>actions</th></tr>
+              <tr><th className={TH}>id</th><th className={TH}>créé le</th><th className={TH}>prof_nom</th><th className={TH}>matiere</th><th className={TH}>niveau</th><th className={TH}>prix</th><th className={TH}>localisation</th><th className={TH}>active</th><th className={TH}>candidatures</th><th className={TH}>actions</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className={TD}><CopyID id={a.id} /></td>
-                  <td className={`${TD} font-medium text-slate-900`}>{a.prof_nom}</td>
-                  <td className={`${TD} text-slate-500`}>{a.matiere}</td>
-                  <td className={`${TD} text-slate-500`}>{a.niveau_eleve}</td>
-                  <td className={`${TD} font-mono text-slate-700`}>{a.prix} €/h</td>
-                  <td className={`${TD} text-slate-400 text-xs`}>{a.localisation || "—"}</td>
-                  <td className={TD}>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                      {a.active ? "true" : "false"}
-                    </span>
-                    {a.urgent && <span className="ml-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">urgent</span>}
-                  </td>
-                  <td className={`${TD} font-mono text-xs text-slate-400`}>{new Date(a.created_at).toLocaleDateString("fr-FR")}</td>
-                  <td className={TD}>
-                    <div className="flex gap-1.5">
-                      <button onClick={() => toggleActive(a.id, a.active)}
-                        className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${a.active ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"}`}>
-                        {a.active ? "Désactiver" : "Activer"}
+              {filtered.map((a) => {
+                const nb = candCounts[a.id] ?? 0;
+                return (
+                  <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className={TD}><CopyID id={a.id} /></td>
+                    <td className={`${TD} font-mono text-xs text-slate-400`}>{new Date(a.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td className={`${TD} font-medium text-slate-900`}>{a.prof_nom}</td>
+                    <td className={`${TD} text-slate-500`}>{a.matiere}</td>
+                    <td className={`${TD} text-slate-500`}>{a.niveau_eleve}</td>
+                    <td className={`${TD} font-mono text-slate-700`}>{a.prix} €/h</td>
+                    <td className={`${TD} text-slate-400 text-xs`}>{a.localisation || "—"}</td>
+                    <td className={TD}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                        {a.active ? "active" : "inactive"}
+                      </span>
+                      {a.urgent && <span className="ml-1.5 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">urgent</span>}
+                    </td>
+                    <td className={TD}>
+                      <button onClick={() => openCandidatures(a)}
+                        className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg transition-colors ${nb > 0 ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}>
+                        {nb > 0 ? `${nb} candidature${nb > 1 ? "s" : ""}` : "aucune"}
                       </button>
-                      <button onClick={() => deleteAnnonce(a.id)} className="flex items-center px-2 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className={TD}>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => openEdit(a)}
+                          className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">
+                          <Pencil className="w-3 h-3" /> Éditer
+                        </button>
+                        <button onClick={() => toggleActive(a.id, a.active)}
+                          className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${a.active ? "bg-amber-50 text-amber-700 hover:bg-amber-100" : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"}`}>
+                          {a.active ? "Désactiver" : "Activer"}
+                        </button>
+                        <button onClick={() => deleteAnnonce(a.id)} className="flex items-center px-2 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
 
+      {/* ── Modal candidatures ── */}
+      {viewingCands && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4 backdrop-blur-sm" onClick={() => setViewingCands(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-slate-100 px-6 py-4 flex items-start justify-between flex-shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-900">Candidatures — {viewingCands.prof_nom}</h3>
+                <p className="text-xs font-mono text-slate-400 mt-0.5">
+                  {viewingCands.matiere} · {viewingCands.niveau_eleve} · {viewingCands.prix} €/h
+                  {viewingCands.localisation ? ` · ${viewingCands.localisation}` : ""}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">Annonce créée le {new Date(viewingCands.created_at).toLocaleDateString("fr-FR")}</p>
+              </div>
+              <button onClick={() => setViewingCands(null)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors flex-shrink-0">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {candsLoading ? (
+                <div className="flex items-center justify-center gap-2 p-8 text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Chargement…
+                </div>
+              ) : cands.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-sm font-mono">Aucune candidature pour cette annonce.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className={TH}>postulé le</th>
+                      <th className={TH}>candidat</th>
+                      <th className={TH}>email</th>
+                      <th className={TH}>tél</th>
+                      <th className={TH}>message</th>
+                      <th className={TH}></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {cands.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50/60">
+                        <td className={`${TD} font-mono text-xs text-slate-400 whitespace-nowrap`}>
+                          {new Date(c.created_at).toLocaleDateString("fr-FR")}<br />
+                          <span className="text-slate-300">{new Date(c.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                        </td>
+                        <td className={`${TD} font-medium text-slate-900 whitespace-nowrap`}>
+                          {c.profile.prenom} {c.profile.nom}
+                        </td>
+                        <td className={`${TD} font-mono text-xs text-slate-500`}>{c.profile.email || "—"}</td>
+                        <td className={`${TD} font-mono text-xs text-slate-500 whitespace-nowrap`}>{c.profile.telephone || "—"}</td>
+                        <td className={`${TD} text-slate-700 text-xs max-w-[240px]`}>
+                          {c.message ? (
+                            <p className="whitespace-pre-wrap leading-relaxed">{c.message}</p>
+                          ) : (
+                            <span className="text-slate-300 font-mono italic">sans message</span>
+                          )}
+                        </td>
+                        <td className={TD}>
+                          <button onClick={() => deleteCandidature(c.id, viewingCands.id)}
+                            className="flex items-center px-2 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-              <h3 className="font-bold text-slate-900">Nouvelle annonce PAPS</h3>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-xl hover:bg-slate-100 transition-colors"><X className="w-4 h-4 text-slate-500" /></button>
+              <h3 className="font-bold text-slate-900">{editing ? "Modifier l'annonce PAPS" : "Nouvelle annonce PAPS"}</h3>
+              <button onClick={() => { setShowForm(false); setEditing(null); }} className="p-2 rounded-xl hover:bg-slate-100 transition-colors"><X className="w-4 h-4 text-slate-500" /></button>
             </div>
             <div className="p-6 space-y-4">
               <div><label className="block mb-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">Nom du prof</label>
@@ -1588,10 +1733,10 @@ function AdminPaps() {
               </label>
             </div>
             <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-4 flex gap-3 rounded-b-2xl">
-              <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm font-medium transition-colors">Annuler</button>
-              <button onClick={handlePost} disabled={!form.prof_nom.trim() || saving}
+              <button onClick={() => { setShowForm(false); setEditing(null); }} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-sm font-medium transition-colors">Annuler</button>
+              <button onClick={handleSave} disabled={!form.prof_nom.trim() || saving}
                 className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl hover:bg-primary transition-colors disabled:opacity-40 flex items-center justify-center gap-2 text-sm font-semibold">
-                {saving && <Loader2 className="w-4 h-4 animate-spin" />} Publier l'annonce
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />} {editing ? "Enregistrer" : "Publier l'annonce"}
               </button>
             </div>
           </div>
