@@ -47,6 +47,18 @@ export function AdminOrphelins() {
   }
 
   async function attach(coursId: string, recapId: string, eleveId: string | null) {
+    const targetRecap = recaps.find((r) => r.id === recapId);
+    if (targetRecap?.statut === "paye") {
+      alert("❌ Ce récap est «Payé». Impossible d'y attacher un cours.");
+      return;
+    }
+    if (targetRecap && !["en_cours", "en_attente_parent"].includes(targetRecap.statut)) {
+      if (!window.confirm(
+        `⚠ Ce récap est en statut «${targetRecap.statut}».\n\n` +
+        `Attacher un cours à un récap déjà validé ou en attente de paiement modifiera son total et peut créer des incohérences avec les validations déjà faites.\n\n` +
+        `Continuer quand même ?`
+      )) return;
+    }
     setSaving(true);
     await supabase.from("cours").update({ recap_id: recapId }).eq("id", coursId);
     if (eleveId) {

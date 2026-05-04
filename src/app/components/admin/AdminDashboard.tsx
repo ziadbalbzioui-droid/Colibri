@@ -136,8 +136,19 @@ function AdminProfs() {
   }
 
   async function deleteProf(p: any) {
-    if (!window.confirm(`ATTENTION : supprimer ${p.prenom} ${p.nom} supprimera aussi tous ses élèves et cours (cascade). Continuer ?`)) return;
-    if (!window.confirm("Dernière confirmation — action irréversible.")) return;
+    const [{ count: eleveCount }, { count: coursCount }] = await Promise.all([
+      supabase.from("eleves").select("id", { count: "exact", head: true }).eq("prof_id", p.id),
+      supabase.from("cours").select("id", { count: "exact", head: true }).eq("prof_id", p.id),
+    ]);
+    if (!window.confirm(
+      `⚠ SUPPRESSION PROF — ${p.prenom} ${p.nom}\n\n` +
+      `Conséquences IRRÉVERSIBLES (cascade) :\n` +
+      `• ${eleveCount ?? "?"} élève(s) supprimé(s)\n` +
+      `• ${coursCount ?? "?"} cours supprimé(s)\n` +
+      `• Tous ses récaps et validations parentes associées\n\n` +
+      `Cette action ne peut pas être annulée. Continuer ?`
+    )) return;
+    if (!window.confirm(`Dernière confirmation — supprimer définitivement ${p.prenom} ${p.nom} et toutes ses données ?`)) return;
     await supabase.from("profiles").delete().eq("id", p.id);
     setProfs((prev) => prev.filter((x) => x.id !== p.id));
   }
@@ -341,6 +352,7 @@ function AdminCours() {
   const [showCreate, setShowCreate] = useState(false);
   const [createF, setCreateF] = useState({ prof_id: "", eleve_nom: "", matiere: "", date: "", duree: "", duree_heures: "", montant: "", statut: "déclaré" });
   const [createSaving, setCreateSaving] = useState(false);
+  const [editErr, setEditErr] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -390,8 +402,41 @@ function AdminCours() {
   async function bulkReassignRecap() {
     if (!bulkSelected.size) return;
     const newId = bulkRecapId.trim() || null;
-    if (!window.confirm(`Réassigner ${bulkSelected.size} cours à recap_id = ${newId ?? "null"} ?`)) return;
     setBulkLoading(true);
+
+    if (newId) {
+      // Valider que le recap cible existe et appartient aux bons profs
+      const { data: targetRecap } = await supabase.from("recap_mensuel")
+        .select("id, prof_id, mois, annee, statut, profiles!inner(prenom, nom)").eq("id", newId).maybeSingle();
+      if (!targetRecap) {
+        alert("❌ recap_id introuvable — vérifie l'UUID."); setBulkLoading(false); return;
+      }
+      if ((targetRecap as any).statut === "paye") {
+        alert("❌ Ce récap est «Payé». Impossible d'y rattacher des cours."); setBulkLoading(false); return;
+      }
+      const selectedCours = cours.filter((c) => bulkSelected.has(c.id));
+      const wrongProf = selectedCours.filter((c) => c.prof_id !== targetRecap.prof_id);
+      if (wrongProf.length > 0) {
+        alert(
+          `❌ ${wrongProf.length} cours sélectionné(s) n'appartiennent pas au même prof que ce récap.\n\n` +
+          `Le récap cible est celui de ${(targetRecap as any).profiles?.prenom} ${(targetRecap as any).profiles?.nom}.\n` +
+          `Cours incompatibles : ${wrongProf.map((c) => `${c.eleve_nom} (${c.date})`).join(", ")}\n\n` +
+          `Annulation — ne réassigner que des cours du même prof.`
+        );
+        setBulkLoading(false); return;
+      }
+      if (!window.confirm(
+        `Réassigner ${bulkSelected.size} cours vers le récap ${MOIS_LABELS[(targetRecap as any).mois - 1]} ${(targetRecap as any).annee} ` +
+        `(${(targetRecap as any).profiles?.prenom} ${(targetRecap as any).profiles?.nom}, statut : ${(targetRecap as any).statut}) ?\n\n` +
+        `Les totaux du récap source et cible seront modifiés.`
+      )) { setBulkLoading(false); return; }
+    } else {
+      if (!window.confirm(
+        `Détacher ${bulkSelected.size} cours de tout récap (recap_id → null) ?\n\n` +
+        `Ces cours deviendront orphelins. Si c'est le dernier cours d'un élève dans un récap, sa validation parente restera en attente indéfiniment — pense à la supprimer.`
+      )) { setBulkLoading(false); return; }
+    }
+
     const ids = [...bulkSelected];
     await supabase.from("cours").update({ recap_id: newId }).in("id", ids);
     setCours((prev) => prev.map((c) => bulkSelected.has(c.id) ? { ...c, recap_id: newId } : c));
@@ -414,8 +459,25 @@ function AdminCours() {
 
   async function saveEdit() {
     if (!editing) return;
-    setSaving(true);
+    setEditErr(""); setSaving(true);
     const newRecapId = editF.recap_id.trim() || null;
+
+    // Valider la FK recap_id si elle a changé
+    if (newRecapId && newRecapId !== editing.recap_id) {
+      const { data: targetRecap } = await supabase.from("recap_mensuel")
+        .select("id, prof_id, mois, annee, statut, profiles!inner(prenom, nom)").eq("id", newRecapId).maybeSingle();
+      if (!targetRecap) {
+        setEditErr("recap_id introuvable — vérifie l'UUID."); setSaving(false); return;
+      }
+      if (targetRecap.prof_id !== editing.prof_id) {
+        setEditErr(`Ce récap appartient à un autre prof (${(targetRecap as any).profiles?.prenom} ${(targetRecap as any).profiles?.nom}). Le cours doit rester avec ${editing.profiles?.prenom ?? "son prof"}.`);
+        setSaving(false); return;
+      }
+      if ((targetRecap as any).statut === "paye") {
+        setEditErr("Ce récap est déjà «Payé». Impossible d'y rattacher un cours."); setSaving(false); return;
+      }
+    }
+
     await supabase.from("cours").update({
       eleve_nom: editF.eleve_nom, matiere: editF.matiere, date: editF.date,
       duree: editF.duree, duree_heures: parseFloat(editF.duree_heures),
@@ -427,7 +489,26 @@ function AdminCours() {
   }
 
   async function deleteCours(c: any) {
-    if (!window.confirm(`Supprimer ce cours (${c.eleve_nom} · ${c.date}) ? recap_id de ce cours sera perdu.`)) return;
+    if (!window.confirm(
+      `Supprimer le cours du ${c.date} — ${c.eleve_nom} (${c.matiere}, ${Number(c.montant).toFixed(2)} €) ?\n\n` +
+      (c.recap_id ? `⚠ Ce cours est rattaché à un récap. Le montant du récap sera recalculé à la baisse.` : `Ce cours est orphelin (pas de récap associé).`)
+    )) return;
+
+    // Si le cours est dans un récap et a un eleve_id, vérifier si c'est le dernier cours de cet élève dans ce récap
+    if (c.recap_id && c.eleve_id) {
+      const { data: autresCours } = await supabase.from("cours")
+        .select("id").eq("recap_id", c.recap_id).eq("eleve_id", c.eleve_id).neq("id", c.id);
+      if (!autresCours?.length) {
+        if (!window.confirm(
+          `C'est le DERNIER cours de ${c.eleve_nom} dans ce récap.\n\n` +
+          `La validation parente de cet élève sera aussi supprimée (sinon le récap restera bloqué en attente d'une validation fantôme).\n\n` +
+          `Confirmer la suppression du cours + de la validation ?`
+        )) return;
+        await supabase.from("recap_eleve_validation")
+          .delete().eq("recap_id", c.recap_id).eq("eleve_id", c.eleve_id);
+      }
+    }
+
     await supabase.from("cours").delete().eq("id", c.id);
     setCours((prev) => prev.filter((x) => x.id !== c.id));
   }
@@ -538,7 +619,7 @@ function AdminCours() {
       </div>
 
       {editing && (
-        <AdminEditModal title={`EDIT cours · ${editing.id.slice(0,8)}`} onClose={() => setEditing(null)} onSave={saveEdit} saving={saving}>
+        <AdminEditModal title={`EDIT cours · ${editing.id.slice(0,8)}`} onClose={() => { setEditing(null); setEditErr(""); }} onSave={saveEdit} saving={saving}>
           <div className="grid grid-cols-2 gap-3">
             <div><label className={FL}>eleve_nom</label><input value={editF.eleve_nom} onChange={(e) => setEditF({ ...editF, eleve_nom: e.target.value })} className={FI} /></div>
             <div><label className={FL}>matiere</label><input value={editF.matiere} onChange={(e) => setEditF({ ...editF, matiere: e.target.value })} className={FI} /></div>
@@ -557,10 +638,26 @@ function AdminCours() {
               </select>
             </div>
           </div>
+          {editing.recap_id && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800">
+                <p className="font-semibold">Ce cours est rattaché au récap <span className="font-mono">{editing.recap_id.slice(0,8)}…</span></p>
+                <p className="mt-0.5">Modifier <strong>montant</strong> ou <strong>duree_heures</strong> changera le calcul du net du prof sur ce récap. Si le récap est en attente de paiement, le virement sera basé sur le nouveau montant.</p>
+              </div>
+            </div>
+          )}
           <div>
             <label className={FL}>recap_id (UUID ou vide pour null)</label>
             <input value={editF.recap_id} onChange={(e) => setEditF({ ...editF, recap_id: e.target.value })} placeholder="null" className={FI} />
+            <p className="text-xs text-slate-400 mt-1">⚠ Ne changer que vers un récap du même prof. Laisser vide = cours orphelin.</p>
           </div>
+          {editErr && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-red-800 font-semibold">{editErr}</p>
+            </div>
+          )}
           <p className="text-xs text-slate-400 font-mono">UPDATE cours SET … WHERE id='{editing.id}'</p>
         </AdminEditModal>
       )}
@@ -702,6 +799,29 @@ function AdminRecaps() {
 
   async function changeRecapStatut(newStatut: string) {
     if (!selected) return;
+    if (newStatut === selected.statut) return;
+
+    if (newStatut === "paye") {
+      if (!window.confirm(
+        `⚠ PASSAGE À «PAYÉ» — Action sensible\n\n` +
+        `Ce statut signifie que le virement a été envoyé au prof.\n` +
+        `Il NE déclenche PAS de virement réel — c'est uniquement un marquage manuel.\n\n` +
+        `À utiliser UNIQUEMENT si le virement a été confirmé hors-plateforme (virement bancaire direct, etc.).\n\n` +
+        `Si tu utilises le bouton «Dispatcher» dans la section Paiements, ne pas passer à «Payé» manuellement — c'est automatique.\n\n` +
+        `Confirmer le passage à «Payé» ?`
+      )) return;
+    }
+
+    const ORDRE = ["en_cours","en_attente_parent","en_attente_paiement","valide","paye"];
+    const currentIdx = ORDRE.indexOf(selected.statut);
+    const newIdx = ORDRE.indexOf(newStatut);
+    if (newIdx > currentIdx + 1 && newIdx >= 0 && currentIdx >= 0) {
+      if (!window.confirm(
+        `Tu passes de «${RECAP_STATUT_STYLE[selected.statut]?.label ?? selected.statut}» directement à «${RECAP_STATUT_STYLE[newStatut]?.label ?? newStatut}» en sautant des étapes.\n\n` +
+        `Les validations parentes ne seront pas vérifiées. Continuer ?`
+      )) return;
+    }
+
     await supabase.from("recap_mensuel").update({ statut: newStatut }).eq("id", selected.id);
     const updated = { ...selected, statut: newStatut };
     setSelected(updated);
@@ -727,7 +847,18 @@ function AdminRecaps() {
   }
 
   async function forcerTous() {
-    if (!selected || !window.confirm("Forcer la validation de TOUS les élèves de ce récap ?")) return;
+    if (!selected) return;
+    const { data: contestes } = await supabase.from("cours")
+      .select("id, eleve_nom, date").eq("recap_id", selected.id).eq("statut", "contesté");
+    const hasContestes = (contestes?.length ?? 0) > 0;
+    if (!window.confirm(
+      (hasContestes
+        ? `⚠ ATTENTION : ${contestes!.length} cours en statut «contesté» dans ce récap :\n` +
+          contestes!.map((c: any) => `  · ${c.eleve_nom} (${c.date})`).join("\n") +
+          `\n\nForcer quand même ? Le parent sera considéré comme ayant validé malgré sa contestation ouverte.\n\n`
+        : "") +
+      `Forcer la validation de TOUS les élèves de ce récap ?`
+    )) return;
     setActionLoading("ALL");
     const nonValides = (selected.recap_eleve_validation ?? []).filter((v: any) => v.statut !== "valide");
     await Promise.all(nonValides.map((v: any) =>
@@ -742,7 +873,17 @@ function AdminRecaps() {
 
   async function deleteRecap() {
     if (!selected) return;
-    if (!window.confirm("Supprimer ce récap ? Les validations seront supprimées (cascade), les cours auront leur recap_id mis à null.")) return;
+    const coursCount = recapCours.length;
+    const valsCount = (selected.recap_eleve_validation ?? []).length;
+    if (!window.confirm(
+      `⚠ SUPPRESSION RÉCAP — ${MOIS_LABELS[selected.mois - 1]} ${selected.annee} (${selected.profiles?.prenom} ${selected.profiles?.nom})\n\n` +
+      `Conséquences IRRÉVERSIBLES :\n` +
+      `• ${valsCount} validation(s) parente(s) supprimées (cascade)\n` +
+      `• ${coursCount} cours détaché(s) → recap_id mis à null (cours orphelins)\n\n` +
+      `Les cours ne seront PAS supprimés — ils resteront dans la section «Cours orphelins».\n\n` +
+      `Continuer ?`
+    )) return;
+    if (!window.confirm("Dernière confirmation — supprimer définitivement ce récap ?")) return;
     await supabase.from("recap_mensuel").delete().eq("id", selected.id);
     setRecaps((prev) => prev.filter((r) => r.id !== selected.id));
     setSelected(null);
@@ -776,6 +917,17 @@ function AdminRecaps() {
   async function handleAddCours() {
     if (!selected || !addCoursF.eleve_nom || !addCoursF.date || !addCoursF.montant) return;
     setAddCoursLoading(true);
+
+    // Valider que la date est dans le mois/année du récap
+    const [dateYear, dateMonth] = addCoursF.date.split("-").map(Number);
+    if (dateYear !== selected.annee || dateMonth !== selected.mois) {
+      if (!window.confirm(
+        `⚠ La date ${addCoursF.date} n'est pas dans la période du récap (${MOIS_LABELS[selected.mois - 1]} ${selected.annee}).\n\n` +
+        `Ajouter un cours d'un autre mois dans ce récap peut créer des incohérences comptables et compliquer la vérification.\n\n` +
+        `Continuer quand même ?`
+      )) { setAddCoursLoading(false); return; }
+    }
+
     const eleveId = addCoursF.eleve_id || null;
     await supabase.from("cours").insert({
       prof_id: selected.prof_id,
@@ -916,6 +1068,15 @@ function AdminRecaps() {
             </div>
 
             <div className="p-6 space-y-6">
+              {selected.statut === "paye" && (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 flex gap-2">
+                  <Check className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-teal-800">
+                    <p className="font-semibold">Ce récap est marqué «Payé» — le virement a été effectué.</p>
+                    <p className="mt-0.5">Les validations ne peuvent plus être modifiées (forcer / révoquer désactivés). Le statut peut être révisé manuellement via le sélecteur ci-dessus si nécessaire.</p>
+                  </div>
+                </div>
+              )}
               {/* Cours list with prof earnings */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -1022,7 +1183,7 @@ function AdminRecaps() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wide">recap_eleve_validation ({(selected.recap_eleve_validation ?? []).length})</h4>
-                  {(selected.recap_eleve_validation ?? []).some((v: any) => v.statut !== "valide") && (
+                  {(selected.recap_eleve_validation ?? []).some((v: any) => v.statut !== "valide") && selected.statut !== "paye" && (
                     <button onClick={forcerTous} disabled={actionLoading === "ALL"}
                       className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                       {actionLoading === "ALL" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
@@ -1051,7 +1212,7 @@ function AdminRecaps() {
                               <td className="px-3 py-2"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${vs.bg}`}>{vs.label}</span></td>
                               <td className="px-3 py-2">
                                 <div className="flex gap-1.5">
-                                  {v.statut !== "valide" && (
+                                  {v.statut !== "valide" && selected.statut !== "paye" && (
                                     <button onClick={() => forcerValidation(v.id)} disabled={actionLoading === v.id}
                                       className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 disabled:opacity-50 transition-colors">
                                       {actionLoading === v.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
@@ -1059,8 +1220,11 @@ function AdminRecaps() {
                                     </button>
                                   )}
                                   {v.statut === "valide" && (
-                                    <button onClick={() => revoquerValidation(v.id)} disabled={actionLoading === v.id}
-                                      className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50 transition-colors">
+                                    <button
+                                      onClick={() => selected.statut !== "paye" && revoquerValidation(v.id)}
+                                      disabled={actionLoading === v.id || selected.statut === "paye"}
+                                      title={selected.statut === "paye" ? "Récap payé — révocation impossible" : "Révoquer cette validation"}
+                                      className={`flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg transition-colors ${selected.statut === "paye" ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50"}`}>
                                       {actionLoading === v.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
                                       Révoquer
                                     </button>
@@ -1525,6 +1689,15 @@ export function AdminDashboard() {
       </aside>
 
       <main className="flex-1 px-8 py-8 overflow-auto">
+        {/* ── Bandeau avertissement global ── */}
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-800 space-y-0.5">
+            <p><span className="font-bold">Outil de production.</span> Toutes les modifications sont immédiates et impactent les profs, parents et calculs de paiement.</p>
+            <p>Règles importantes : <span className="font-semibold">ne jamais passer un récap à «Payé» manuellement</span> sans virement réel confirmé · <span className="font-semibold">supprimer un prof efface aussi tous ses élèves et cours</span> · toute modification de montant sur un cours affecte le net du prof.</p>
+          </div>
+        </div>
+
         {section === "paiements" && (
           <div className="max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
