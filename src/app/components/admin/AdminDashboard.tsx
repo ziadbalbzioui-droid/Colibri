@@ -1923,181 +1923,134 @@ export function AdminDashboard() {
 // Section Échéancier
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STEPS = [
-  {
-    id: 1,
-    period: "Du 1er du mois N au 5 du mois N+1",
-    tag: "Clôture du mois par les profs",
-    tagColor: "bg-indigo-100 text-indigo-700",
-    borderColor: "border-indigo-200",
-    dotColor: "bg-indigo-500",
-    lineColor: "bg-indigo-200",
-    example: "Du 1er janvier au 5 février",
-    who: "Profs",
-    whoColor: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    items: [
-      { icon: "✏️", text: "Les profs peuvent clore leur mois depuis leur espace : ils créent leur récap mensuel avec tous les cours déclarés sur le mois N." },
-      { icon: "⚙️", text: "Si un prof n'a pas clôt son mois au 5 du mois N+1 à minuit, le système le fait automatiquement — tous ses cours du mois N sont inclus." },
-    ],
-    admin: null,
-  },
-  {
-    id: 2,
-    period: "Du 5 au 7 du mois N+1",
-    tag: "Validation parents",
-    tagColor: "bg-violet-100 text-violet-700",
-    borderColor: "border-violet-200",
-    dotColor: "bg-violet-500",
-    lineColor: "bg-violet-200",
-    example: "Du 5 au 7 février",
-    who: "Parents + Admin",
-    whoColor: "bg-violet-50 text-violet-600 border-violet-100",
-    items: [
-      { icon: "👨‍👩‍👧", text: "Les parents reçoivent le récap mensuel et ont jusqu'au 7 à minuit pour valider ou contester les heures." },
-      { icon: "⚙️", text: "Si aucune action au 7 à minuit, le récap est automatiquement validé." },
-      { icon: "🔥", text: "C'est LA période critique pour nous : toutes les contestations doivent être résolues avant le matin du 8. Tous les récaps doivent être en statut « validé » au 8 au matin." },
-    ],
-    admin: "Être réactifs sur les contestations. Viser 100 % des récaps validés avant le 8 au matin.",
-  },
-  {
-    id: 3,
-    period: "Le 8 du mois N+1",
-    tag: "Paiements URSSAF",
-    tagColor: "bg-amber-100 text-amber-700",
-    borderColor: "border-amber-200",
-    dotColor: "bg-amber-500",
-    lineColor: "bg-amber-200",
-    example: "Le 8 février",
-    who: "Serveur",
-    whoColor: "bg-amber-50 text-amber-600 border-amber-100",
-    items: [
-      { icon: "🏛️", text: "Le serveur passe la journée à envoyer les déclarations et paiements à l'URSSAF via l'API CESU+." },
-      { icon: "⏳", text: "Cette étape peut prendre plusieurs heures selon le volume et les temps de réponse URSSAF." },
-    ],
-    admin: null,
-  },
-  {
-    id: 4,
-    period: "À partir du 8 du mois N+1",
-    tag: "Virement profs",
-    tagColor: "bg-emerald-100 text-emerald-700",
-    borderColor: "border-emerald-200",
-    dotColor: "bg-emerald-500",
-    lineColor: "bg-emerald-200",
-    example: "À partir du 8 février",
-    who: "Admin",
-    whoColor: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    items: [
-      { icon: "💶", text: "Dès réception des virements parents sur le compte Qonto, le serveur calcule ce qu'on doit à chaque prof (montant brut × multiplicateur) et crée un draft de virement." },
-      { icon: "🖱️", text: "On doit valider manuellement l'envoi depuis la zone admin « Dispatch paiements »." },
-      { icon: "📅", text: "Les profs reçoivent leur virement autour du 12 du mois N+1." },
-    ],
-    admin: "Aller dans « Dispatch paiements », vérifier les montants et cliquer sur Dispatcher.",
-  },
-];
-
 function AdminEcheancier() {
-  const now = new Date();
-  const N = now.getMonth(); // 0-indexed: mois courant = N (ex. janvier = 0)
+  const now  = new Date();
+  const N    = now.getMonth();
   const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
-  const moisN   = MOIS[N];
-  const moisN1  = MOIS[(N + 1) % 12];
+  const n    = MOIS[N];
+  const n1   = MOIS[(N + 1) % 12];
+
+  const phases: {
+    dates: string;
+    example: string;
+    title: string;
+    who: string;
+    lines: string[];
+    fallback?: string;
+    adminNote?: string;
+  }[] = [
+    {
+      dates:   "1er N → 5 N+1 (minuit)",
+      example: `1er ${n} → 5 ${n1}`,
+      title:   "Clôture des récaps",
+      who:     "Profs",
+      lines: [
+        "Chaque prof crée son récap mensuel depuis son espace : il regroupe tous les cours déclarés sur le mois N et le soumet aux parents.",
+        "Un prof peut clore son mois à tout moment entre le 1er N et le 5 N+1.",
+      ],
+      fallback: "Si un prof n'a pas clôt au 5 N+1 à minuit, le système clôt automatiquement son mois avec tous ses cours déclarés.",
+    },
+    {
+      dates:   "5 N+1 → 7 N+1 (minuit)",
+      example: `5 ${n1} → 7 ${n1}`,
+      title:   "Validation par les parents",
+      who:     "Parents",
+      lines: [
+        "Dès qu'un récap est soumis, les parents concernés reçoivent une notification et ont jusqu'au 7 N+1 à minuit pour valider ou contester les heures.",
+        "Un parent peut valider l'ensemble du récap ou contester une ou plusieurs séances — dans ce cas, il doit laisser un commentaire.",
+      ],
+      fallback: "Si un parent n'a pas réagi au 7 N+1 à minuit, le récap est automatiquement validé en son nom.",
+      adminNote: "Période critique. Toutes les contestations doivent être résolues avant le 8 au matin — c'est la seule condition pour que le cycle de paiement parte à l'heure. Objectif : 100 % des récaps en statut « validé » le 8 au matin.",
+    },
+    {
+      dates:   "8 N+1 (journée)",
+      example: `8 ${n1}`,
+      title:   "Déclarations URSSAF",
+      who:     "Serveur",
+      lines: [
+        "Le serveur envoie les déclarations et paiements à l'URSSAF via l'API CESU+ pour chaque séance validée.",
+        "Ce traitement peut prendre plusieurs heures selon le volume et les temps de réponse URSSAF — aucune action manuelle requise.",
+      ],
+    },
+    {
+      dates:   "8 N+1 → ~12 N+1",
+      example: `8 ${n1} → ~12 ${n1}`,
+      title:   "Virements aux profs",
+      who:     "Admin",
+      lines: [
+        "Dès réception des virements parents sur le compte Qonto, le serveur calcule le montant dû à chaque prof (montant brut des cours × multiplicateur) et génère un draft de virement.",
+        "Les profs reçoivent leur virement en général autour du 12 N+1.",
+      ],
+      adminNote: "Aller dans « Dispatch paiements », vérifier les montants et les IBAN affichés, puis cliquer sur Dispatcher. Les récaps passent automatiquement à « Payé » une fois les virements envoyés.",
+    },
+  ];
 
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-900">Échéancier des paiements</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Cycle mensuel de traitement — du mois <span className="font-semibold text-slate-700">{moisN}</span> au virement autour du 12 <span className="font-semibold text-slate-700">{moisN1}</span>
-        </p>
+        <p className="text-sm text-slate-500 mt-1">Cycle mensuel — de la clôture des cours au virement des profs.</p>
       </div>
 
-      {/* Exemple concret du mois en cours */}
-      <div className="mb-8 bg-slate-900 rounded-2xl px-6 py-5 text-white">
-        <p className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400 mb-2">Exemple concret — cycle {moisN}</p>
-        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <span><span className="text-slate-400">Récap clôturé par les profs :</span> <strong>1 {moisN} → 5 {moisN1}</strong></span>
-          <span><span className="text-slate-400">Validation parents :</span> <strong>5 → 7 {moisN1}</strong></span>
-          <span><span className="text-slate-400">URSSAF :</span> <strong>8 {moisN1}</strong></span>
-          <span><span className="text-slate-400">Virement profs :</span> <strong>~12 {moisN1}</strong></span>
+      {/* Barre exemple du mois courant */}
+      <div className="mb-8 flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider shrink-0">Exemple cycle {n}</span>
+        <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-slate-200 text-xs font-mono">
+          {[
+            { label: `1 ${n} → 5 ${n1}`,  sub: "Clôture",  w: "flex-[4]" },
+            { label: `5 → 7 ${n1}`,        sub: "Parents",  w: "flex-[2]" },
+            { label: `8 ${n1}`,            sub: "URSSAF",   w: "flex-[1]" },
+            { label: `8 → ~12 ${n1}`,      sub: "Virement", w: "flex-[3]" },
+          ].map((seg, i, arr) => (
+            <div key={seg.label} className={`${seg.w} px-3 py-2 bg-slate-50 ${i < arr.length - 1 ? "border-r border-slate-200" : ""}`}>
+              <p className="font-semibold text-slate-700 whitespace-nowrap">{seg.label}</p>
+              <p className="text-slate-400 mt-0.5 whitespace-nowrap">{seg.sub}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="relative">
-        {STEPS.map((step, idx) => (
-          <div key={step.id} className="flex gap-5 mb-2">
-            {/* Dot + line */}
-            <div className="flex flex-col items-center">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm text-white ${step.dotColor} shrink-0 shadow-sm`}>
-                {step.id}
+      {/* Phases */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+        {phases.map((phase, idx) => (
+          <div key={idx} className={`${idx > 0 ? "border-t border-slate-100" : ""}`}>
+            {/* En-tête de phase */}
+            <div className="grid grid-cols-[180px_1fr_auto] items-start gap-4 px-6 py-5">
+              <div>
+                <p className="text-xs font-mono text-slate-400 leading-snug">{phase.dates}</p>
+                <p className="text-[11px] font-mono text-slate-300 mt-1">{phase.example}</p>
               </div>
-              {idx < STEPS.length - 1 && (
-                <div className={`w-0.5 flex-1 mt-1 mb-1 ${step.lineColor} min-h-[2rem]`} />
-              )}
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-2">{phase.title}</p>
+                <ul className="space-y-2">
+                  {phase.lines.map((line, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-slate-600 leading-relaxed">
+                      <span className="mt-[6px] w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+                {phase.fallback && (
+                  <p className="mt-3 text-xs text-slate-500 italic border-l-2 border-slate-200 pl-3">
+                    Fallback auto : {phase.fallback}
+                  </p>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap mt-0.5">
+                {phase.who}
+              </span>
             </div>
-
-            {/* Card */}
-            <div className={`flex-1 bg-white rounded-2xl border ${step.borderColor} p-5 mb-4`} style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-              {/* Header */}
-              <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                <div>
-                  <p className="font-mono text-xs text-slate-400 mb-1">{step.period}</p>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${step.tagColor}`}>{step.tag}</span>
-                </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${step.whoColor} shrink-0`}>
-                  {step.who}
-                </span>
+            {/* Note admin */}
+            {phase.adminNote && (
+              <div className="mx-6 mb-5 flex gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  <span className="font-semibold">Action admin — </span>{phase.adminNote}
+                </p>
               </div>
-
-              {/* Items */}
-              <ul className="space-y-2 mb-3">
-                {step.items.map((item, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm text-slate-700 leading-snug">
-                    <span className="text-base leading-none mt-0.5">{item.icon}</span>
-                    <span>{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Exemple */}
-              <div className="bg-slate-50 rounded-xl px-3 py-2 flex items-center gap-2">
-                <CalendarDays className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <p className="text-xs text-slate-500 font-mono">Ex. cycle {moisN} → <strong className="text-slate-700">{step.example}</strong></p>
-              </div>
-
-              {/* Admin action */}
-              {step.admin && (
-                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800"><span className="font-bold">Action admin : </span>{step.admin}</p>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         ))}
-      </div>
-
-      {/* Récap visuel */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-        <div className="px-5 py-3.5 border-b border-slate-100">
-          <p className="text-xs font-mono font-bold uppercase tracking-widest text-slate-400">Frise calendaire — mois N = {moisN}</p>
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-stretch gap-0 text-xs font-mono rounded-xl overflow-hidden border border-slate-200">
-            {[
-              { label: `1–5 ${moisN1}`, sublabel: "Clôture profs", color: "bg-indigo-50 text-indigo-700 border-r border-indigo-200", flex: 4 },
-              { label: `5–7 ${moisN1}`, sublabel: "Valid. parents", color: "bg-violet-50 text-violet-700 border-r border-violet-200", flex: 2 },
-              { label: `8 ${moisN1}`, sublabel: "URSSAF", color: "bg-amber-50 text-amber-700 border-r border-amber-200", flex: 1 },
-              { label: `8–12 ${moisN1}`, sublabel: "Virement profs", color: "bg-emerald-50 text-emerald-700", flex: 4 },
-            ].map((seg) => (
-              <div key={seg.label} className={`flex-${seg.flex} ${seg.color} px-3 py-2.5`} style={{ flex: seg.flex }}>
-                <p className="font-bold whitespace-nowrap">{seg.label}</p>
-                <p className="mt-0.5 opacity-70 whitespace-nowrap">{seg.sublabel}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
