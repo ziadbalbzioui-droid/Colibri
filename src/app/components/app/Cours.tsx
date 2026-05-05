@@ -197,7 +197,7 @@ export function Cours() {
                   <span style={{ color: "#64748B", fontSize: 13 }}>{m.mois}</span>
                   <StatusBadge statut={m.recapStatut} />
                 </div>
-                <div style={{ ...S.serif, fontSize: 32, letterSpacing: "-.02em", color: "#0F172A" }}>{m.total.toLocaleString("fr-FR")} €</div>
+                <div style={{ ...S.serif, fontSize: 32, letterSpacing: "-.02em", color: "#0F172A" }}>{m.total.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
                   <span style={{ fontSize: 12, color: "#64748B", display: "flex", alignItems: "center", gap: 4 }}>
                     <BookOpen style={{ width: 12, height: 12 }} /> {m.nbCours} cours
@@ -331,7 +331,7 @@ export function Cours() {
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#334155" }}>{m.mois}</span>
                     <StatusBadge statut={m.recapStatut} />
                   </div>
-                  <div style={{ ...S.serif, fontSize: 20, color: "#0F172A", marginBottom: 4 }}>{m.total.toLocaleString("fr-FR")} €</div>
+                  <div style={{ ...S.serif, fontSize: 20, color: "#0F172A", marginBottom: 4 }}>{m.total.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</div>
                   <div style={{ fontSize: 12, color: "#94A3B8", display: "flex", alignItems: "center", gap: 4 }}>
                     <BookOpen style={{ width: 11, height: 11 }} />{m.nbCours} cours
                   </div>
@@ -358,9 +358,9 @@ export function Cours() {
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                       <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{nom}</span>
                       <span style={{ fontSize: 13, color: "#64748B" }}>
-                        {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")}€ famille · {items.reduce((s, c) => {
+                        {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ famille · {items.reduce((s, c) => {
                           return s + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
-                        }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations
+                        }, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ pour vous, après impôts et cotisations
                       </span>
                     </div>
                     {items.map((c) => {
@@ -386,13 +386,13 @@ export function Cours() {
               <div style={{ paddingTop: 16, borderTop: "1px solid #E2E8F0", marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, color: "#64748B" }}>Total famille</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#64748B" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")} €</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#64748B" }}>{recapModal.coursList.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontWeight: 700, color: "#0F172A" }}>Pour vous, après impôts et cotisations</span>
                   <span style={{ fontWeight: 700, color: "#16A34A" }}>{recapModal.coursList.reduce((s, c) => {
                     return s + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
-                  }, 0).toLocaleString("fr-FR")} €</span>
+                  }, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
                 </div>
               </div>
               {monthError && (

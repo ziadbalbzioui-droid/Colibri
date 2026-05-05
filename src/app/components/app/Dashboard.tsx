@@ -205,7 +205,7 @@ export function Dashboard() {
                 <Euro className="w-3 h-3 text-blue-600" /> Revenu du mois après impots et cotisations
               </div>
               <div style={{ ...S.serif, fontSize: 88, fontWeight: 400, letterSpacing: "-.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums", color: "#0F172A" }}>
-                {netThisMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
+                {netThisMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
               </div>
               <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
                 Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci.
@@ -221,7 +221,7 @@ export function Dashboard() {
               <p style={{ ...S.eyebrow, color: "#1E3A8A" }}>Dernier virement</p>
               <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4, marginBottom: 0 }}>{prevMonthName}</p>
               <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 4, lineHeight: 1, color: "#0F172A" }}>
-                {netPrevMonth.toLocaleString("fr-FR")}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
+                {netPrevMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
               </div>
               <p style={{ marginTop: 10, fontSize: 12, color: "#64748B" }}>Versé automatiquement sur votre compte bancaire.</p>
               <div style={{ marginTop: 14, padding: "9px 12px", background: "#fff", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
@@ -263,9 +263,9 @@ export function Dashboard() {
                   );
                 })}
                 <p style={{ marginTop: 16, fontSize: 12, color: "#64748B" }}>
-                  {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}€ famille · <span style={{ color: "#16A34A" }}>{recentCours.reduce((a: number, r: CoursRow) => {
+                  {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ famille · <span style={{ color: "#16A34A" }}>{recentCours.reduce((a: number, r: CoursRow) => {
                     return a + Math.round(r.montant * (1 + (r.taux_plusvalue ?? 0)));
-                  }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations</span>
+                  }, 0).toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ pour vous, après impôts et cotisations</span>
                 </p>
               </>
             )}
@@ -293,8 +293,8 @@ export function Dashboard() {
                     <Initials name={e.nom} index={i} />
                     <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, marginBottom: 2, color: "#0F172A" }}>{e.nom.split(" ")[0]}</div>
                     <div style={{ fontSize: 11, color: "#64748B", marginBottom: 8 }}>{e.niveau}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 2 }}>{totalPaye.toLocaleString("fr-FR")}€ famille</div>
-                    <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR")}€ <span style={{ fontSize: 10, fontFamily: "inherit", color: "#64748B" }}>pour vous</span></div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginBottom: 2 }}>{totalPaye.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ famille</div>
+                    <div style={{ ...S.serif, fontSize: 18, color: "#16A34A" }}>{netTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}€ <span style={{ fontSize: 10, fontFamily: "inherit", color: "#64748B" }}>pour vous</span></div>
                     <div style={{ fontSize: 9, color: "#94A3B8", marginTop: 1, fontFamily: "inherit" }}>après impôts et cotisations</div>
                     {e.statut === "en pause" && <span style={{ ...S.badge("#FFFBEB", "#92400E"), marginTop: 6 }}>Relancer</span>}
                   </div>

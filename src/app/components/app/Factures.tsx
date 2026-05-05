@@ -184,11 +184,11 @@ export function Factures() {
                   <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#64748B" }}>
                     <span>{f.lignes.length} élève{f.lignes.length > 1 ? "s" : ""}</span>
                     <span>{f.lignes.reduce((a, l) => a + l.heures, 0)}h</span>
-                    <span>Net {net.toLocaleString("fr-FR")} €</span>
+                    <span>Net {net.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ ...S.serif, fontSize: 22, fontWeight: 400, color: "#0F172A" }}>{brut.toLocaleString("fr-FR")} €</div>
+                  <div style={{ ...S.serif, fontSize: 22, fontWeight: 400, color: "#0F172A" }}>{brut.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</div>
                   <span style={{ ...S.badge(f.statut === "payée" ? "#ECFDF5" : "#FFFBEB", f.statut === "payée" ? "#065F46" : "#92400E") }}>{f.statut === "payée" ? "Payée" : "En attente"}</span>
                 </div>
                 <button onClick={() => setPreview(f)} style={{ ...S.btnGhost, flexShrink: 0, fontSize: 12 }}>

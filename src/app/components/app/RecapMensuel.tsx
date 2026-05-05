@@ -148,7 +148,7 @@ export function RecapMensuel() {
         </div>
         <div className="flex items-center justify-between py-2">
           <span className="text-muted-foreground" style={{ fontSize: 14 }}>Montant total</span>
-          <span style={{ fontWeight: 600 }}>{totalMontant.toLocaleString("fr-FR")} €</span>
+          <span style={{ fontWeight: 600 }}>{totalMontant.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
         </div>
       </div>
 

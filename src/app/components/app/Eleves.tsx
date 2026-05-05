@@ -205,7 +205,7 @@ export function Eleves() {
                       <div style={S.eyebrow}>Total gagné</div>
                       <span style={{ fontSize: 9, color: "#94A3B8", fontWeight: 500, letterSpacing: ".02em" }}>après impôts et cotisations</span>
                     </div>
-                    <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{selectedEleveNet.toLocaleString("fr-FR")} €</div>
+                    <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 28, marginTop: 6, color: "#0F172A" }}>{selectedEleveNet.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</div>
                   </div>
                 </div>
 
