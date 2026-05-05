@@ -371,7 +371,16 @@ export function Dashboard() {
                   </div>
                   <div><label style={S.label}>Matière</label><input style={S.input} value={eleveForm.matiere} onChange={(e) => setEleveForm({ ...eleveForm, matiere: e.target.value })} placeholder="Maths..." /></div>
                 </div>
-                <div><label style={S.label}>Tarif / heure (€)</label><input type="number" style={S.input} value={eleveForm.tarif_heure} onChange={(e) => setEleveForm({ ...eleveForm, tarif_heure: Number(e.target.value) })} /></div>
+                <div>
+                  <label style={S.label}>Tarif / heure (€)</label>
+                  <input type="number" style={S.input} value={eleveForm.tarif_heure} onChange={(e) => setEleveForm({ ...eleveForm, tarif_heure: Number(e.target.value) })} />
+                  {eleveForm.tarif_heure > 0 && (() => {
+                    const taux = getTauxPlusvalue(grille, eleveForm.tarif_heure);
+                    return taux > 0
+                      ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>+{Math.round(taux * 100)}% plus-value Colibri</p>
+                      : null;
+                  })()}
+                </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={closeModal} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
                   <button onClick={submitEleve} disabled={!eleveForm.nom || !eleveForm.matiere || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!eleveForm.nom || !eleveForm.matiere || saving) ? 0.5 : 1 }}>

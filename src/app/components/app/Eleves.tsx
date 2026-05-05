@@ -4,6 +4,7 @@ import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
 import type { CoursRow } from "../../../lib/hooks/useCours";
+import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { supabase } from "../../../lib/supabase";
@@ -51,6 +52,7 @@ export function Eleves() {
   const { profile } = useAuth();
   const { eleves, loading, error, reload, addEleve } = useEleves();
   const { cours } = useCours();
+  const { grille } = useGrilleCommission();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -296,6 +298,12 @@ export function Eleves() {
                   </div>
                   <div><label style={S.label}>Tarif / heure — net parent (€)</label>
                     <input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} />
+                    {form.tarif_heure > 0 && (() => {
+                      const taux = getTauxPlusvalue(grille, form.tarif_heure);
+                      return taux > 0
+                        ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>+{Math.round(taux * 100)}% plus-value Colibri</p>
+                        : null;
+                    })()}
                   </div>
                 </div>
                 <div>
