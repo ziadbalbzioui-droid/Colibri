@@ -1930,127 +1930,163 @@ function AdminEcheancier() {
   const n    = MOIS[N];
   const n1   = MOIS[(N + 1) % 12];
 
-  const phases: {
-    dates: string;
-    example: string;
-    title: string;
-    who: string;
-    lines: string[];
-    fallback?: string;
-    adminNote?: string;
-  }[] = [
-    {
-      dates:   "1er N → 5 N+1 (minuit)",
-      example: `1er ${n} → 5 ${n1}`,
-      title:   "Clôture des récaps",
-      who:     "Profs",
-      lines: [
-        "Chaque prof crée son récap mensuel depuis son espace : il regroupe tous les cours déclarés sur le mois N et le soumet aux parents.",
-        "Un prof peut clore son mois à tout moment entre le 1er N et le 5 N+1.",
-      ],
-      fallback: "Si un prof n'a pas clôt au 5 N+1 à minuit, le système clôt automatiquement son mois avec tous ses cours déclarés.",
-    },
-    {
-      dates:   "5 N+1 → 7 N+1 (minuit)",
-      example: `5 ${n1} → 7 ${n1}`,
-      title:   "Validation par les parents",
-      who:     "Parents",
-      lines: [
-        "Dès qu'un récap est soumis, les parents concernés reçoivent une notification et ont jusqu'au 7 N+1 à minuit pour valider ou contester les heures.",
-        "Un parent peut valider l'ensemble du récap ou contester une ou plusieurs séances — dans ce cas, il doit laisser un commentaire.",
-      ],
-      fallback: "Si un parent n'a pas réagi au 7 N+1 à minuit, le récap est automatiquement validé en son nom.",
-      adminNote: "Période critique. Toutes les contestations doivent être résolues avant le 8 au matin — c'est la seule condition pour que le cycle de paiement parte à l'heure. Objectif : 100 % des récaps en statut « validé » le 8 au matin.",
-    },
-    {
-      dates:   "8 N+1 (journée)",
-      example: `8 ${n1}`,
-      title:   "Déclarations URSSAF",
-      who:     "Serveur",
-      lines: [
-        "Le serveur envoie les déclarations et paiements à l'URSSAF via l'API CESU+ pour chaque séance validée.",
-        "Ce traitement peut prendre plusieurs heures selon le volume et les temps de réponse URSSAF — aucune action manuelle requise.",
-      ],
-    },
-    {
-      dates:   "8 N+1 → ~12 N+1",
-      example: `8 ${n1} → ~12 ${n1}`,
-      title:   "Virements aux profs",
-      who:     "Admin",
-      lines: [
-        "Dès réception des virements parents sur le compte Qonto, le serveur calcule le montant dû à chaque prof (montant brut des cours × multiplicateur) et génère un draft de virement.",
-        "Les profs reçoivent leur virement en général autour du 12 N+1.",
-      ],
-      adminNote: "Aller dans « Dispatch paiements », vérifier les montants et les IBAN affichés, puis cliquer sur Dispatcher. Les récaps passent automatiquement à « Payé » une fois les virements envoyés.",
-    },
+  // Points clés de la frise (date affichée + label court + sous-label)
+  const milestones = [
+    { date: `1er ${n}`,  top: "Fenêtre ouverte",       bottom: "Les profs peuvent clore leur mois" },
+    { date: `5 ${n1}`,   top: "Clôture auto si besoin", bottom: "Récaps soumis aux parents" },
+    { date: `7 ${n1}`,   top: "Validation auto si besoin", bottom: "Récaps verrouillés" },
+    { date: `8 ${n1}`,   top: "Déclarations ATP",        bottom: "Serveur toute la journée" },
+    { date: `~12 ${n1}`, top: "Virements profs",         bottom: "Cycle terminé" },
   ];
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6">
+    <div className="max-w-4xl">
+      <div className="mb-8">
         <h1 className="text-xl font-bold text-slate-900">Échéancier des paiements</h1>
-        <p className="text-sm text-slate-500 mt-1">Cycle mensuel — de la clôture des cours au virement des profs.</p>
+        <p className="text-sm text-slate-500 mt-1">
+          Cycle du mois <strong className="text-slate-700">{n}</strong> — exemple concret de bout en bout.
+        </p>
       </div>
 
-      {/* Barre exemple du mois courant */}
-      <div className="mb-8 flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider shrink-0">Exemple cycle {n}</span>
-        <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-slate-200 text-xs font-mono">
+      {/* ── Frise chronologique ── */}
+      <div className="bg-white rounded-2xl border border-slate-200 px-10 pt-8 pb-10 mb-8" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-8">Frise — cycle {n} → {n1}</p>
+
+        {/* Labels du haut */}
+        <div className="flex justify-between mb-1">
+          {milestones.map((m) => (
+            <div key={m.date} className="flex flex-col items-center" style={{ width: `${100 / milestones.length}%` }}>
+              <p className="text-[11px] text-slate-500 text-center leading-tight">{m.top}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Ligne + dots */}
+        <div className="relative flex justify-between items-center my-3">
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-slate-200" />
+          {milestones.map((m, i) => (
+            <div key={m.date} className="relative flex flex-col items-center z-10" style={{ width: `${100 / milestones.length}%` }}>
+              <div className={`w-3 h-3 rounded-full border-2 border-white ring-1 ${i === 0 ? "bg-slate-300 ring-slate-300" : i === milestones.length - 1 ? "bg-slate-700 ring-slate-700" : "bg-slate-400 ring-slate-400"}`} />
+            </div>
+          ))}
+        </div>
+
+        {/* Dates */}
+        <div className="flex justify-between mb-1">
+          {milestones.map((m) => (
+            <div key={m.date} className="flex flex-col items-center" style={{ width: `${100 / milestones.length}%` }}>
+              <p className="text-[13px] font-semibold text-slate-800 text-center">{m.date}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Labels du bas */}
+        <div className="flex justify-between">
+          {milestones.map((m) => (
+            <div key={m.date} className="flex flex-col items-center" style={{ width: `${100 / milestones.length}%` }}>
+              <p className="text-[11px] text-slate-400 text-center leading-tight mt-1">{m.bottom}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Segments colorés sous la frise */}
+        <div className="flex mt-6 rounded-lg overflow-hidden border border-slate-100 text-xs">
           {[
-            { label: `1 ${n} → 5 ${n1}`,  sub: "Clôture",  w: "flex-[4]" },
-            { label: `5 → 7 ${n1}`,        sub: "Parents",  w: "flex-[2]" },
-            { label: `8 ${n1}`,            sub: "URSSAF",   w: "flex-[1]" },
-            { label: `8 → ~12 ${n1}`,      sub: "Virement", w: "flex-[3]" },
+            { label: `1er ${n} → 5 ${n1}`, sublabel: "Clôture des récaps",   flex: 4, bg: "bg-slate-50",        text: "text-slate-600" },
+            { label: `5 → 7 ${n1}`,         sublabel: "Validation parents",   flex: 2, bg: "bg-slate-100",       text: "text-slate-700" },
+            { label: `8 ${n1}`,              sublabel: "Déclarations ATP",     flex: 1, bg: "bg-slate-200",       text: "text-slate-700" },
+            { label: `8 → ~12 ${n1}`,        sublabel: "Virements profs",     flex: 3, bg: "bg-slate-700",       text: "text-white"     },
           ].map((seg, i, arr) => (
-            <div key={seg.label} className={`${seg.w} px-3 py-2 bg-slate-50 ${i < arr.length - 1 ? "border-r border-slate-200" : ""}`}>
-              <p className="font-semibold text-slate-700 whitespace-nowrap">{seg.label}</p>
-              <p className="text-slate-400 mt-0.5 whitespace-nowrap">{seg.sub}</p>
+            <div key={seg.label} className={`${seg.bg} ${seg.text} px-3 py-2.5 ${i < arr.length - 1 ? "border-r border-slate-200" : ""}`} style={{ flex: seg.flex }}>
+              <p className="font-semibold whitespace-nowrap">{seg.label}</p>
+              <p className={`mt-0.5 whitespace-nowrap ${seg.bg === "bg-slate-700" ? "text-slate-300" : "text-slate-400"}`}>{seg.sublabel}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Phases */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-        {phases.map((phase, idx) => (
-          <div key={idx} className={`${idx > 0 ? "border-t border-slate-100" : ""}`}>
-            {/* En-tête de phase */}
-            <div className="grid grid-cols-[180px_1fr_auto] items-start gap-4 px-6 py-5">
-              <div>
-                <p className="text-xs font-mono text-slate-400 leading-snug">{phase.dates}</p>
-                <p className="text-[11px] font-mono text-slate-300 mt-1">{phase.example}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-2">{phase.title}</p>
-                <ul className="space-y-2">
-                  {phase.lines.map((line, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-600 leading-relaxed">
-                      <span className="mt-[6px] w-1 h-1 rounded-full bg-slate-300 shrink-0" />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-                {phase.fallback && (
-                  <p className="mt-3 text-xs text-slate-500 italic border-l-2 border-slate-200 pl-3">
-                    Fallback auto : {phase.fallback}
-                  </p>
-                )}
-              </div>
-              <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full whitespace-nowrap mt-0.5">
-                {phase.who}
-              </span>
+      {/* ── Encadrés ── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* 1 — Clôture */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Du 1er {n} au 5 {n1}</p>
+              <h3 className="text-base font-bold text-slate-900">Clôture des récaps</h3>
             </div>
-            {/* Note admin */}
-            {phase.adminNote && (
-              <div className="mx-6 mb-5 flex gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-800 leading-relaxed">
-                  <span className="font-semibold">Action admin — </span>{phase.adminNote}
-                </p>
-              </div>
-            )}
+            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full shrink-0 ml-3">Profs</span>
           </div>
-        ))}
+          <p className="text-sm text-slate-600 leading-relaxed mb-3">
+            Chaque prof accède à son espace et crée son récap mensuel : il regroupe tous les cours qu'il a déclarés sur le mois de {n} et le soumet à validation.
+          </p>
+          <div className="border-t border-slate-100 pt-3">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              <span className="font-semibold text-slate-700">Clôture automatique</span> — Si un prof n'a pas agi au 5 {n1} à minuit, le système génère automatiquement son récap avec tous ses cours du mois.
+            </p>
+          </div>
+        </div>
+
+        {/* 2 — Validation */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Du 5 au 7 {n1}</p>
+              <h3 className="text-base font-bold text-slate-900">Validation par les parents</h3>
+            </div>
+            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full shrink-0 ml-3">Parents</span>
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed mb-3">
+            Les parents reçoivent le récap et peuvent valider les heures ou contester une ou plusieurs séances (avec un commentaire obligatoire). Ils ont jusqu'au 7 {n1} à minuit.
+          </p>
+          <div className="border-t border-slate-100 pt-3 mb-3">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              <span className="font-semibold text-slate-700">Validation automatique</span> — Sans action du parent au 7 {n1} à minuit, le récap est validé automatiquement en son nom.
+            </p>
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <p className="text-xs text-amber-800 leading-relaxed">
+              <span className="font-semibold">Vigilance admin —</span> C'est la période la plus sensible. Toutes les contestations doivent être traitées avant le 8 {n1} au matin. Objectif : 100 % des récaps en statut « validé ».
+            </p>
+          </div>
+        </div>
+
+        {/* 3 — ATP */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">Le 8 {n1} — toute la journée</p>
+              <h3 className="text-base font-bold text-slate-900">Déclarations ATP</h3>
+            </div>
+            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full shrink-0 ml-3">Automatique</span>
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Le serveur envoie les déclarations à l'API Tierce de Prestation (ATP) pour chaque séance validée du mois. Ce traitement est entièrement automatique et peut prendre plusieurs heures selon le volume et les temps de réponse de l'API.
+          </p>
+        </div>
+
+        {/* 4 — Virements */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 mb-1">À partir du 8 {n1} — virement ~12 {n1}</p>
+              <h3 className="text-base font-bold text-slate-900">Virements aux profs</h3>
+            </div>
+            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full shrink-0 ml-3">Admin</span>
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed mb-3">
+            Dès réception des paiements parents, le serveur calcule pour chaque prof le <span className="font-semibold text-slate-800">montant à verser</span> : c'est le brut que l'on vire au prof, calculé de façon à ce qu'après avoir réglé ses cotisations et ses impôts, il lui reste exactement son <span className="font-semibold text-slate-800">montant augmenté</span> (le net convenu).
+          </p>
+          <div className="bg-slate-50 rounded-xl px-3 py-2.5 mb-3 text-xs text-slate-600 leading-relaxed">
+            Montant brut des cours <span className="text-slate-400 mx-1">→</span> <strong className="text-slate-800">Montant augmenté</strong> (net visé) <span className="text-slate-400 mx-1">→</span> <strong className="text-slate-800">Montant à verser</strong> (brut viré) <span className="text-slate-400 mx-1">→</span> Prof paie cotisations/impôts <span className="text-slate-400 mx-1">→</span> Il touche le montant augmenté
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <p className="text-xs text-amber-800 leading-relaxed">
+              <span className="font-semibold">Action admin —</span> Aller dans « Dispatch paiements », vérifier les montants et IBAN, puis cliquer sur Dispatcher. Les récaps passent automatiquement à « Payé ».
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   );
