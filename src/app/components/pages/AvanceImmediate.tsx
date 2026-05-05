@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import urssafColor from "../../../assets/Urssaf_Baseline-RVB.jpg";
 import urssafBlanc from "../../../assets/Urssaf_BLANC.png";
 
@@ -235,24 +235,6 @@ export function AvanceImmediate() {
               </div>
             </div>
 
-          </div>
-        </section>
-
-        {/* ── CTA ── */}
-        <section className="px-6 pb-20">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-2xl px-8 py-8">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-1">Prêt à rejoindre Colibri ?</h2>
-                <p className="text-slate-500 text-sm">Des cours d'élite, déclarés, au même prix qu'avant.</p>
-              </div>
-              <button
-                onClick={() => navigate("/")}
-                className="flex-shrink-0 inline-flex items-center gap-2 bg-gradient-to-r from-[#0052D4] to-[#4364F7] text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-95"
-              >
-                S'inscrire <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </section>
 
