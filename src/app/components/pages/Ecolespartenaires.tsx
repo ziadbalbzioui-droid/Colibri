@@ -1,16 +1,17 @@
 import { useNavigate, Link } from "react-router";
-import { 
-  GraduationCap, 
-  CheckCircle2, 
-  ArrowRight, 
-  Search, 
-  ShieldCheck, 
+import {
+  GraduationCap,
+  CheckCircle2,
+  ArrowRight,
+  Search,
+  ShieldCheck,
   Trophy,
   Users,
   Building2,
   FileSearch,
   UserCheck
 } from "lucide-react";
+import urssafBlanc from "../../../assets/Urssaf_BLANC.png";
 
 const SCHOOLS = [
   {
@@ -295,8 +296,8 @@ export function EcolesPartenaires() {
               <p className="text-sm text-slate-500 mb-6">
                 L'excellence du soutien scolaire certifiée par l'État.
               </p>
-              <div className="flex items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
-                <span className="font-bold text-lg tracking-tighter text-slate-800">URSSAF</span>
+              <div className="inline-flex items-center bg-[#1a1a2e] px-3 py-1.5 rounded-lg opacity-70 hover:opacity-100 transition-all">
+                <img src={urssafBlanc} alt="Urssaf" className="h-5 object-contain" />
               </div>
             </div>
 

@@ -3,6 +3,7 @@ import { Welcome } from "./components/pages/Welcome";
 import { Tarifs } from "./components/pages/Tarifs";
 import { Mission } from "./components/pages/Mission";
 import { EcolesPartenaires } from "./components/pages/Ecolespartenaires";
+import { AvanceImmediate } from "./components/pages/AvanceImmediate";
 import { AuthGuard, ParentGuard, OnboardingGuard, AdminGuard } from "./components/layout/AuthGuard";
 import { Layout } from "./components/layout/Layout";
 import { ParentLayout } from "./components/layout/ParentLayout";
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
   { path: "/tarifs", Component: Tarifs },
   { path: "/mission", Component: Mission },
   { path: "/ecoles", Component: EcolesPartenaires },
+  { path: "/avance-immediate", Component: AvanceImmediate },
   {
     path: "/onboarding",
     Component: OnboardingGuard,

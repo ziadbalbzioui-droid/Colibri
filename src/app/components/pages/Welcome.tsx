@@ -9,6 +9,7 @@ import {
   HeartHandshake, Landmark, Sparkles
 } from "lucide-react";
 import { useAuth } from "../../../lib/auth";
+import urssafBlanc from "../../../assets/Urssaf_BLANC.png";
 
 type Role = "prof" | "parent" | null;
 type AuthMode = "connexion" | "inscription";
@@ -445,6 +446,12 @@ export function Welcome() {
                         Votre budget reste intact.
                       </h3>
                       <p className="text-slate-600 text-sm leading-relaxed pl-7">Offrez à votre enfant des cours déclarés et encadrés par des profs vérifiés, sans dépenser un euro de plus. Le coût final de notre service premium reste strictement identique à celui que vous allouiez jusqu'ici à des cours non déclarés.</p>
+                      <div className="pl-7 mt-3">
+                        <Link to="/avance-immediate" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0052D4] hover:text-[#4364F7] transition-colors group">
+                          Comprendre le mécanisme financier
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -674,8 +681,8 @@ export function Welcome() {
               <p className="text-sm text-slate-500 mb-6">
                 L'excellence du soutien scolaire certifiée par l'État.
               </p>
-              <div className="flex items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
-                <span className="font-bold text-lg tracking-tighter text-slate-800">URSSAF</span>
+              <div className="inline-flex items-center bg-[#1a1a2e] px-3 py-1.5 rounded-lg opacity-70 hover:opacity-100 transition-all">
+                <img src={urssafBlanc} alt="Urssaf" className="h-5 object-contain" />
               </div>
             </div>
 
