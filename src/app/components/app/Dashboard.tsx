@@ -124,7 +124,7 @@ export function Dashboard() {
     if (!eleveForm.nom || !eleveForm.matiere) return;
     setSaving(true);
     try {
-      await addEleve({ nom: eleveForm.nom, niveau: eleveForm.niveau, matiere: eleveForm.matiere, tarif_heure: eleveForm.tarif_heure, statut: "actif" }, []);
+      await addEleve({ nom: eleveForm.nom, niveau: eleveForm.niveau, matiere: eleveForm.matiere, tarif_heure: eleveForm.tarif_heure, statut: "actif" });
       setSuccess(true);
     } finally { setSaving(false); }
   }

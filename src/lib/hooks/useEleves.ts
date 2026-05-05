@@ -12,7 +12,6 @@ export interface EleveRow {
   statut: "actif" | "en attente" | "en pause" | "terminé";
   solde: number;
   notes: string;
-  tags: string[];
   total_heures: number;
   total_paye: number;
   dernier_cours: string;
@@ -50,7 +49,7 @@ export function useEleves() {
         Promise.all([
           supabase
             .from("eleves")
-            .select("*, eleve_tags(tag)")
+            .select("*")
             .eq("prof_id", user.id)
             .order("created_at", { ascending: false }),
           supabase
@@ -72,7 +71,6 @@ export function useEleves() {
         return {
           id: e.id, nom: e.nom, niveau: e.niveau, matiere: e.matiere,
           tarif_heure: e.tarif_heure, statut: e.statut, solde: e.solde, notes: e.notes,
-          tags: (e.eleve_tags as { tag: string }[]).map((t) => t.tag),
           total_heures, total_paye, dernier_cours, heures_par_semaine, code_invitation: e.code_invitation,
           telephone_eleve: e.telephone_eleve, email_eleve: e.email_eleve, adresse_eleve: e.adresse_eleve,
         };
@@ -101,7 +99,7 @@ export function useEleves() {
   const addEleve = async (data: {
     nom: string; niveau: string; matiere: string;
     tarif_heure: number; statut: EleveRow["statut"];
-  }, tags: string[]) => {
+  }) => {
     if (!user) throw new Error("Non connecté");
     const { data: row, error } = await supabase
       .from("eleves")
@@ -109,12 +107,8 @@ export function useEleves() {
       .select()
       .single();
     if (error) throw error;
-    if (tags.length > 0) {
-      const { error: te } = await supabase.from("eleve_tags").insert(tags.map((tag) => ({ eleve_id: row.id, tag })));
-      if (te) console.error("[useEleves] tag insert error:", te.message);
-    }
     setEleves((prev) => [{
-      ...row, tags,
+      ...row,
       total_heures: 0, total_paye: 0, dernier_cours: "", heures_par_semaine: Array(8).fill(0),
     }, ...prev]);
   };
@@ -131,16 +125,6 @@ export function useEleves() {
     setEleves((prev) => prev.map((e) => e.id === id ? { ...e, statut } : e));
   };
 
-  const updateTags = async (id: string, tags: string[]) => {
-    const { error: de } = await supabase.from("eleve_tags").delete().eq("eleve_id", id);
-    if (de) throw de;
-    if (tags.length > 0) {
-      const { error: ie } = await supabase.from("eleve_tags").insert(tags.map((tag) => ({ eleve_id: id, tag })));
-      if (ie) throw ie;
-    }
-    setEleves((prev) => prev.map((e) => e.id === id ? { ...e, tags } : e));
-  };
-
   const removeEleve = async (id: string) => {
     const { error } = await supabase.from("eleves").delete().eq("id", id);
     if (error) throw error;
@@ -153,5 +137,5 @@ export function useEleves() {
     setEleves((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
   };
 
-  return { eleves, loading, error, reload: load, addEleve, updateNotes, updateStatut, updateTags, removeEleve, updateCoordinates };
+  return { eleves, loading, error, reload: load, addEleve, updateNotes, updateStatut, removeEleve, updateCoordinates };
 }

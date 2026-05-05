@@ -17,11 +17,6 @@ export interface Database {
         Insert: Omit<Eleve, "id" | "created_at">;
         Update: Partial<Omit<Eleve, "id" | "created_at" | "prof_id">>;
       };
-      eleve_tags: {
-        Row: EleveTag;
-        Insert: Omit<EleveTag, "id">;
-        Update: never;
-      };
       cours: {
         Row: Cours;
         Insert: Omit<Cours, "id" | "created_at">;
@@ -129,12 +124,6 @@ export interface Eleve {
   email_eleve?: string;
   adresse_eleve?: string;
   created_at: string;
-}
-
-export interface EleveTag {
-  id: string;
-  eleve_id: string;
-  tag: string;
 }
 
 export interface Cours {

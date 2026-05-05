@@ -4,7 +4,6 @@ import { useEleves } from "../../../lib/hooks/useEleves";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
 import type { CoursRow } from "../../../lib/hooks/useCours";
-import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { supabase } from "../../../lib/supabase";
@@ -52,7 +51,6 @@ export function Eleves() {
   const { profile } = useAuth();
   const { eleves, loading, error, reload, addEleve } = useEleves();
   const { cours } = useCours();
-  const { grille } = useGrilleCommission();
   const hasSiret = !!profile?.siret;
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -103,16 +101,15 @@ export function Eleves() {
     return cours
       .filter((c: CoursRow) => c.eleve_id === selectedId)
       .reduce((s: number, c: CoursRow) => {
-        const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-        return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+        return s + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
       }, 0);
-  }, [cours, grille, selectedId]);
+  }, [cours, selectedId]);
 
   async function handleAdd() {
     if (!form.nom || form.matieres.length === 0) return;
     setSaving(true); setAddError(null);
     try {
-      await addEleve({ nom: form.nom, niveau: form.niveau, matiere: form.matieres.join(", "), tarif_heure: form.tarif_heure, statut: form.statut }, []);
+      await addEleve({ nom: form.nom, niveau: form.niveau, matiere: form.matieres.join(", "), tarif_heure: form.tarif_heure, statut: form.statut });
       setShowAdd(false); setForm(emptyForm);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Erreur lors de l'ajout");

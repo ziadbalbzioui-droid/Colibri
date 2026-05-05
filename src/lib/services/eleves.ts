@@ -1,41 +1,28 @@
 import { supabase } from "../supabase";
-import type { Eleve, EleveTag } from "../database.types";
+import type { Eleve } from "../database.types";
 
-export type EleveWithTags = Eleve & { tags: string[] };
-
-export async function getEleves(profId: string): Promise<EleveWithTags[]> {
+export async function getEleves(profId: string): Promise<Eleve[]> {
   const { data: eleves, error } = await supabase
     .from("eleves")
-    .select("*, eleve_tags(tag)")
+    .select("*")
     .eq("prof_id", profId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (eleves ?? []).map((e) => ({
-    ...e,
-    tags: (e.eleve_tags as { tag: string }[]).map((t) => t.tag),
-  }));
+  return eleves ?? [];
 }
 
 export async function createEleve(
   profId: string,
   data: Omit<Eleve, "id" | "created_at" | "prof_id">,
-  tags: string[],
-): Promise<EleveWithTags> {
+): Promise<Eleve> {
   const { data: eleve, error } = await supabase
     .from("eleves")
     .insert({ ...data, prof_id: profId })
     .select()
     .single();
   if (error) throw error;
-
-  if (tags.length > 0) {
-    await supabase.from("eleve_tags").insert(
-      tags.map((tag) => ({ eleve_id: eleve.id, tag })),
-    );
-  }
-
-  return { ...eleve, tags };
+  return eleve;
 }
 
 export async function updateEleve(
@@ -51,20 +38,3 @@ export async function deleteEleve(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function setEleveTags(eleveId: string, tags: string[]): Promise<void> {
-  await supabase.from("eleve_tags").delete().eq("eleve_id", eleveId);
-  if (tags.length > 0) {
-    const { error } = await supabase
-      .from("eleve_tags")
-      .insert(tags.map((tag) => ({ eleve_id: eleveId, tag })));
-    if (error) throw error;
-  }
-}
-
-export async function getEleveTags(eleveId: string): Promise<string[]> {
-  const { data } = await supabase
-    .from("eleve_tags")
-    .select("tag")
-    .eq("eleve_id", eleveId);
-  return (data ?? []).map((t: EleveTag) => t.tag);
-}
