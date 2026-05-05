@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 import { ProfFicheModal } from "./ProfFicheModal";
 import { CreateRecapModal } from "./CreateRecapModal";
 import { AdminSearch } from "./AdminSearch";
@@ -744,7 +744,6 @@ function AdminRecaps() {
   const [recapCours, setRecapCours]   = useState<any[]>([]);
   const [coursLoading, setCoursLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [grille, setGrille]           = useState<any[]>([]);
   const [showCreate, setShowCreate]   = useState(false);
   const [profsList, setProfsList]     = useState<{ id: string; prenom: string; nom: string }[]>([]);
   const [showAddCours, setShowAddCours] = useState(false);
@@ -752,15 +751,6 @@ function AdminRecaps() {
   const [addCoursF, setAddCoursF] = useState({ eleve_id: "", eleve_nom: "", matiere: "", date: "", duree: "", duree_heures: "", montant: "" });
   const [addCoursLoading, setAddCoursLoading] = useState(false);
 
-  function getTaux(tarif_heure: number): number {
-    const sorted = [...grille].sort((a, b) => b.tarif_palier - a.tarif_palier);
-    return sorted.find((g) => g.tarif_palier <= tarif_heure)?.taux_plusvalue ?? 0;
-  }
-
-  async function loadGrille() {
-    const { data } = await supabase.from("grille_commission").select("tarif_palier, taux_plusvalue").order("tarif_palier");
-    setGrille(data ?? []);
-  }
 
   async function loadRecaps() {
     setLoading(true);
@@ -785,7 +775,7 @@ function AdminRecaps() {
   }
 
   useEffect(() => {
-    loadRecaps(); loadGrille();
+    loadRecaps();
     supabase.from("profiles").select("id, prenom, nom").eq("role", "prof").order("nom")
       .then(({ data }) => setProfsList(data ?? []));
   }, []);
@@ -793,7 +783,7 @@ function AdminRecaps() {
   async function openRecap(recap: any) {
     setSelected(recap); setCoursLoading(true);
     const { data } = await supabase.from("cours")
-      .select("id, date, eleve_nom, matiere, duree, duree_heures, montant")
+      .select("id, date, eleve_nom, matiere, duree, duree_heures, montant, taux_plusvalue")
       .eq("recap_id", recap.id).order("date", { ascending: true });
     setRecapCours(data ?? []); setCoursLoading(false);
   }
@@ -963,9 +953,8 @@ function AdminRecaps() {
     return !search || profName.includes(search.toLowerCase()) || `${MOIS_LABELS[r.mois - 1]} ${r.annee}`.toLowerCase().includes(search.toLowerCase());
   });
 
-  const totalNet = (r: any) => recapCours.reduce((s, c) => {
-    const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-    return s + c.montant * (1 + getTaux(tarifH));
+  const totalNet = (_r: any) => recapCours.reduce((s, c) => {
+    return s + c.montant * (1 + (c.taux_plusvalue ?? 0));
   }, 0);
 
   return (
@@ -1150,7 +1139,7 @@ function AdminRecaps() {
                       <tbody className="divide-y divide-slate-100">
                         {recapCours.map((c) => {
                           const tarifH = c.duree_heures > 0 ? Number(c.montant) / Number(c.duree_heures) : 0;
-                          const taux   = getTaux(tarifH);
+                          const taux   = c.taux_plusvalue ?? 0;
                           const netP   = Number(c.montant) * (1 + taux);
                           return (
                             <tr key={c.id}>

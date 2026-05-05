@@ -83,9 +83,7 @@ export function Cours() {
       const [y, m] = c.date.split("-");
       const key = `${MOIS[Number(m) - 1]} ${y}`;
       if (!map[key]) map[key] = { total: 0, nbCours: 0, moisNum: Number(m), anneeNum: Number(y), coursList: [] };
-      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-      const taux = getTauxPlusvalue(grille, tarifH);
-      map[key].total += c.montant * (1 + taux);
+      map[key].total += c.montant * (1 + (c.taux_plusvalue ?? 0));
       map[key].nbCours += 1;
       map[key].coursList.push(c);
     });
@@ -94,7 +92,7 @@ export function Cours() {
       const recapStatut: RecapStatut = recap?.statut ?? "en_cours";
       return { mois, ...v, recapStatut, recapId: recap?.id ?? null };
     }).sort((a, b) => a.anneeNum !== b.anneeNum ? b.anneeNum - a.anneeNum : b.moisNum - a.moisNum);
-  }, [cours, recaps, grille]);
+  }, [cours, recaps]);
 
   const monthlySummary = allMonthlySummary.slice(0, 3);
   const olderMonths = allMonthlySummary.slice(3);
@@ -257,7 +255,7 @@ export function Cours() {
               <p style={{ fontSize: 12, color: "#64748B", marginBottom: 10 }}>Cours du {formatDate(selectedDay)}</p>
               {selectedCoursItems.map((c: CoursRow) => {
                 const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                const taux = getTauxPlusvalue(grille, tarifH);
+                const taux = c.taux_plusvalue ?? 0;
                 const netProf = Math.round(c.montant * (1 + taux));
                 return (
                   <div key={c.id} style={{ padding: "10px 14px", background: "#F1F5F9", borderRadius: 10, marginBottom: 6 }}>
@@ -296,7 +294,7 @@ export function Cours() {
                   <tbody>
                     {items.map((c: CoursRow) => {
                       const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                      const taux = getTauxPlusvalue(grille, tarifH);
+                      const taux = c.taux_plusvalue ?? 0;
                       const netProf = Math.round(c.montant * (1 + taux));
                       return (
                         <tr key={c.id}>
@@ -361,14 +359,13 @@ export function Cours() {
                       <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{nom}</span>
                       <span style={{ fontSize: 13, color: "#64748B" }}>
                         {items.reduce((s, c) => s + c.duree_heures, 0)}h · {items.reduce((s, c) => s + c.montant, 0).toLocaleString("fr-FR")}€ famille · {items.reduce((s, c) => {
-                          const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                          return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                          return s + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
                         }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations
                       </span>
                     </div>
                     {items.map((c) => {
                       const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                      const taux = getTauxPlusvalue(grille, tarifH);
+                      const taux = c.taux_plusvalue ?? 0;
                       const netProf = Math.round(c.montant * (1 + taux));
                       return (
                         <div key={c.id} style={{ padding: "8px 12px", background: "#F1F5F9", borderRadius: 10, marginBottom: 4 }}>
@@ -394,8 +391,7 @@ export function Cours() {
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontWeight: 700, color: "#0F172A" }}>Pour vous, après impôts et cotisations</span>
                   <span style={{ fontWeight: 700, color: "#16A34A" }}>{recapModal.coursList.reduce((s, c) => {
-                    const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                    return s + Math.round(c.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                    return s + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
                   }, 0).toLocaleString("fr-FR")} €</span>
                 </div>
               </div>

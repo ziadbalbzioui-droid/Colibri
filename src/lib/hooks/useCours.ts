@@ -14,6 +14,7 @@ export interface CoursRow {
   montant: number;
   statut: "déclaré" | "contesté" | "payé";
   recap_id: string | null;
+  taux_plusvalue: number | null;
 }
 
 export function useCours() {

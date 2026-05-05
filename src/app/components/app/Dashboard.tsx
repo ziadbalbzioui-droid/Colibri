@@ -138,11 +138,9 @@ export function Dashboard() {
   const brutThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.montant, 0), [coursThisMonth]);
   const revenuBrutMois = useMemo(() =>
     coursThisMonth.reduce((s: number, c: CoursRow) => {
-      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-      const taux = getTauxPlusvalue(grille, tarifH);
-      return s + c.montant * (1 + taux);
+      return s + c.montant * (1 + (c.taux_plusvalue ?? 0));
     }, 0),
-    [coursThisMonth, grille]
+    [coursThisMonth]
   );
   const netThisMonth = Math.round(revenuBrutMois);
   const heuresThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0), [coursThisMonth]);
@@ -153,11 +151,9 @@ export function Dashboard() {
   const coursPrevMonth = useMemo(() => cours.filter((c: CoursRow) => c.date.startsWith(prevMonthKey)), [cours, prevMonthKey]);
   const netPrevMonth = useMemo(() =>
     Math.round(coursPrevMonth.reduce((s: number, c: CoursRow) => {
-      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-      const taux = getTauxPlusvalue(grille, tarifH);
-      return s + c.montant * (1 + taux);
+      return s + c.montant * (1 + (c.taux_plusvalue ?? 0));
     }, 0)),
-    [coursPrevMonth, grille]
+    [coursPrevMonth]
   );
   const elevesActifs = useMemo(() => eleves.filter((e: EleveRow) => e.statut === "actif").length, [eleves]);
 
@@ -172,12 +168,10 @@ export function Dashboard() {
   const eleveNetTotals = useMemo(() => {
     const map: Record<string, number> = {};
     cours.forEach((c: CoursRow) => {
-      const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-      const taux = getTauxPlusvalue(grille, tarifH);
-      map[c.eleve_nom] = (map[c.eleve_nom] ?? 0) + Math.round(c.montant * (1 + taux));
+      map[c.eleve_nom] = (map[c.eleve_nom] ?? 0) + Math.round(c.montant * (1 + (c.taux_plusvalue ?? 0)));
     });
     return map;
-  }, [cours, grille]);
+  }, [cours]);
 
   const weekLabel = (() => {
     const weekNum = Math.ceil((now.getDate() + new Date(now.getFullYear(), now.getMonth(), 1).getDay()) / 7);
@@ -251,7 +245,7 @@ export function Dashboard() {
               <>
                 {recentCours.map((c: CoursRow, i: number) => {
                   const tarifH = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
-                  const taux = getTauxPlusvalue(grille, tarifH);
+                  const taux = c.taux_plusvalue ?? 0;
                   const netProf = Math.round(c.montant * (1 + taux));
                   return (
                     <div key={c.id} style={{ padding: "10px 0", borderBottom: i < recentCours.length - 1 ? "1px dashed #E2E8F0" : "none" }}>
@@ -270,8 +264,7 @@ export function Dashboard() {
                 })}
                 <p style={{ marginTop: 16, fontSize: 12, color: "#64748B" }}>
                   {recentCours.length} séances récentes — {recentCours.reduce((a: number, r: CoursRow) => a + r.montant, 0).toLocaleString("fr-FR")}€ famille · <span style={{ color: "#16A34A" }}>{recentCours.reduce((a: number, r: CoursRow) => {
-                    const tarifH = r.duree_heures > 0 ? r.montant / r.duree_heures : 0;
-                    return a + Math.round(r.montant * (1 + getTauxPlusvalue(grille, tarifH)));
+                    return a + Math.round(r.montant * (1 + (r.taux_plusvalue ?? 0)));
                   }, 0).toLocaleString("fr-FR")}€ pour vous, après impôts et cotisations</span>
                 </p>
               </>
