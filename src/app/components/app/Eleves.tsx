@@ -300,8 +300,9 @@ export function Eleves() {
                     <input type="number" style={S.input} value={form.tarif_heure} onChange={(e) => setForm({ ...form, tarif_heure: Number(e.target.value) })} />
                     {form.tarif_heure > 0 && (() => {
                       const taux = getTauxPlusvalue(grille, form.tarif_heure);
+                      const netH = Math.round(form.tarif_heure * (1 + taux));
                       return taux > 0
-                        ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>+{Math.round(taux * 100)}% plus-value Colibri</p>
+                        ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>vous toucherez +{Math.round(taux * 100)}% soit {netH}€/h (après impôts et cotisations sociales)</p>
                         : null;
                     })()}
                   </div>

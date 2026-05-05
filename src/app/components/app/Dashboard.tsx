@@ -376,8 +376,9 @@ export function Dashboard() {
                   <input type="number" style={S.input} value={eleveForm.tarif_heure} onChange={(e) => setEleveForm({ ...eleveForm, tarif_heure: Number(e.target.value) })} />
                   {eleveForm.tarif_heure > 0 && (() => {
                     const taux = getTauxPlusvalue(grille, eleveForm.tarif_heure);
+                    const netH = Math.round(eleveForm.tarif_heure * (1 + taux));
                     return taux > 0
-                      ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>+{Math.round(taux * 100)}% plus-value Colibri</p>
+                      ? <p style={{ fontSize: 11, color: "#6366F1", marginTop: 5 }}>vous toucherez +{Math.round(taux * 100)}% soit {netH}€/h (après impôts et cotisations sociales)</p>
                       : null;
                   })()}
                 </div>
