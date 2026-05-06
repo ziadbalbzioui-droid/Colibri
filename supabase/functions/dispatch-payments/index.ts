@@ -155,30 +155,46 @@ async function createTransfer(accessToken: string, params: {
   return data?.transfer?.id ?? "unknown";
 }
 
+interface GrilleRow {
+  tarif_palier: number;
+  multiplicateur_brut: number;
+}
+
+function getMultiplicateurBrut(grille: GrilleRow[], tarifHeure: number): number {
+  const sorted = [...grille].sort((a, b) => b.tarif_palier - a.tarif_palier);
+  const match = sorted.find((g) => g.tarif_palier <= tarifHeure);
+  // Fallback : multiplicateur 1.25 net → brut si aucun palier trouvé
+  return match?.multiplicateur_brut ?? 1.5272;
+}
+
 interface RecapRow {
   id: string;
   prof_id: string;
   mois: number;
   annee: number;
   profiles: { prenom: string; nom: string; iban: string | null };
-  cours: { montant: number }[];
+  cours: { montant: number; eleves: { tarif_heure: number } | null }[];
 }
 
 async function dispatchPaymentsToTutors(): Promise<{
   success: string[];
   errors: { prof_id: string; error: string }[];
 }> {
-  const profMultiplier = parseFloat(Deno.env.get("COLIBRI_PROF_MULTIPLIER") ?? "1.25");
-
   // Renouvelle le token une fois pour tous les virements du batch
   const accessToken = await getValidAccessToken();
+
+  // Charge la grille de commission
+  const { data: grille, error: grilleError } = await supabase
+    .from("grille_commission")
+    .select("tarif_palier, multiplicateur_brut");
+  if (grilleError) throw new Error(`Supabase fetch grille_commission: ${grilleError.message}`);
 
   const { data: recaps, error } = await supabase
     .from("recap_mensuel")
     .select(`
       id, prof_id, mois, annee,
       profiles!inner ( prenom, nom, iban ),
-      cours ( montant )
+      cours ( montant, eleves ( tarif_heure ) )
     `)
     .eq("statut", "valide");
 
@@ -190,7 +206,7 @@ async function dispatchPaymentsToTutors(): Promise<{
 
   const byProf = new Map<string, {
     recapIds: string[];
-    totalBrut: number;
+    totalVirement: number;
     iban: string;
     nom: string;
     moisAnnee: string;
@@ -202,18 +218,26 @@ async function dispatchPaymentsToTutors(): Promise<{
       console.warn(`Prof ${recap.prof_id} sans IBAN, ignoré`);
       continue;
     }
-    const montantRecap = (recap.cours ?? []).reduce((s, c) => s + Number(c.montant), 0);
+
+    // Calcule le virement brut cours par cours selon le palier de chaque élève
+    let virementRecap = 0;
+    for (const cours of recap.cours ?? []) {
+      const tarifHeure = Number(cours.eleves?.tarif_heure ?? 0);
+      const multiplicateur = getMultiplicateurBrut(grille as GrilleRow[], tarifHeure);
+      virementRecap += Number(cours.montant) * multiplicateur;
+    }
+
     const label = `${String(recap.mois).padStart(2, "0")}/${recap.annee}`;
     const entry = byProf.get(recap.prof_id);
 
     if (entry) {
       entry.recapIds.push(recap.id);
-      entry.totalBrut += montantRecap;
+      entry.totalVirement += virementRecap;
       entry.moisAnnee += `, ${label}`;
     } else {
       byProf.set(recap.prof_id, {
         recapIds: [recap.id],
-        totalBrut: montantRecap,
+        totalVirement: virementRecap,
         iban,
         nom: `${recap.profiles.prenom} ${recap.profiles.nom}`,
         moisAnnee: label,
@@ -224,8 +248,8 @@ async function dispatchPaymentsToTutors(): Promise<{
   const successes: string[] = [];
   const errors: { prof_id: string; error: string }[] = [];
 
-  for (const [profId, { recapIds, totalBrut, iban, nom, moisAnnee }] of byProf) {
-    const montantNet = Math.round(totalBrut * profMultiplier * 100) / 100;
+  for (const [profId, { recapIds, totalVirement, iban, nom, moisAnnee }] of byProf) {
+    const montantNet = Math.round(totalVirement * 100) / 100;
     const idempotencyKey = crypto.randomUUID();
 
     try {

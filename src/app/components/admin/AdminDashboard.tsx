@@ -1745,6 +1745,7 @@ export function AdminDashboard() {
   const [dispatchState, setDispatchState] = useState<DispatchState>("idle");
   const [dispatchResult, setDispatchResult] = useState<{ success: string[]; errors: { prof_id: string; error: string }[] } | null>(null);
   const [lastRefresh, setLastRefresh]   = useState(new Date());
+  const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
 
   useEffect(() => { loadPendingPayments(); }, [lastRefresh]);
 
@@ -1887,11 +1888,50 @@ export function AdminDashboard() {
               </div>
             )}
             <div className="flex justify-end">
-              <button onClick={handleDispatch} disabled={dispatchState === "loading" || profs.filter((p) => p.iban).length === 0}
+              <button onClick={() => setShowDispatchConfirm(true)} disabled={dispatchState === "loading" || profs.filter((p) => p.iban).length === 0}
                 className="px-6 py-3 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                 {dispatchState === "loading" ? "Envoi en cours…" : `Dispatcher ${profs.filter((p) => p.iban).length} virement(s) — ${totalNet.toFixed(2)} €`}
               </button>
             </div>
+
+            {showDispatchConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">Confirmer le dispatch</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Cette action est irréversible</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-700 mb-3">
+                    Tu t'apprêtes à envoyer <span className="font-semibold text-slate-900">{profs.filter((p) => p.iban).length} virement(s)</span> pour un total de <span className="font-semibold text-emerald-700">{totalNet.toFixed(2)} €</span>.
+                  </p>
+                  <ul className="mb-5 space-y-1.5">
+                    {profs.filter((p) => p.iban).map((p) => (
+                      <li key={p.prof_id} className="flex justify-between text-sm">
+                        <span className="text-slate-700">{p.prenom} {p.nom}</span>
+                        <span className="font-semibold text-emerald-700">{p.montant_net.toFixed(2)} €</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowDispatchConfirm(false)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                      Annuler
+                    </button>
+                    <button onClick={() => { setShowDispatchConfirm(false); handleDispatch(); }}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+                      Confirmer l'envoi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {section === "echeancier"    && <AdminEcheancier />}

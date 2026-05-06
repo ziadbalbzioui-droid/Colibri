@@ -8,7 +8,7 @@ create extension if not exists "uuid-ossp";
 -- ─── PROFILES ────────────────────────────────────────────────
 create table if not exists public.profiles (
   id            uuid primary key references auth.users(id) on delete cascade,
-  role          text not null check (role in ('prof', 'parent', 'admin')),
+  role          text not null check (role in ('prof', 'parent')),
   prenom        text not null,
   nom           text not null,
   email         text not null,
@@ -88,13 +88,6 @@ create table if not exists public.eleves (
   created_at  timestamptz not null default now(),
   -- AJOUT DE LA COLONNE CODE INVITATION
   code_invitation text unique default upper(substring(md5(random()::text) from 1 for 8))
-);
-
-create table if not exists public.eleve_tags (
-  id        uuid primary key default uuid_generate_v4(),
-  eleve_id  uuid not null references public.eleves(id) on delete cascade,
-  tag       text not null,
-  unique (eleve_id, tag)
 );
 
 -- ─── RECAP MENSUEL (v2) ──────────────────────────────────────
@@ -209,7 +202,6 @@ $$;
 -- ─── ROW LEVEL SECURITY ──────────────────────────────────────
 alter table public.profiles               enable row level security;
 alter table public.eleves                 enable row level security;
-alter table public.eleve_tags             enable row level security;
 alter table public.cours                  enable row level security;
 alter table public.factures               enable row level security;
 alter table public.lignes_facture         enable row level security;
@@ -225,7 +217,6 @@ do $$ begin
   drop policy if exists "profiles: update own" on public.profiles;
   drop policy if exists "eleves: prof crud"   on public.eleves;
   drop policy if exists "eleves: parent read" on public.eleves;
-  drop policy if exists "eleve_tags: prof crud" on public.eleve_tags;
   drop policy if exists "cours: prof crud"   on public.cours;
   drop policy if exists "cours: parent read" on public.cours;
   drop policy if exists "factures: prof crud" on public.factures;
@@ -262,13 +253,6 @@ create policy "profiles: update own" on public.profiles for update using (auth.u
 create policy "eleves: prof crud" on public.eleves for all using (auth.uid() = prof_id) with check (auth.uid() = prof_id);
 create policy "eleves: parent read" on public.eleves for select using (
   exists (select 1 from public.parent_eleve pe where pe.eleve_id = eleves.id and pe.parent_id = auth.uid())
-);
-
--- Eleve_tags
-create policy "eleve_tags: prof crud" on public.eleve_tags for all using (
-  exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
-) with check (
-  exists (select 1 from public.eleves e where e.id = eleve_tags.eleve_id and e.prof_id = auth.uid())
 );
 
 -- Cours
@@ -442,21 +426,6 @@ drop policy if exists "parent_eleve: parent insert" on public.parent_eleve;
 create policy "parent_eleve: parent insert" on public.parent_eleve for insert
   with check (auth.uid() = parent_id);
 
--- ─── POLICIES ADMIN ─────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean LANGUAGE sql SECURITY DEFINER STABLE AS $$
-  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin');
-$$;
-
-CREATE POLICY "profiles: admin read all" ON public.profiles
-  FOR SELECT USING (public.is_admin());
-
-CREATE POLICY "recap_mensuel: admin read all" ON public.recap_mensuel
-  FOR SELECT USING (public.is_admin());
-
-CREATE POLICY "cours: admin read all" ON public.cours
-  FOR SELECT USING (public.is_admin());
-
 -- LE COUP DE PIED AU CACHE : On force l'API à relire la base de données
 NOTIFY pgrst, 'reload schema';
 
@@ -547,9 +516,9 @@ ALTER TABLE public.recap_mensuel DROP COLUMN IF EXISTS eleve_id;
 ALTER TABLE public.recap_eleve_validation 
   DROP CONSTRAINT IF EXISTS recap_eleve_validation_statut_check;
 
-ALTER TABLE public.recap_eleve_validation
-  ADD CONSTRAINT recap_eleve_validation_statut_check
-  CHECK (statut IN ('en_attente_parent', 'en_attente_validation', 'valide', 'conteste'));
+ALTER TABLE public.recap_eleve_validation 
+  ADD CONSTRAINT recap_eleve_validation_statut_check 
+  CHECK (statut IN ('en_attente_parent', 'valide', 'conteste'));
 
 ALTER TABLE public.recap_mensuel 
   DROP CONSTRAINT IF EXISTS recap_mensuel_statut_check;
@@ -668,7 +637,59 @@ ALTER TABLE public.qonto_bulk_transfers       ENABLE ROW LEVEL SECURITY;
 -- Ces tables sont uniquement accessibles via service_role (back-end)
 -- Aucune policy pour les users : le front n'y accède jamais directement
 
+
+-- ─── POLICIES ADMIN 
+
+-- 1. Supprimer la policy récursive
+DROP POLICY IF EXISTS "profiles: admin read all" ON public.profiles;
+
+-- 2. Créer une fonction coupe-circuit
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin');
+$$;
+
+-- 3. Recréer les 3 policies avec cette fonction
+DROP POLICY IF EXISTS "recap_mensuel: admin read all" ON public.recap_mensuel;
+DROP POLICY IF EXISTS "cours: admin read all" ON public.cours;
+
+CREATE POLICY "profiles: admin read all" ON public.profiles
+  FOR SELECT USING (public.is_admin());
+
+CREATE POLICY "recap_mensuel: admin read all" ON public.recap_mensuel
+  FOR SELECT USING (public.is_admin());
+
+CREATE POLICY "cours: admin read all" ON public.cours
+  FOR SELECT USING (public.is_admin());
+
+
 NOTIFY pgrst, 'reload schema';
 
 
+-- ─── GRILLE COMMISSION ───────────────────────────────────────
+-- multiplicateur_brut = (1 + taux_plusvalue) / 0.8185
+-- Virement brut au prof = montant_brut_parent × multiplicateur_brut
+-- → le prof touche net = montant_brut_parent × (1 + taux_plusvalue)
 
+CREATE TABLE IF NOT EXISTS public.grille_commission (
+  id                  uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tarif_palier        numeric(8,2) NOT NULL UNIQUE,
+  taux_plusvalue      numeric(6,4) NOT NULL,
+  multiplicateur_brut numeric(8,4) NOT NULL,
+  created_at          timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.grille_commission ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "grille_commission: read all" ON public.grille_commission;
+CREATE POLICY "grille_commission: read all" ON public.grille_commission FOR SELECT USING (true);
+
+-- Ajout de la colonne si la table existait déjà sans elle
+ALTER TABLE public.grille_commission
+  ADD COLUMN IF NOT EXISTS multiplicateur_brut numeric(8,4);
+
+-- Recalcul des multiplicateurs bruts pour tous les paliers existants
+UPDATE public.grille_commission
+  SET multiplicateur_brut = ROUND((1 + taux_plusvalue) / 0.8185, 4);
+
+NOTIFY pgrst, 'reload schema';
