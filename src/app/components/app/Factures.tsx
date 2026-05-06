@@ -1,48 +1,41 @@
-import { useState, useMemo } from "react";
-import { FileText, Download, CheckCircle2, Clock, Plus, X, ChevronDown, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Info, Download, FileText, X } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
-import { useFactures } from "../../../lib/hooks/useFactures";
 import { useAuth } from "../../../lib/auth";
+import { useGrilleCommission, getMultiplicateurBrut } from "../../../lib/hooks/useGrilleCommission";
+import { supabase } from "../../../lib/supabase";
 import type { FactureRow, LigneRow } from "../../../lib/hooks/useFactures";
 
-const URSSAF = 0.211;
 const MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-function calcTotal(lignes: LigneRow[]) {
-  return lignes.reduce((acc, l) => acc + l.heures * l.tarif_heure, 0);
+interface CoursResume {
+  montant: number;
+  taux_plusvalue: number | null;
+  duree_heures: number;
 }
 
-function getMoisDisponibles(dateInscriptionStr: string | null | undefined): string[] {
-  const now = new Date();
-  if (!dateInscriptionStr) return [`${MOIS_NOMS[now.getMonth()]} ${now.getFullYear()}`];
-  const dateInscription = new Date(dateInscriptionStr);
-  const result: string[] = [];
-  let current = new Date(now.getFullYear(), now.getMonth(), 1);
-  const limit = new Date(dateInscription.getFullYear(), dateInscription.getMonth(), 1);
-  let count = 0;
-  while (current >= limit && count < 24) {
-    result.push(`${MOIS_NOMS[current.getMonth()]} ${current.getFullYear()}`);
-    current.setMonth(current.getMonth() - 1); count++;
-  }
-  return result;
+interface RecapPaiement {
+  id: string;
+  mois: number;
+  annee: number;
+  statut: string;
+  cours: CoursResume[];
 }
-
-const emptyLigne: LigneRow = { eleve_nom: "", matiere: "", heures: 1, tarif_heure: 25 };
 
 const S = {
   card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)" } as React.CSSProperties,
   badge: (bg: string, color: string) => ({ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: bg, color } as React.CSSProperties),
   btnPrimary: { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: "#2E6BEA", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" } as React.CSSProperties,
   btnGhost: { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12, background: "transparent", color: "#334155", fontSize: 13, fontWeight: 600, border: "1px solid #E2E8F0", cursor: "pointer" } as React.CSSProperties,
-  input: { width: "100%", padding: "10px 14px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#F1F5F9", fontFamily: "inherit", fontSize: 13, color: "#0F172A", outline: "none" } as React.CSSProperties,
-  label: { display: "block", fontSize: 12, fontWeight: 600, color: "#334155", marginBottom: 5 } as React.CSSProperties,
   serif: { fontFamily: "'Fraunces', Georgia, serif" } as React.CSSProperties,
 };
 
+function calcTotal(lignes: LigneRow[]) {
+  return lignes.reduce((acc, l) => acc + l.heures * l.tarif_heure, 0);
+}
+
 function FacturePreview({ facture, onClose, profInfo }: { facture: FactureRow; onClose: () => void; profInfo: { nom: string; siret: string; adresse: string; email: string } }) {
   const brut = calcTotal(facture.lignes);
-  const urssaf = Math.round(brut * URSSAF);
-  const net = brut - urssaf;
   const creditImpot = Math.round(brut * 0.5);
   const dateStr = facture.date_emission ? new Date(facture.date_emission).toLocaleDateString("fr-FR") : "—";
 
@@ -119,176 +112,188 @@ function FacturePreview({ facture, onClose, profInfo }: { facture: FactureRow; o
             <div style={{ fontWeight: 600, color: "#059669", marginBottom: 4 }}>Crédit d'impôt services à la personne (Art. 199 sexdecies CGI)</div>
             <div style={{ color: "#047857" }}>Les familles bénéficient d'un crédit d'impôt de 50% sur ces prestations, soit <strong>{creditImpot.toFixed(2)} €</strong>.</div>
           </div>
-
-          <div style={{ marginTop: 12, padding: "12px 16px", background: "#F1F5F9", borderRadius: 10, fontSize: 12, color: "#64748B" }}>
-            Note interne · URSSAF : <strong style={{ color: "#EF4444" }}>−{urssaf} €</strong> · Net réel : <strong style={{ color: "#059669" }}>{net} €</strong>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
+function statutLabel(statut: string) {
+  switch (statut) {
+    case "en_attente_parent": return "En attente parent";
+    case "en_attente_paiement": return "En attente paiement";
+    case "valide": return "Validé";
+    case "paye": return "Payé";
+    default: return statut;
+  }
+}
+
+function statutColors(statut: string): [string, string] {
+  if (statut === "paye") return ["#ECFDF5", "#065F46"];
+  if (statut === "valide") return ["#EFF6FF", "#1D4ED8"];
+  if (statut === "en_attente_paiement") return ["#FFF7ED", "#9A3412"];
+  return ["#FFFBEB", "#92400E"];
+}
+
+const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export function Factures() {
-  const { factures, loading, error, reload, createFacture } = useFactures();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const { grille } = useGrilleCommission();
 
-  const moisDisponibles = useMemo(() => getMoisDisponibles(profile?.created_at), [profile?.created_at]);
-
+  const [recaps, setRecaps] = useState<RecapPaiement[]>([]);
+  const [factures, setFactures] = useState<FactureRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<FactureRow | null>(null);
-  const [showGenerate, setShowGenerate] = useState(false);
-  const [genMois, setGenMois] = useState(moisDisponibles[0] || "");
-  const [genLignes, setGenLignes] = useState<LigneRow[]>([{ ...emptyLigne }]);
-  const [genSuccess, setGenSuccess] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const profInfo = { nom: profile ? `${profile.prenom} ${profile.nom}` : "—", siret: profile?.siret ?? "", adresse: profile?.adresse ?? "", email: profile?.email ?? "" };
+  const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const [recapRes, coursRes, facturesRes] = await Promise.all([
+        supabase
+          .from("recap_mensuel")
+          .select("id, mois, annee, statut")
+          .eq("prof_id", user.id)
+          .neq("statut", "en_cours")
+          .order("annee", { ascending: false })
+          .order("mois", { ascending: false }),
+        supabase
+          .from("cours")
+          .select("recap_id, montant, taux_plusvalue, duree_heures")
+          .eq("prof_id", user.id)
+          .not("recap_id", "is", null),
+        supabase
+          .from("factures")
+          .select("*, lignes_facture(*)")
+          .eq("prof_id", user.id),
+      ]);
 
-  function addLigne() { setGenLignes((prev) => [...prev, { ...emptyLigne }]); }
-  function removeLigne(i: number) { setGenLignes((prev) => prev.filter((_, idx) => idx !== i)); }
-  function updateLigne(i: number, field: keyof LigneRow, value: string | number) {
-    setGenLignes((prev) => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
+      if (recapRes.error) throw recapRes.error;
+      if (coursRes.error) throw coursRes.error;
+      if (facturesRes.error) throw facturesRes.error;
+
+      const coursParRecap = new Map<string, CoursResume[]>();
+      for (const c of coursRes.data ?? []) {
+        if (!c.recap_id) continue;
+        const list = coursParRecap.get(c.recap_id) ?? [];
+        list.push({ montant: c.montant, taux_plusvalue: c.taux_plusvalue, duree_heures: c.duree_heures });
+        coursParRecap.set(c.recap_id, list);
+      }
+
+      setRecaps((recapRes.data ?? []).map((r) => ({ ...r, cours: coursParRecap.get(r.id) ?? [] })));
+      setFactures((facturesRes.data ?? []).map((f) => ({ ...f, lignes: f.lignes_facture as LigneRow[] })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors du chargement");
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const profInfo = {
+    nom: profile ? `${profile.prenom} ${profile.nom}` : "—",
+    siret: profile?.siret ?? "",
+    adresse: profile?.adresse ?? "",
+    email: profile?.email ?? "",
+  };
+
+  function getMontantPromis(recap: RecapPaiement) {
+    return recap.cours.reduce((sum, c) => sum + c.montant * (1 + (c.taux_plusvalue ?? 0)), 0);
   }
 
-  async function handleGenerate() {
-    setSaving(true);
-    try { await createFacture(genMois, genLignes); setGenSuccess(true); } finally { setSaving(false); }
+  function getMontantVerse(recap: RecapPaiement) {
+    return recap.cours.reduce((sum, c) => {
+      const tarifHeure = c.duree_heures > 0 ? c.montant / c.duree_heures : 0;
+      return sum + c.montant * getMultiplicateurBrut(grille, tarifHeure);
+    }, 0);
   }
 
-  function closeGenerate() { setShowGenerate(false); setGenSuccess(false); setGenLignes([{ ...emptyLigne }]); setGenMois(moisDisponibles[0]); }
-
-  const moisAvecFacture = new Set(factures.map((f) => f.mois));
+  function getFacturePourRecap(recap: RecapPaiement): FactureRow | undefined {
+    const moisStr = `${MOIS_NOMS[recap.mois - 1]} ${recap.annee}`;
+    return factures.find((f) => f.mois === moisStr);
+  }
 
   return (
-    <LoadingGuard loading={loading} error={error} onRetry={reload}>
-      <div style={{ maxWidth: 900, margin: "0 auto", opacity: profile?.siret ? 1 : 0.5, pointerEvents: profile?.siret ? "auto" : "none" }}>
+    <LoadingGuard loading={loading} error={error} onRetry={load}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
 
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A", marginBottom: 4 }}>Factures</h1>
-          <p style={{ color: "#64748B", fontSize: 13 }}>Consultez et téléchargez vos factures mensuelles de cours particuliers.</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A", marginBottom: 4 }}>Factures & Paiements</h1>
+          <p style={{ color: "#64748B", fontSize: 13 }}>Retrouvez vos montants mensuels et téléchargez vos factures.</p>
         </div>
 
-        {/* List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {factures.map((f) => {
-            const brut = calcTotal(f.lignes);
-            const net = Math.round(brut * (1 - URSSAF));
-            return (
-              <div key={f.id} style={{ ...S.card, padding: 18, display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: f.statut === "payée" ? "#ECFDF5" : "#FFFBEB", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {f.statut === "payée" ? <CheckCircle2 style={{ width: 18, height: 18, color: "#059669" }} /> : <Clock style={{ width: 18, height: 18, color: "#F59E0B" }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A", marginBottom: 3 }}>{f.mois}</div>
-                  <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#64748B" }}>
-                    <span>{f.lignes.length} élève{f.lignes.length > 1 ? "s" : ""}</span>
-                    <span>{f.lignes.reduce((a, l) => a + l.heures, 0)}h</span>
-                    <span>Net {net.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                  </div>
-                </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ ...S.serif, fontSize: 22, fontWeight: 400, color: "#0F172A" }}>{brut.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</div>
-                  <span style={{ ...S.badge(f.statut === "payée" ? "#ECFDF5" : "#FFFBEB", f.statut === "payée" ? "#065F46" : "#92400E") }}>{f.statut === "payée" ? "Payée" : "En attente"}</span>
-                </div>
-                <button onClick={() => setPreview(f)} style={{ ...S.btnGhost, flexShrink: 0, fontSize: 12 }}>
-                  <FileText className="w-3.5 h-3.5" />Voir
-                </button>
-              </div>
-            );
-          })}
-
-          {moisDisponibles.filter((m) => !moisAvecFacture.has(m)).map((m) => (
-            <div key={m} style={{ ...S.card, padding: 18, display: "flex", alignItems: "center", gap: 16, borderStyle: "dashed" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <FileText style={{ width: 18, height: 18, color: "#94A3B8" }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A", marginBottom: 2 }}>{m}</div>
-                <div style={{ fontSize: 12, color: "#94A3B8" }}>Aucune facture générée</div>
-              </div>
-              <button onClick={() => { setGenMois(m); setShowGenerate(true); setGenSuccess(false); }} style={{ ...S.btnPrimary, flexShrink: 0, fontSize: 12 }}>
-                <Plus className="w-3.5 h-3.5" />Générer la facture
-              </button>
-            </div>
-          ))}
+        {/* Explanatory banner */}
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", marginBottom: 28, display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <Info style={{ width: 18, height: 18, color: "#2563EB", flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 13, color: "#1E40AF", lineHeight: 1.65, margin: 0 }}>
+            <strong>Pourquoi Colibri vous vire plus que vos récaps ?</strong><br />
+            Les gains promis et affichés avec leurs pourcentages correspondent aux gains que vous touchez <strong>après cotisations et impôts</strong>. C'est pour cette raison que Colibri vous vire plus que ce qui est affiché dans vos récaps du mois — ainsi, après avoir payé vos cotisations et vos impôts, il vous restera exactement le montant promis.
+          </p>
         </div>
 
-        {preview && <FacturePreview facture={preview} onClose={() => setPreview(null)} profInfo={profInfo} />}
+        {/* Recaps list */}
+        {recaps.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "56px 0", color: "#94A3B8", fontSize: 14 }}>
+            Aucun mois clôturé pour le moment.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {recaps.map((recap) => {
+              const moisLabel = `${MOIS_NOMS[recap.mois - 1]} ${recap.annee}`;
+              const montantPromis = getMontantPromis(recap);
+              const montantVerse = getMontantVerse(recap);
+              const facture = getFacturePourRecap(recap);
+              const [badgeBg, badgeColor] = statutColors(recap.statut);
 
-        {/* Generate modal */}
-        {showGenerate && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}>
-            <div style={{ background: "#fff", borderRadius: 22, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 24px rgba(15,23,42,.12)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 24px 0" }}>
-                <div>
-                  <h2 style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>Générer une facture</h2>
-                  <p style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{genMois}</p>
-                </div>
-                <button onClick={closeGenerate} style={{ background: "none", border: "none", cursor: "pointer" }}><X className="w-4 h-4 text-slate-400" /></button>
-              </div>
-
-              <div style={{ padding: "20px 24px 24px" }}>
-                {genSuccess ? (
-                  <div style={{ textAlign: "center", paddingTop: 16, paddingBottom: 8 }}>
-                    <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                      <CheckCircle2 className="w-7 h-7 text-emerald-500" />
-                    </div>
-                    <p style={{ fontWeight: 600, fontSize: 16, color: "#0F172A", marginBottom: 4 }}>Facture générée !</p>
-                    <p style={{ color: "#64748B", fontSize: 13, marginBottom: 24 }}>La facture pour <strong>{genMois}</strong> a été enregistrée.</p>
-                    <button onClick={closeGenerate} style={S.btnPrimary}>Fermer</button>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div>
-                      <label style={S.label}>Mois de la facture</label>
-                      <div style={{ position: "relative" }}>
-                        <select style={S.input} value={genMois} onChange={(e) => setGenMois(e.target.value)}>
-                          {moisDisponibles.map((m) => <option key={m}>{m}</option>)}
-                        </select>
-                        <ChevronDown style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#94A3B8", pointerEvents: "none" }} />
+              return (
+                <div key={recap.id} style={{ ...S.card, padding: 20 }}>
+                  {/* Top row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <FileText style={{ width: 18, height: 18, color: "#64748B" }} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: "#0F172A", marginBottom: 4 }}>{moisLabel}</div>
+                        <span style={S.badge(badgeBg, badgeColor)}>{statutLabel(recap.statut)}</span>
                       </div>
                     </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <label style={{ ...S.label, margin: 0 }}>Cours effectués</label>
-                        <button onClick={addLigne} style={{ fontSize: 13, color: "#2E6BEA", background: "none", border: "none", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-                          <Plus className="w-3.5 h-3.5" />Ajouter une ligne
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        {genLignes.map((l, i) => (
-                          <div key={i} style={{ background: "#F1F5F9", borderRadius: 12, padding: 14 }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                              <input style={{ ...S.input, background: "#fff" }} value={l.eleve_nom} onChange={(e) => updateLigne(i, "eleve_nom", e.target.value)} placeholder="Nom de l'élève" />
-                              <input style={{ ...S.input, background: "#fff" }} value={l.matiere} onChange={(e) => updateLigne(i, "matiere", e.target.value)} placeholder="Matière" />
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "center" }}>
-                              <input type="number" style={{ ...S.input, background: "#fff" }} value={l.heures} onChange={(e) => updateLigne(i, "heures", Number(e.target.value))} min={0.5} step={0.5} />
-                              <input type="number" style={{ ...S.input, background: "#fff" }} value={l.tarif_heure} onChange={(e) => updateLigne(i, "tarif_heure", Number(e.target.value))} />
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{(l.heures * l.tarif_heure).toFixed(0)} €</span>
-                                {genLignes.length > 1 && <button onClick={() => removeLigne(i)} style={{ background: "none", border: "none", cursor: "pointer" }}><X style={{ width: 14, height: 14, color: "#94A3B8" }} /></button>}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <button onClick={closeGenerate} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
-                      <button onClick={handleGenerate} disabled={saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: saving ? 0.5 : 1 }}>
-                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}Générer la facture
+                    {facture ? (
+                      <button onClick={() => setPreview(facture)} style={S.btnGhost}>
+                        <Download style={{ width: 14, height: 14 }} />Télécharger la facture
                       </button>
+                    ) : (
+                      <button disabled style={{ ...S.btnGhost, opacity: 0.4, cursor: "not-allowed" }}>
+                        <Download style={{ width: 14, height: 14 }} />Facture en attente
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Amounts */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Montant promis</div>
+                      <div style={{ fontSize: 12, color: "#4ADE80", marginBottom: 8 }}>Net après impôts &amp; cotisations</div>
+                      <div style={{ ...S.serif, fontSize: 26, color: "#15803D", fontWeight: 400 }}>{fmt(montantPromis)} €</div>
+                    </div>
+                    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1E40AF", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 }}>Montant versé par Colibri</div>
+                      <div style={{ fontSize: 12, color: "#93C5FD", marginBottom: 8 }}>Virement brut reçu sur votre compte</div>
+                      <div style={{ ...S.serif, fontSize: 26, color: "#2563EB", fontWeight: 400 }}>{fmt(montantVerse)} €</div>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              );
+            })}
           </div>
         )}
+
+        {preview && <FacturePreview facture={preview} onClose={() => setPreview(null)} profInfo={profInfo} />}
       </div>
     </LoadingGuard>
   );

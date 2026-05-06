@@ -7,7 +7,7 @@ const BASE_NAV = [
   { to: "/app", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/eleves", icon: Users, label: "Élèves" },
   { to: "/app/cours", icon: BookOpen, label: "Cours" },
-  { to: "/app/factures", icon: FileText, label: "Factures" },
+  { to: "/app/factures", icon: FileText, label: "Factures & Paiements" },
   { to: "/app/parrainage", icon: Gift, label: "Parrainage" },
   { to: "/app/aide", icon: HelpCircle, label: "Aide" },
   { to: "/app/profil", icon: CircleUser, label: "Mon profil" },
