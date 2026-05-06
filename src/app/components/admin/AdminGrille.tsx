@@ -9,11 +9,16 @@ interface GrilleRow {
   multiplicateur_brut: number;
 }
 
-// multiplicateur_brut = (1 + taux_plusvalue) / 0.8185
+// multiplicateur_brut = (1 + taux_plusvalue) / 0.8264
 // net_prof = tarif_palier * (1 + taux_plusvalue)
 // virement_brut = tarif_palier * multiplicateur_brut
 // marge_colibri = tarif_palier * (2 - multiplicateur_brut)
-const TAUX_CHARGES = 0.8185;
+//
+// Décomposition du 0,8264 :
+//   cotisations sociales  : 11 % sur le brut         → reste 0,89
+//   impôts                : 11 % avec abattement 35 % → taux effectif 7,15 % sur le brut
+//   net = 0,89 × (1 − 0,0715) = 0,89 × 0,9285 ≈ 0,8264
+const TAUX_CHARGES = 0.8264;
 
 function multiFromTaux(taux: number): number {
   return Math.round(((1 + taux) / TAUX_CHARGES) * 10000) / 10000;
@@ -205,21 +210,19 @@ export function AdminGrille() {
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-800 space-y-2.5">
         <p className="font-semibold text-sm">Formule utilisée</p>
         <div className="font-mono bg-blue-100 px-3 py-2 rounded-lg text-blue-900 text-xs leading-relaxed">
-          <p>multiplicateur_brut = (1 + taux_plusvalue) / <span className="font-bold">0,8185</span></p>
+          <p>multiplicateur_brut = (1 + taux_plusvalue) / <span className="font-bold">0,8264</span></p>
         </div>
         <div className="space-y-1.5 text-blue-800 leading-relaxed">
           <p>
-            <span className="font-semibold">D'où vient le 0,8185 ?</span> Les profs sont auto-entrepreneurs.
-            Sur chaque euro versé par Colibri (le «&nbsp;brut&nbsp;»), ils reversent&nbsp;:
+            <span className="font-semibold">D'où vient le 0,8264 ?</span> Sur chaque euro brut versé par Colibri, le prof supporte deux prélèvements&nbsp;:
           </p>
           <ul className="ml-3 space-y-0.5 list-none">
-            <li><span className="font-mono bg-blue-100 px-1 rounded">21,2 %</span> de cotisations URSSAF (prestation de services)</li>
-            <li className="text-blue-700">soit <span className="font-mono bg-blue-100 px-1 rounded">1 − 0,212 = 0,788</span> restant après URSSAF</li>
-            <li className="mt-1"><span className="font-mono bg-blue-100 px-1 rounded">−&nbsp;3,05&nbsp;%</span> de CSG/CRDS non déductible (sur le net social)</li>
-            <li className="text-blue-700">ce qui donne <span className="font-mono bg-blue-100 px-1 rounded">0,788 × (1 − 0,030) ≈ 0,8185</span></li>
+            <li><span className="font-mono bg-blue-100 px-1 rounded">11 %</span> de cotisations sociales sur le brut → reste <span className="font-mono bg-blue-100 px-1 rounded">0,89</span></li>
+            <li className="mt-1"><span className="font-mono bg-blue-100 px-1 rounded">11 %</span> d'impôt sur le revenu avec abattement de <span className="font-mono bg-blue-100 px-1 rounded">35 %</span> → taux effectif <span className="font-mono bg-blue-100 px-1 rounded">11 % × 0,65 = 7,15 %</span> sur le brut</li>
+            <li className="text-blue-700 mt-1">soit <span className="font-mono bg-blue-100 px-1 rounded">0,89 × (1 − 0,0715) = 0,89 × 0,9285 ≈ 0,8264</span> net conservé</li>
           </ul>
           <p className="pt-1 text-blue-700 border-t border-blue-200">
-            Autrement dit : pour que le prof reçoive <strong>1 €</strong> net, Colibri doit virer <strong>1 / 0,8185 ≈ 1,2217 €</strong> brut. La marge Colibri est <strong>tarif_parent × (2 − multiplicateur_brut)</strong>.
+            Autrement dit : pour que le prof reçoive <strong>1 €</strong> net, Colibri doit virer <strong>1 / 0,8264 ≈ 1,2100 €</strong> brut. La marge Colibri est <strong>tarif_parent × (2 − multiplicateur_brut)</strong>.
           </p>
         </div>
         <div className="border-t border-blue-200 pt-2 text-blue-700">

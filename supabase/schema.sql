@@ -667,9 +667,14 @@ NOTIFY pgrst, 'reload schema';
 
 
 -- ─── GRILLE COMMISSION ───────────────────────────────────────
--- multiplicateur_brut = (1 + taux_plusvalue) / 0.8185
+-- multiplicateur_brut = (1 + taux_plusvalue) / 0.8264
 -- Virement brut au prof = montant_brut_parent × multiplicateur_brut
 -- → le prof touche net = montant_brut_parent × (1 + taux_plusvalue)
+--
+-- Décomposition du 0,8264 :
+--   cotisations sociales : 11 % sur le brut          → reste 0,89
+--   impôt sur le revenu  : 11 % avec abattement 35 % → taux effectif 7,15 % sur le brut
+--   net = 0,89 × (1 − 0,0715) = 0,89 × 0,9285 ≈ 0,8264
 
 CREATE TABLE IF NOT EXISTS public.grille_commission (
   id                  uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -690,7 +695,7 @@ ALTER TABLE public.grille_commission
 
 -- Recalcul des multiplicateurs bruts pour tous les paliers existants
 UPDATE public.grille_commission
-  SET multiplicateur_brut = ROUND((1 + taux_plusvalue) / 0.8185, 4);
+  SET multiplicateur_brut = ROUND((1 + taux_plusvalue) / 0.8264, 4);
 
 -- ─── COLONNE multiplicateur_brut SUR cours ───────────────────
 -- Fige le taux appliqué au moment de la création du cours,

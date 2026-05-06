@@ -21,7 +21,7 @@ interface ProfPaiement {
   recap_ids: string[];
   montant_brut: number;      // ce que le parent a payé
   montant_net_prof: number;  // ce que le prof touchera après impôts (brut × taux_plusvalue)
-  montant_virement: number;  // ce qu'on vire réellement (montant_net_prof / 0.8185)
+  montant_virement: number;  // ce qu'on vire réellement (montant_net_prof / 0.8264)
   mois_annees: string[];
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
@@ -2037,7 +2037,7 @@ export function AdminDashboard() {
         existing.recap_ids.push(recap.id);
         existing.montant_brut += montantRecap;
         existing.montant_virement += virementRecap;
-        existing.montant_net_prof = Math.round(existing.montant_virement * 0.8185 * 100) / 100;
+        existing.montant_net_prof = Math.round(existing.montant_virement * 0.8264 * 100) / 100;
         existing.mois_annees.push(label);
       } else {
         const montantVirement = Math.round(virementRecap * 100) / 100;
@@ -2045,7 +2045,7 @@ export function AdminDashboard() {
           prof_id: recap.prof_id, prenom: recap.profiles.prenom, nom: recap.profiles.nom,
           iban: recap.profiles.iban ?? null, recap_ids: [recap.id],
           montant_brut: montantRecap,
-          montant_net_prof: Math.round(montantVirement * 0.8185 * 100) / 100,
+          montant_net_prof: Math.round(montantVirement * 0.8264 * 100) / 100,
           montant_virement: montantVirement,
           mois_annees: [label],
         });

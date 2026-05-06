@@ -18,7 +18,7 @@ export function getTauxPlusvalue(grille: GrilleRow[], tarif_heure: number): numb
 export function getMultiplicateurBrut(grille: GrilleRow[], tarif_heure: number): number {
   const sorted = [...grille].sort((a, b) => b.tarif_palier - a.tarif_palier);
   const match = sorted.find((g) => g.tarif_palier <= tarif_heure);
-  return match?.multiplicateur_brut ?? 1.5272;
+  return match?.multiplicateur_brut ?? 1.2100;
 }
 
 export function useGrilleCommission() {
