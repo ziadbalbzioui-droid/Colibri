@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, Baby, KeyRound, Plus, AlertCircle, Zap, ChevronRight } from "lucide-react";
+import { User, MapPin, ShieldCheck, Save, Loader2, CheckCircle2, KeyRound, Plus, AlertCircle, Zap, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../../lib/auth";
 import { useParentData } from "../../../lib/hooks/useParentData";
@@ -20,7 +20,6 @@ export function ParentProfil() {
     nom: "",
     email: "",
     telephone: "",
-    prenom_enfant: "",
   });
 
   useEffect(() => {
@@ -30,7 +29,6 @@ export function ParentProfil() {
         nom: profile.nom ?? "",
         email: profile.email ?? "",
         telephone: profile.telephone ?? "",
-        prenom_enfant: profile.prenom_enfant ?? "",
       });
     }
   }, [profile]);
@@ -42,7 +40,6 @@ export function ParentProfil() {
         prenom: form.prenom,
         nom: form.nom,
         telephone: form.telephone,
-        prenom_enfant: form.prenom_enfant,
       });
       if (!error) {
         setSaved(true);
@@ -119,23 +116,6 @@ export function ParentProfil() {
               className={inputClass}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Enfant */}
-      <div className="bg-white rounded-xl border border-border p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Baby className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-gray-900">Votre enfant</h3>
-        </div>
-        <div>
-          <label className={labelClass}>Prénom de l'enfant</label>
-          <input
-            value={form.prenom_enfant}
-            onChange={(e) => setForm({ ...form, prenom_enfant: e.target.value })}
-            placeholder="Thomas"
-            className={inputClass}
-          />
         </div>
       </div>
 

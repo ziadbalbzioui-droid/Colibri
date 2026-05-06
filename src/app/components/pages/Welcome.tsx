@@ -633,6 +633,11 @@ export function Welcome() {
                     <div>
                       <div className="flex justify-between items-center mb-1.5">
                         <label className="block text-xs font-semibold text-slate-700">Mot de passe</label>
+                        {mode === "connexion" && (
+                          <Link to="/mot-de-passe-oublie" className="text-xs font-semibold text-[#0052D4] hover:text-blue-700 transition-colors">
+                            Mot de passe oublié ?
+                          </Link>
+                        )}
                       </div>
                       <div className="relative">
                         <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="w-full px-3 py-2.5 border border-slate-200/60 rounded-xl text-sm bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 focus:border-[#0052D4] outline-none transition-all pr-10" />

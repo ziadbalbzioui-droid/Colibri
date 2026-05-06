@@ -74,6 +74,8 @@ export function Cours() {
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [monthError, setMonthError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState(false);
 
   const selectedEleve = eleves.find((e) => e.id === form.eleve_id);
 
@@ -127,18 +129,31 @@ export function Cours() {
   function handleOpenModal() {
     if (eleves.length === 0) { alert("Vous devez d'abord ajouter un élève."); return; }
     const first = eleves[0];
-    setForm({ eleve_id: first.id, eleve_nom: first.nom, matiere: first.matiere?.split(",")[0].trim() ?? "", date: "", duree_minutes: 60, tarif_heure: first.tarif_heure ?? 30, statut: "planifié" });
+    setForm({ eleve_id: first.id, eleve_nom: first.nom, matiere: first.matiere?.split(",")[0].trim() ?? "", date: "", duree_minutes: 60, tarif_heure: first.tarif_heure ?? 30, statut: "déclaré" });
+    setAddError(null);
+    setAddSuccess(false);
     setShowModal(true);
+  }
+
+  function handleCloseModal() {
+    setShowModal(false);
+    setAddSuccess(false);
+    setAddError(null);
+    setForm(initialFormState);
+    setMatiereInput("");
   }
 
   async function handleAdd() {
     if (!isFormValid) return;
     setSaving(true);
+    setAddError(null);
     try {
       const heures = form.duree_minutes / 60;
       const dureeLabel = formatDuree(form.duree_minutes);
-      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: form.statut });
-      setShowModal(false); setForm(initialFormState); setMatiereInput("");
+      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: "déclaré" });
+      setAddSuccess(true);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");
     } finally { setSaving(false); }
   }
 
@@ -448,9 +463,19 @@ export function Cours() {
             <div style={{ background: "#fff", borderRadius: 22, width: "100%", maxWidth: 480, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 4px 24px rgba(15,23,42,.12)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 24px 0" }}>
                 <h2 style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>Ajouter un cours</h2>
-                <button onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X className="w-4 h-4 text-slate-400" /></button>
+                <button onClick={handleCloseModal} style={{ background: "none", border: "none", cursor: "pointer" }}><X className="w-4 h-4 text-slate-400" /></button>
               </div>
               <div style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+                {addSuccess ? (
+                  <div style={{ textAlign: "center", paddingTop: 16, paddingBottom: 8 }}>
+                    <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                      <BookOpen style={{ width: 28, height: 28, color: "#10B981" }} />
+                    </div>
+                    <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 4, color: "#0F172A" }}>Cours enregistré !</p>
+                    <p style={{ color: "#64748B", fontSize: 13, marginBottom: 24 }}>L'opération a bien été enregistrée.</p>
+                    <button onClick={handleCloseModal} style={{ ...S.btnPrimary, margin: "0 auto" }}>Fermer</button>
+                  </div>
+                ) : (<>
                 <div><label style={S.label}>Élève</label>
                   <select style={S.input} value={form.eleve_id} onChange={(e) => { const elv = eleves.find((el) => el.id === e.target.value); setForm({ ...form, eleve_id: e.target.value, eleve_nom: elv?.nom ?? "", tarif_heure: elv?.tarif_heure ?? 30, matiere: elv?.matiere?.split(",")[0].trim() ?? form.matiere }); }}>
                     <option value="" disabled>Sélectionner un élève</option>
@@ -511,12 +536,18 @@ export function Cours() {
                     </div>
                   );
                 })()}
+                {addError && (
+                  <div style={{ padding: "10px 14px", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, fontSize: 13, color: "#B91C1C" }}>
+                    {addError}
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setShowModal(false)} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
+                  <button onClick={handleCloseModal} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
                   <button onClick={handleAdd} disabled={!isFormValid || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!isFormValid || saving) ? 0.5 : 1 }}>
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}Ajouter
                   </button>
                 </div>
+                </>)}
               </div>
             </div>
           </div>

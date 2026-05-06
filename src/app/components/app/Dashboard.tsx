@@ -9,11 +9,16 @@ import type { EleveRow } from "../../../lib/hooks/useEleves";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-const dureeOptions = ["30min", "1h", "1h30", "2h", "2h30", "3h"];
-const dureeToHours: Record<string, number> = {
-  "30min": 0.5, "1h": 1, "1h30": 1.5, "2h": 2, "2h30": 2.5, "3h": 3,
-};
+const MATIERES = ["Mathématiques", "Physique", "Chimie", "Français", "Anglais", "Espagnol", "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre"];
 const niveaux = ["6ème", "5ème", "4ème", "3ème", "2nde", "1ère S", "1ère ES", "Terminale S", "Terminale ES", "BTS", "Licence 1"];
+
+function formatDuree(mins: number): string {
+  if (mins <= 0) return "0min";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}min`;
+  return m > 0 ? `${h}h${m}min` : `${h}h`;
+}
 
 type ModalType = "cours" | "eleve" | null;
 
@@ -101,21 +106,29 @@ export function Dashboard() {
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [coursForm, setCoursForm] = useState({ eleve_id: "", eleve_nom: "", matiere: "", date: "", duree: "1h", tarif_heure: 30 });
+  const [coursForm, setCoursForm] = useState({ eleve_id: "", eleve_nom: "", matiere: "", date: "", duree_minutes: 60, tarif_heure: 30 });
+  const [matiereInput, setMatiereInput] = useState("");
+  const [showMatiereDropdown, setShowMatiereDropdown] = useState(false);
   const [eleveForm, setEleveForm] = useState({ nom: "", niveau: "2nde", matiere: "", tarif_heure: 25 });
+
+  const selectedCoursEleve = eleves.find((e: EleveRow) => e.id === coursForm.eleve_id);
 
   function openModal(type: ModalType) {
     setSuccess(false); setSaving(false); setActiveModal(type);
-    if (eleves.length > 0) setCoursForm((f) => ({ ...f, eleve_id: eleves[0].id, eleve_nom: eleves[0].nom, tarif_heure: eleves[0].tarif_heure }));
+    if (type === "cours" && eleves.length > 0) {
+      const first = eleves[0];
+      setCoursForm({ eleve_id: first.id, eleve_nom: first.nom, matiere: first.matiere?.split(",")[0].trim() ?? "", date: "", duree_minutes: 60, tarif_heure: first.tarif_heure ?? 30 });
+      setMatiereInput("");
+    }
   }
-  function closeModal() { setActiveModal(null); setSuccess(false); }
+  function closeModal() { setActiveModal(null); setSuccess(false); setMatiereInput(""); setShowMatiereDropdown(false); }
 
   async function submitCours() {
-    if (!coursForm.matiere || !coursForm.date) return;
+    if (!coursForm.matiere || !coursForm.date || coursForm.duree_minutes <= 0) return;
     setSaving(true);
     try {
-      const heures = dureeToHours[coursForm.duree] ?? 1;
-      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: coursForm.duree, duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "déclaré" });
+      const heures = coursForm.duree_minutes / 60;
+      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: formatDuree(coursForm.duree_minutes), duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "déclaré" });
       setSuccess(true);
     } finally { setSaving(false); }
   }
@@ -304,34 +317,71 @@ export function Dashboard() {
           <ModalOverlay title="Ajouter un cours" onClose={closeModal}>
             {success ? <SuccessState message="Cours enregistré !" onClose={closeModal} /> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {/* Élève */}
                 <div><label style={S.label}>Élève</label>
-                  <select style={S.input} value={coursForm.eleve_id} onChange={(e) => { const elv = eleves.find((el: EleveRow) => el.id === e.target.value); setCoursForm({ ...coursForm, eleve_id: e.target.value, eleve_nom: elv?.nom ?? "", tarif_heure: elv?.tarif_heure ?? 30 }); }}>
+                  <select style={S.input} value={coursForm.eleve_id} onChange={(e) => { const elv = eleves.find((el: EleveRow) => el.id === e.target.value); setCoursForm({ ...coursForm, eleve_id: e.target.value, eleve_nom: elv?.nom ?? "", tarif_heure: elv?.tarif_heure ?? 30, matiere: elv?.matiere?.split(",")[0].trim() ?? coursForm.matiere }); }}>
+                    <option value="" disabled>Sélectionner un élève</option>
                     {eleves.map((e: EleveRow) => <option key={e.id} value={e.id}>{e.nom}</option>)}
                   </select>
                 </div>
+                {/* Matière avec suggestions */}
                 <div><label style={S.label}>Matière</label>
-                  <input style={S.input} value={coursForm.matiere} onChange={(e) => setCoursForm({ ...coursForm, matiere: e.target.value })} placeholder="Mathématiques..." />
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <div><label style={S.label}>Date</label><input type="date" style={S.input} value={coursForm.date} onChange={(e) => setCoursForm({ ...coursForm, date: e.target.value })} /></div>
-                  <div><label style={S.label}>Durée</label>
-                    <select style={S.input} value={coursForm.duree} onChange={(e) => setCoursForm({ ...coursForm, duree: e.target.value })}>
-                      {dureeOptions.map((d) => <option key={d}>{d}</option>)}
-                    </select>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      style={S.input}
+                      value={matiereInput || coursForm.matiere}
+                      onChange={(e) => { setMatiereInput(e.target.value); setCoursForm({ ...coursForm, matiere: e.target.value }); setShowMatiereDropdown(true); }}
+                      onFocus={() => setShowMatiereDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowMatiereDropdown(false), 150)}
+                      placeholder="Ex: Mathématiques..."
+                    />
+                    {showMatiereDropdown && (
+                      <ul style={{ position: "absolute", zIndex: 10, width: "100%", background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", marginTop: 4, maxHeight: 192, overflowY: "auto", padding: 0 }}>
+                        {[
+                          ...(selectedCoursEleve?.matiere ? selectedCoursEleve.matiere.split(",").map((m) => m.trim()).filter(Boolean) : []),
+                          ...MATIERES.filter((m) => !selectedCoursEleve?.matiere?.split(",").map((x) => x.trim()).includes(m)),
+                        ].filter((m) => m.toLowerCase().includes((matiereInput || coursForm.matiere).toLowerCase())).map((m) => (
+                          <li key={m} onMouseDown={() => { setCoursForm({ ...coursForm, matiere: m }); setMatiereInput(""); setShowMatiereDropdown(false); }}
+                            style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#0F172A" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#F1F5F9")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                            {m}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
+                {/* Date + Durée */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div><label style={S.label}>Date</label><input type="date" style={S.input} value={coursForm.date} onChange={(e) => setCoursForm({ ...coursForm, date: e.target.value })} /></div>
+                  <div>
+                    <label style={S.label}>Durée (minutes)</label>
+                    <input
+                      type="number" min={5} step={5} style={S.input}
+                      value={coursForm.duree_minutes || ""}
+                      placeholder="ex. 90"
+                      onChange={(e) => setCoursForm({ ...coursForm, duree_minutes: Math.max(0, Number(e.target.value)) })}
+                    />
+                    {coursForm.duree_minutes > 0 && (
+                      <p style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>= {formatDuree(coursForm.duree_minutes)}</p>
+                    )}
+                  </div>
+                </div>
+                {/* Tarif */}
                 <div><label style={S.label}>Tarif / heure — net parent (€)</label>
                   <input type="number" style={S.input} value={coursForm.tarif_heure} onChange={(e) => setCoursForm({ ...coursForm, tarif_heure: Number(e.target.value) })} />
                 </div>
+                {/* Récap montants */}
                 {(() => {
-                  const heures = dureeToHours[coursForm.duree] ?? 1;
+                  const heures = coursForm.duree_minutes / 60;
                   const montantFamille = coursForm.tarif_heure * heures;
                   const taux = getTauxPlusvalue(grille, coursForm.tarif_heure);
                   const netProf = Math.round(montantFamille * (1 + taux));
                   return (
                     <div style={{ background: "#EFF6FF", borderRadius: 10, padding: "12px 14px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#1E3A8A", marginBottom: 6 }}>
-                        <span>Prix famille ({coursForm.tarif_heure}€/h × {heures}h)</span>
+                        <span>Prix famille ({coursForm.tarif_heure}€/h × {formatDuree(coursForm.duree_minutes)})</span>
                         <span style={{ fontWeight: 700 }}>{montantFamille.toFixed(2)} €</span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
@@ -343,7 +393,7 @@ export function Dashboard() {
                 })()}
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={closeModal} style={{ ...S.btnGhost, flex: 1, justifyContent: "center" }}>Annuler</button>
-                  <button onClick={submitCours} disabled={!coursForm.matiere || !coursForm.date || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!coursForm.matiere || !coursForm.date || saving) ? 0.5 : 1 }}>
+                  <button onClick={submitCours} disabled={!coursForm.matiere || !coursForm.date || coursForm.duree_minutes <= 0 || saving} style={{ ...S.btnPrimary, flex: 1, justifyContent: "center", opacity: (!coursForm.matiere || !coursForm.date || coursForm.duree_minutes <= 0 || saving) ? 0.5 : 1 }}>
                     {saving && <Loader2 className="w-4 h-4 animate-spin" />}Enregistrer
                   </button>
                 </div>

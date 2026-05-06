@@ -28,6 +28,8 @@ import { ParentActivation } from "./components/parent/ParentActivation";
 import { ParentContestation } from "./components/parent/ParentContestation";
 import { Onboarding } from "./components/onboarding/Onboarding";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { ForgotPassword } from "./components/pages/ForgotPassword";
+import { ResetPassword } from "./components/pages/ResetPassword";
 
 function RootLayout() {
   const { pathname } = useLocation();
@@ -47,6 +49,8 @@ export const router = createBrowserRouter([
       { path: "/mission", Component: Mission },
       { path: "/ecoles", Component: EcolesPartenaires },
       { path: "/avance-immediate", Component: AvanceImmediate },
+      { path: "/mot-de-passe-oublie", Component: ForgotPassword },
+      { path: "/reinitialiser-mot-de-passe", Component: ResetPassword },
       {
         path: "/onboarding",
         Component: OnboardingGuard,

@@ -37,22 +37,31 @@ export function useParentData() {
     setLoading(true);
 
     try {
-      // ── Étape 1 : Récupérer les élèves (SANS embed profiles, pour éviter les erreurs RLS) ──
-      const { data: elevesRaw, error: ee } = await supabase
-        .from("eleves")
-        .select("*");
-      if (ee) throw ee;
+      // ── Étape 1 : Récupérer les élèves liés à ce parent via la table parent_eleve ──
+      const { data: links, error: le } = await supabase
+        .from("parent_eleve")
+        .select("eleve_id")
+        .eq("parent_id", user.id);
+      if (le) throw le;
 
-      const elevesData = (elevesRaw ?? []) as unknown as Array<{
-        id: string; nom: string; niveau: string; matiere: string; prof_id: string;
-      }>;
+      const linkedEleveIds = (links ?? []).map((r: any) => r.eleve_id);
 
-      if (elevesData.length === 0) {
+      if (linkedEleveIds.length === 0) {
         if (!staleCheck?.()) {
           setChildren([]); setCours([]); setFactures([]); setValidations([]); setLoading(false);
         }
         return;
       }
+
+      const { data: elevesRaw, error: ee } = await supabase
+        .from("eleves")
+        .select("*")
+        .in("id", linkedEleveIds);
+      if (ee) throw ee;
+
+      const elevesData = (elevesRaw ?? []) as unknown as Array<{
+        id: string; nom: string; niveau: string; matiere: string; prof_id: string;
+      }>;
 
       const eleveIds = elevesData.map((e) => e.id);
       const profIds = [...new Set(elevesData.map((e) => e.prof_id))];

@@ -7,6 +7,7 @@ import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
 import logo from "@/assets/colibri.svg";
 import { ProfFicheModal } from "./ProfFicheModal";
+import { EleveFicheModal } from "./EleveFicheModal";
 import { CreateRecapModal } from "./CreateRecapModal";
 import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
@@ -117,6 +118,8 @@ function AdminProfs() {
   const [editF, setEditF] = useState({ siret: "", iban: "" });
   const [saving, setSaving] = useState(false);
   const [ficheProf, setFicheProf] = useState<any | null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   async function load() {
     const { data } = await supabase.from("profiles")
@@ -156,6 +159,22 @@ function AdminProfs() {
 
   const filtered = profs.filter((p) => `${p.prenom} ${p.nom} ${p.email}`.toLowerCase().includes(search.toLowerCase()));
 
+  function toggleBulkP(id: string) {
+    setBulkSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulkP() {
+    if (bulkSelected.size === filtered.length) setBulkSelected(new Set());
+    else setBulkSelected(new Set(filtered.map((p) => p.id)));
+  }
+  async function bulkDeleteProfs() {
+    if (!bulkSelected.size || !window.confirm(`Supprimer ${bulkSelected.size} prof(s) ? Les élèves et cours associés seront aussi supprimés (cascade). Action irréversible.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    setBulkLoading(true);
+    await supabase.from("profiles").delete().in("id", [...bulkSelected]);
+    setProfs((prev) => prev.filter((p) => !bulkSelected.has(p.id)));
+    setBulkSelected(new Set()); setBulkLoading(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -166,11 +185,15 @@ function AdminProfs() {
         {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div> : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>prenom / nom</th><th className={TH}>email</th><th className={TH}>siret</th><th className={TH}>iban</th><th className={TH}>created_at</th><th className={TH}>actions</th></tr>
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelected.size > 0 && bulkSelected.size === filtered.length} onChange={toggleAllBulkP} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>prenom / nom</th><th className={TH}>email</th><th className={TH}>siret</th><th className={TH}>iban</th><th className={TH}>created_at</th><th className={TH}>actions</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/60 transition-colors">
+                <tr key={p.id} className={`transition-colors ${bulkSelected.has(p.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}>
+                  <td className="px-3 py-2.5 text-center"><input type="checkbox" checked={bulkSelected.has(p.id)} onChange={() => toggleBulkP(p.id)} className="rounded w-3.5 h-3.5 accent-primary" /></td>
                   <td className={TD}><CopyID id={p.id} /></td>
                   <td className={`${TD} font-medium text-slate-900`}>
                     <button onClick={() => setFicheProf(p)} className="hover:text-primary hover:underline transition-colors text-left">{p.prenom} {p.nom}</button>
@@ -193,11 +216,25 @@ function AdminProfs() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-400">Aucun résultat.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-slate-400">Aucun résultat.</td></tr>}
             </tbody>
           </table>
         )}
       </div>
+
+      {bulkSelected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelected.size} prof(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkDeleteProfs} disabled={bulkLoading}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Supprimer
+          </button>
+          <button onClick={() => setBulkSelected(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {editing && (
         <AdminEditModal title={`EDIT profiles · ${editing.id.slice(0,8)}`} onClose={() => setEditing(null)} onSave={saveEdit} saving={saving}>
@@ -220,6 +257,10 @@ function AdminEleves() {
   const [editing, setEditing] = useState<any | null>(null);
   const [editF, setEditF] = useState({ nom: "", niveau: "", matiere: "", tarif_heure: "", statut: "", prof_id: "" });
   const [saving, setSaving] = useState(false);
+  const [ficheEleve, setFicheEleve] = useState<any | null>(null);
+  const [bulkSelectedE, setBulkSelectedE] = useState<Set<string>>(new Set());
+  const [bulkLoadingE, setBulkLoadingE] = useState(false);
+  const [bulkStatutE, setBulkStatutE] = useState("actif");
 
   async function load() {
     const [{ data: el }, { data: pr }] = await Promise.all([
@@ -258,8 +299,33 @@ function AdminEleves() {
     setEleves((prev) => prev.filter((x) => x.id !== e.id));
   }
 
-  const filtered = eleves.filter((e) => `${e.nom} ${e.matiere} ${e.niveau}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered = eleves.filter((e) =>
+    `${e.nom} ${e.matiere} ${e.niveau} ${e.profiles ? `${e.profiles.prenom} ${e.profiles.nom}` : ""}`.toLowerCase().includes(search.toLowerCase())
+  );
   const STATUTS_ELEVE = ["actif","en pause","en attente","terminé"];
+
+  function toggleBulkE(id: string) {
+    setBulkSelectedE((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulkE() {
+    if (bulkSelectedE.size === filtered.length) setBulkSelectedE(new Set());
+    else setBulkSelectedE(new Set(filtered.map((e) => e.id)));
+  }
+  async function bulkChangeStatutE() {
+    if (!bulkSelectedE.size || !window.confirm(`Changer le statut de ${bulkSelectedE.size} élève(s) en "${bulkStatutE}" ?`)) return;
+    setBulkLoadingE(true);
+    await supabase.from("eleves").update({ statut: bulkStatutE }).in("id", [...bulkSelectedE]);
+    setEleves((prev) => prev.map((e) => bulkSelectedE.has(e.id) ? { ...e, statut: bulkStatutE } : e));
+    setBulkSelectedE(new Set()); setBulkLoadingE(false);
+  }
+  async function bulkDeleteEleves() {
+    if (!bulkSelectedE.size || !window.confirm(`Supprimer ${bulkSelectedE.size} élève(s) ? Les cours resteront (eleve_id → null). Action irréversible.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    setBulkLoadingE(true);
+    await supabase.from("eleves").delete().in("id", [...bulkSelectedE]);
+    setEleves((prev) => prev.filter((e) => !bulkSelectedE.has(e.id)));
+    setBulkSelectedE(new Set()); setBulkLoadingE(false);
+  }
 
   return (
     <div>
@@ -271,13 +337,19 @@ function AdminEleves() {
         {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div> : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>nom</th><th className={TH}>niveau</th><th className={TH}>matiere</th><th className={TH}>tarif_heure</th><th className={TH}>statut</th><th className={TH}>prof</th><th className={TH}>actions</th></tr>
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelectedE.size > 0 && bulkSelectedE.size === filtered.length} onChange={toggleAllBulkE} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>nom</th><th className={TH}>niveau</th><th className={TH}>matiere</th><th className={TH}>tarif_heure</th><th className={TH}>statut</th><th className={TH}>prof</th><th className={TH}>actions</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-50/60 transition-colors">
+                <tr key={e.id} className={`transition-colors ${bulkSelectedE.has(e.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}>
+                  <td className="px-3 py-2.5 text-center"><input type="checkbox" checked={bulkSelectedE.has(e.id)} onChange={() => toggleBulkE(e.id)} className="rounded w-3.5 h-3.5 accent-primary" /></td>
                   <td className={TD}><CopyID id={e.id} /></td>
-                  <td className={`${TD} font-medium text-slate-900`}>{e.nom}</td>
+                  <td className={`${TD} font-medium text-slate-900`}>
+                    <button onClick={() => setFicheEleve(e)} className="hover:text-primary hover:underline transition-colors text-left">{e.nom}</button>
+                  </td>
                   <td className={`${TD} text-slate-500`}>{e.niveau}</td>
                   <td className={`${TD} text-slate-500`}>{e.matiere}</td>
                   <td className={`${TD} font-mono text-slate-700`}>{e.tarif_heure} €/h</td>
@@ -296,11 +368,36 @@ function AdminEleves() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-slate-400">Aucun résultat.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-slate-400">Aucun résultat.</td></tr>}
             </tbody>
           </table>
         )}
       </div>
+
+      {bulkSelectedE.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelectedE.size} élève(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <div className="flex items-center gap-2">
+            <select value={bulkStatutE} onChange={(e) => setBulkStatutE(e.target.value)}
+              className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 outline-none text-slate-200 cursor-pointer">
+              {STATUTS_ELEVE.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={bulkChangeStatutE} disabled={bulkLoadingE}
+              className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+              {bulkLoadingE ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Statut
+            </button>
+          </div>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkDeleteEleves} disabled={bulkLoadingE}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            <Trash2 className="w-3 h-3" /> Supprimer
+          </button>
+          <button onClick={() => setBulkSelectedE(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {editing && (
         <AdminEditModal title={`EDIT eleves · ${editing.id.slice(0,8)}`} onClose={() => setEditing(null)} onSave={saveEdit} saving={saving}>
@@ -330,6 +427,7 @@ function AdminEleves() {
           <p className="text-xs text-slate-400 font-mono">UPDATE eleves SET … WHERE id='{editing.id}'</p>
         </AdminEditModal>
       )}
+      {ficheEleve && <EleveFicheModal eleve={ficheEleve} onClose={() => setFicheEleve(null)} />}
     </div>
   );
 }
@@ -377,7 +475,7 @@ function AdminCours() {
     if (filterYear  !== "tous" && !c.date.startsWith(filterYear)) return false;
     if (filterMonth !== "tous" && Number(c.date.slice(5, 7)) !== Number(filterMonth)) return false;
     const q = search.toLowerCase();
-    return !q || `${c.eleve_nom} ${c.matiere}`.toLowerCase().includes(q);
+    return !q || `${c.eleve_nom} ${c.matiere} ${c.profiles ? `${c.profiles.prenom} ${c.profiles.nom}` : ""}`.toLowerCase().includes(q);
   });
 
   async function updateStatut(id: string, statut: string) {
@@ -750,6 +848,9 @@ function AdminRecaps() {
   const [addCoursEleves, setAddCoursEleves] = useState<any[]>([]);
   const [addCoursF, setAddCoursF] = useState({ eleve_id: "", eleve_nom: "", matiere: "", date: "", duree: "", duree_heures: "", montant: "" });
   const [addCoursLoading, setAddCoursLoading] = useState(false);
+  const [bulkSelectedR, setBulkSelectedR] = useState<Set<string>>(new Set());
+  const [bulkLoadingR, setBulkLoadingR] = useState(false);
+  const [bulkStatutR, setBulkStatutR] = useState("en_cours");
 
 
   async function loadRecaps() {
@@ -953,6 +1054,30 @@ function AdminRecaps() {
     return !search || profName.includes(search.toLowerCase()) || `${MOIS_LABELS[r.mois - 1]} ${r.annee}`.toLowerCase().includes(search.toLowerCase());
   });
 
+  function toggleBulkR(id: string) {
+    setBulkSelectedR((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulkR() {
+    if (bulkSelectedR.size === filtered.length) setBulkSelectedR(new Set());
+    else setBulkSelectedR(new Set(filtered.map((r) => r.id)));
+  }
+  async function bulkChangeStatutR() {
+    if (!bulkSelectedR.size || !window.confirm(`Passer ${bulkSelectedR.size} récap(s) à «${RECAP_STATUT_STYLE[bulkStatutR]?.label ?? bulkStatutR}» ?`)) return;
+    setBulkLoadingR(true);
+    await supabase.from("recap_mensuel").update({ statut: bulkStatutR }).in("id", [...bulkSelectedR]);
+    setRecaps((prev) => prev.map((r) => bulkSelectedR.has(r.id) ? { ...r, statut: bulkStatutR } : r));
+    setBulkSelectedR(new Set()); setBulkLoadingR(false);
+  }
+  async function bulkDeleteRecaps() {
+    if (!bulkSelectedR.size || !window.confirm(`Supprimer ${bulkSelectedR.size} récap(s) ? Les cours associés deviendront orphelins. Action irréversible.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    setBulkLoadingR(true);
+    await supabase.from("recap_mensuel").delete().in("id", [...bulkSelectedR]);
+    setRecaps((prev) => prev.filter((r) => !bulkSelectedR.has(r.id)));
+    if (selected && bulkSelectedR.has(selected.id)) setSelected(null);
+    setBulkSelectedR(new Set()); setBulkLoadingR(false);
+  }
+
   const totalNet = (_r: any) => recapCours.reduce((s, c) => {
     return s + c.montant * (1 + (c.taux_plusvalue ?? 0));
   }, 0);
@@ -985,7 +1110,10 @@ function AdminRecaps() {
           : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>créé le</th><th className={TH}>mois / annee</th><th className={TH}>prof</th><th className={TH}>statut</th><th className={TH}>validations</th></tr>
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelectedR.size > 0 && bulkSelectedR.size === filtered.length} onChange={toggleAllBulkR} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>créé le</th><th className={TH}>mois / annee</th><th className={TH}>prof</th><th className={TH}>statut</th><th className={TH}>validations</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map((r) => {
@@ -995,7 +1123,11 @@ function AdminRecaps() {
                 const nbA = vals.filter((v) => v.statut !== "valide").length;
                 const si  = RECAP_STATUT_STYLE[r.statut] ?? { bg: "bg-slate-100 text-slate-500", label: r.statut };
                 return (
-                  <tr key={r.id} className="hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => openRecap(r)}>
+                  <tr key={r.id} className={`transition-colors cursor-pointer ${bulkSelectedR.has(r.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}
+                    onClick={(ev) => { if ((ev.target as HTMLElement).closest("input[type=checkbox]")) return; openRecap(r); }}>
+                    <td className="px-3 py-2.5 text-center" onClick={(ev) => ev.stopPropagation()}>
+                      <input type="checkbox" checked={bulkSelectedR.has(r.id)} onChange={() => toggleBulkR(r.id)} className="rounded w-3.5 h-3.5 accent-primary" />
+                    </td>
                     <td className={TD}><CopyID id={r.id} /></td>
                     <td className={`${TD} font-mono text-xs text-slate-400`}>{r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR") : "—"}</td>
                     <td className={`${TD} font-semibold text-slate-900`}>{MOIS_LABELS[r.mois - 1]} {r.annee}</td>
@@ -1233,6 +1365,31 @@ function AdminRecaps() {
           </div>
         </div>
       )}
+
+      {bulkSelectedR.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelectedR.size} récap(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <div className="flex items-center gap-2">
+            <select value={bulkStatutR} onChange={(e) => setBulkStatutR(e.target.value)}
+              className="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 outline-none text-slate-200 cursor-pointer">
+              {RECAP_STATUTS.map((s) => <option key={s} value={s}>{RECAP_STATUT_STYLE[s]?.label ?? s}</option>)}
+            </select>
+            <button onClick={bulkChangeStatutR} disabled={bulkLoadingR}
+              className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+              {bulkLoadingR ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Statut
+            </button>
+          </div>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkDeleteRecaps} disabled={bulkLoadingR}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            <Trash2 className="w-3 h-3" /> Supprimer
+          </button>
+          <button onClick={() => setBulkSelectedR(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1246,6 +1403,8 @@ function AdminContestations() {
   const [editMode, setEditMode]       = useState(false);
   const [editFields, setEditFields]   = useState({ duree: "", duree_heures: "", montant: "" });
   const [actionLoading, setActionLoading] = useState(false);
+  const [bulkSelectedC, setBulkSelectedC] = useState<Set<string>>(new Set());
+  const [bulkLoadingC, setBulkLoadingC] = useState(false);
 
   async function loadItems() {
     const { data } = await (supabase as any).from("contestation_cours").select(`
@@ -1292,8 +1451,31 @@ function AdminContestations() {
   }
 
   const filtered = items.filter((item) =>
-    `${item.cours?.eleve_nom ?? ""} ${item.cours?.matiere ?? ""} ${item.raison ?? ""}`.toLowerCase().includes(search.toLowerCase())
+    `${item.cours?.eleve_nom ?? ""} ${item.cours?.matiere ?? ""} ${item.raison ?? ""} ${item.cours?.profiles ? `${item.cours.profiles.prenom} ${item.cours.profiles.nom}` : ""}`.toLowerCase().includes(search.toLowerCase())
   );
+
+  function toggleBulkC(id: string) {
+    setBulkSelectedC((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulkC() {
+    if (bulkSelectedC.size === filtered.length) setBulkSelectedC(new Set());
+    else setBulkSelectedC(new Set(filtered.map((i) => i.id)));
+  }
+  async function bulkRejectContestations() {
+    if (!bulkSelectedC.size || !window.confirm(`Rejeter ${bulkSelectedC.size} contestation(s) ? Les cours repasseront à «déclaré». Action irréversible.`)) return;
+    setBulkLoadingC(true);
+    const toReject = items.filter((i) => bulkSelectedC.has(i.id));
+    await Promise.all(toReject.map(async (item) => {
+      await supabase.from("contestation_cours").delete().eq("id", item.id);
+      await supabase.from("cours").update({ statut: "déclaré" }).eq("id", item.cours.id);
+      if (item.cours.recap_id && item.cours.eleve_id) {
+        await supabase.from("recap_eleve_validation").update({ statut: "en_attente_parent" })
+          .eq("recap_id", item.cours.recap_id).eq("eleve_id", item.cours.eleve_id);
+      }
+    }));
+    setItems((prev) => prev.filter((i) => !bulkSelectedC.has(i.id)));
+    setBulkSelectedC(new Set()); setBulkLoadingC(false);
+  }
 
   return (
     <div>
@@ -1311,11 +1493,18 @@ function AdminContestations() {
           : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>created_at</th><th className={TH}>eleve_nom</th><th className={TH}>matiere</th><th className={TH}>date cours</th><th className={TH}>montant</th><th className={TH}>raison</th><th className={TH}>prof</th></tr>
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelectedC.size > 0 && bulkSelectedC.size === filtered.length} onChange={toggleAllBulkC} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>created_at</th><th className={TH}>eleve_nom</th><th className={TH}>matiere</th><th className={TH}>date cours</th><th className={TH}>montant</th><th className={TH}>raison</th><th className={TH}>prof</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => openItem(item)}>
+                <tr key={item.id} className={`transition-colors cursor-pointer ${bulkSelectedC.has(item.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}
+                  onClick={(ev) => { if ((ev.target as HTMLElement).closest("input[type=checkbox]")) return; openItem(item); }}>
+                  <td className="px-3 py-2.5 text-center" onClick={(ev) => ev.stopPropagation()}>
+                    <input type="checkbox" checked={bulkSelectedC.has(item.id)} onChange={() => toggleBulkC(item.id)} className="rounded w-3.5 h-3.5 accent-primary" />
+                  </td>
                   <td className={TD}><CopyID id={item.id} /></td>
                   <td className={`${TD} font-mono text-xs text-slate-400`}>{new Date(item.created_at).toLocaleDateString("fr-FR")}</td>
                   <td className={`${TD} font-medium text-slate-900`}>{item.cours?.eleve_nom ?? "—"}</td>
@@ -1405,6 +1594,20 @@ function AdminContestations() {
           </div>
         </div>
       )}
+
+      {bulkSelectedC.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelectedC.size} contestation(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkRejectContestations} disabled={bulkLoadingC}
+            className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            {bulkLoadingC ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Rejeter tout
+          </button>
+          <button onClick={() => setBulkSelectedC(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1430,6 +1633,8 @@ function AdminPaps() {
   const [viewingCands, setViewingCands] = useState<any | null>(null);
   const [cands, setCands]               = useState<any[]>([]);
   const [candsLoading, setCandsLoading] = useState(false);
+  const [bulkSelectedPA, setBulkSelectedPA] = useState<Set<string>>(new Set());
+  const [bulkLoadingPA, setBulkLoadingPA] = useState(false);
 
   async function load() {
     const { data } = await supabase.from("paps_annonces").select("*").order("created_at", { ascending: false });
@@ -1529,6 +1734,29 @@ function AdminPaps() {
   );
   const INP = "w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm focus:border-primary";
 
+  function toggleBulkPA(id: string) {
+    setBulkSelectedPA((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulkPA() {
+    if (bulkSelectedPA.size === filtered.length) setBulkSelectedPA(new Set());
+    else setBulkSelectedPA(new Set(filtered.map((a) => a.id)));
+  }
+  async function bulkToggleActive(active: boolean) {
+    if (!bulkSelectedPA.size) return;
+    setBulkLoadingPA(true);
+    await supabase.from("paps_annonces").update({ active }).in("id", [...bulkSelectedPA]);
+    setAnnonces((prev) => prev.map((a) => bulkSelectedPA.has(a.id) ? { ...a, active } : a));
+    setBulkSelectedPA(new Set()); setBulkLoadingPA(false);
+  }
+  async function bulkDeleteAnnonces() {
+    if (!bulkSelectedPA.size || !window.confirm(`Supprimer ${bulkSelectedPA.size} annonce(s) et leurs candidatures ? Action irréversible.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    setBulkLoadingPA(true);
+    await supabase.from("paps_annonces").delete().in("id", [...bulkSelectedPA]);
+    setAnnonces((prev) => prev.filter((a) => !bulkSelectedPA.has(a.id)));
+    setBulkSelectedPA(new Set()); setBulkLoadingPA(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -1548,13 +1776,17 @@ function AdminPaps() {
           : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
-              <tr><th className={TH}>id</th><th className={TH}>créé le</th><th className={TH}>prof_nom</th><th className={TH}>matiere</th><th className={TH}>niveau</th><th className={TH}>prix</th><th className={TH}>localisation</th><th className={TH}>active</th><th className={TH}>candidatures</th><th className={TH}>actions</th></tr>
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelectedPA.size > 0 && bulkSelectedPA.size === filtered.length} onChange={toggleAllBulkPA} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>créé le</th><th className={TH}>prof_nom</th><th className={TH}>matiere</th><th className={TH}>niveau</th><th className={TH}>prix</th><th className={TH}>localisation</th><th className={TH}>active</th><th className={TH}>candidatures</th><th className={TH}>actions</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.map((a) => {
                 const nb = candCounts[a.id] ?? 0;
                 return (
-                  <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr key={a.id} className={`transition-colors ${bulkSelectedPA.has(a.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}>
+                    <td className="px-3 py-2.5 text-center"><input type="checkbox" checked={bulkSelectedPA.has(a.id)} onChange={() => toggleBulkPA(a.id)} className="rounded w-3.5 h-3.5 accent-primary" /></td>
                     <td className={TD}><CopyID id={a.id} /></td>
                     <td className={`${TD} font-mono text-xs text-slate-400`}>{new Date(a.created_at).toLocaleDateString("fr-FR")}</td>
                     <td className={`${TD} font-medium text-slate-900`}>{a.prof_nom}</td>
@@ -1732,6 +1964,29 @@ function AdminPaps() {
           </div>
         </div>
       )}
+
+      {bulkSelectedPA.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelectedPA.size} annonce(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={() => bulkToggleActive(true)} disabled={bulkLoadingPA}
+            className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50 transition-colors">
+            Activer
+          </button>
+          <button onClick={() => bulkToggleActive(false)} disabled={bulkLoadingPA}
+            className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 rounded-lg disabled:opacity-50 transition-colors">
+            Désactiver
+          </button>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkDeleteAnnonces} disabled={bulkLoadingPA}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            {bulkLoadingPA ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Supprimer
+          </button>
+          <button onClick={() => setBulkSelectedPA(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1797,12 +2052,9 @@ export function AdminDashboard() {
             <span className="font-bold text-slate-900 tracking-tight" style={{ fontSize: 17 }}>Colibri</span>
           </div>
         </div>
-        {profile && (
-          <div className="mx-3 mb-3 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide leading-none mb-0.5">Admin</p>
-            <p className="text-sm font-medium text-slate-800 truncate">{profile.prenom} {profile.nom}</p>
-          </div>
-        )}
+        <div className="mx-3 mb-3 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+          <p className="text-sm font-medium text-slate-800">Admin</p>
+        </div>
         <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
           {NAV.map(({ key, label, Icon }) => {
             const active = section === key;
