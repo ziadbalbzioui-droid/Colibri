@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
-  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays,
+  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
@@ -11,6 +11,7 @@ import { EleveFicheModal } from "./EleveFicheModal";
 import { CreateRecapModal } from "./CreateRecapModal";
 import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
+import { AdminGrille } from "./AdminGrille";
 import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -24,7 +25,7 @@ interface ProfPaiement {
   mois_annees: string[];
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
-type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins";
+type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paiements",     label: "Dispatch paiements", Icon: Banknote },
@@ -37,6 +38,7 @@ const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paps",          label: "PAPS",               Icon: Megaphone },
   { key: "search",        label: "Recherche globale",  Icon: Search },
   { key: "orphelins",     label: "Cours orphelins",    Icon: Link2 },
+  { key: "grille",        label: "Grille commission",  Icon: Percent },
 ];
 
 const MOIS_LABELS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -2223,6 +2225,7 @@ export function AdminDashboard() {
         {section === "paps"          && <AdminPaps />}
         {section === "search"        && <AdminSearch />}
         {section === "orphelins"     && <AdminOrphelins />}
+        {section === "grille"        && <AdminGrille />}
       </main>
     </div>
   );
