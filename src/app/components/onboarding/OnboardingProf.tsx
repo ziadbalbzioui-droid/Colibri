@@ -5,7 +5,7 @@ import {
   CheckCircle, ChevronRight, Info, Loader2, AlertCircle,
   FileCheck, PartyPopper, Share2,
 } from "lucide-react";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
 

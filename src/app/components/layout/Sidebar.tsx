@@ -1,6 +1,6 @@
 import { NavLink, Link, useNavigate } from "react-router";
 import { LayoutDashboard, Users, BookOpen, CircleUser, GraduationCap, FileText, HelpCircle, LogOut, X, Gift } from "lucide-react";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
 
 const BASE_NAV = [

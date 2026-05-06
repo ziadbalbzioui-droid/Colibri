@@ -273,7 +273,7 @@ export function Welcome() {
         {/* Zone Logo */}
         <div className="flex-1 flex items-center">
           <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => { setRole(null); setShowAuth(false); setEmailSent(false); }}>
-            <img src="/src/assets/colibri.png" alt="Colibri" className="w-9 h-9 object-contain" />
+            <img src="/src/assets/colibri.svg" alt="Colibri" className="w-9 h-9 object-contain" />
             <span className="text-2xl font-extrabold tracking-tight text-slate-900">
               Colibri
             </span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X } from "lucide-react";
 import { Navigate, useNavigate } from "react-router";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "../layout/LoadingGuard";
 

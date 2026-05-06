@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { SiretBanner } from "./SiretBanner";
 import { IbanBanner } from "./IbanBanner";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 
 export function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink, Link, useNavigate } from "react-router";
 import { Home, BookOpen, FileText, LogOut, Menu, X, UserCircle, HelpCircle } from "lucide-react";
-import logo from "@/assets/colibri.png";
+import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
 
 const NAV_ITEMS = [

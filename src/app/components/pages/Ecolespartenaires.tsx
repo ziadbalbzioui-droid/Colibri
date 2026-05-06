@@ -158,7 +158,7 @@ export function EcolesPartenaires() {
       <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 px-6 h-20 flex items-center justify-between shadow-[0_4px_24px_rgba(0,0,0,0.04)] transition-all">
         <div className="flex-1 flex items-center">
           <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/")}>
-            <img src="/src/assets/colibri.png" alt="Colibri" className="w-9 h-9 object-contain" />
+            <img src="/src/assets/colibri.svg" alt="Colibri" className="w-9 h-9 object-contain" />
             <span className="text-2xl font-extrabold tracking-tight text-slate-900">Colibri</span>
           </div>
         </div>
@@ -290,7 +290,7 @@ export function EcolesPartenaires() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/src/assets/colibri.png" alt="Colibri" className="w-6 h-6 object-contain" />
+                <img src="/src/assets/colibri.svg" alt="Colibri" className="w-6 h-6 object-contain" />
                 <span className="font-bold text-slate-900">Colibri</span>
               </div>
               <p className="text-sm text-slate-500 mb-6">
