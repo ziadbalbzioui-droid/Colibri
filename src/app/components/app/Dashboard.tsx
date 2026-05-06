@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, TrendingUp } from "lucide-react";
+import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, TrendingUp, ChevronRight } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
@@ -189,24 +189,41 @@ export function Dashboard() {
         {/* Money hero */}
         <div style={{ ...S.card, padding: "32px 36px", marginBottom: 16, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -30, right: -30, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle,rgba(46,107,234,.12),transparent 65%)" }} />
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 48, position: "relative" }}>
-            <div>
-              <div style={{ ...S.eyebrow, display: "flex", alignItems: "center", gap: 6, marginBottom: 12, color: "#1E3A8A" }}>
-                <Euro className="w-3 h-3 text-blue-600" /> Revenu du mois après impots et cotisations
-              </div>
-              <div style={{ ...S.serif, fontSize: 88, fontWeight: 400, letterSpacing: "-.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums", color: "#0F172A" }}>
-                {netThisMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
-              </div>
-              <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
-                Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci.
-              </p>
-              <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
-                <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
-                <span style={S.badge("#EFF6FF", "#1E3A8A")}><BookOpen className="w-3 h-3" />{heuresThisMonth.toFixed(1)}h travaillées</span>
-                <span style={S.badge("#0F172A", "#fff")}><Users className="w-3 h-3" />{elevesActifs} élèves</span>
-              </div>
+          <div style={{ position: "relative" }}>
+            <div style={{ ...S.eyebrow, display: "flex", alignItems: "center", gap: 6, marginBottom: 12, color: "#1E3A8A" }}>
+              <Euro className="w-3 h-3 text-blue-600" /> Revenu du mois après impots et cotisations
+            </div>
+            <div style={{ ...S.serif, fontSize: 88, fontWeight: 400, letterSpacing: "-.02em", lineHeight: 1, fontVariantNumeric: "tabular-nums", color: "#0F172A" }}>
+              {netThisMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}<span style={{ fontSize: 40, marginLeft: 4 }}>€</span>
+            </div>
+            <p style={{ marginTop: 12, fontSize: 14, color: "#334155", lineHeight: 1.6, maxWidth: 400 }}>
+              Sur <strong>{heuresThisMonth.toFixed(1)}&nbsp;h</strong> de cours déclarés ce mois-ci.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+              <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
+              <span style={S.badge("#EFF6FF", "#1E3A8A")}><BookOpen className="w-3 h-3" />{heuresThisMonth.toFixed(1)}h travaillées</span>
+              <span style={S.badge("#0F172A", "#fff")}><Users className="w-3 h-3" />{elevesActifs} élèves</span>
             </div>
           </div>
+        </div>
+
+        {/* Actions rapides */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          {[
+            { label: "Déclarer un cours", sub: "Enregistrez une séance en quelques secondes", icon: <Plus style={{ width: 22, height: 22, color: "#2E6BEA" }} />, iconBg: "#EFF6FF", action: () => openModal("cours") },
+            { label: "Ajouter un élève", sub: "Intégrez un nouvel élève à votre suivi", icon: <Users style={{ width: 22, height: 22, color: "#16A34A" }} />, iconBg: "#F0FDF4", action: () => openModal("eleve") },
+          ].map(({ label, sub, icon, iconBg, action }) => (
+            <button key={label} onClick={action} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)", padding: "18px 20px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer", textAlign: "left", width: "100%" }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A", marginBottom: 3 }}>{label}</div>
+                <div style={{ fontSize: 12, color: "#94A3B8" }}>{sub}</div>
+              </div>
+              <ChevronRight style={{ width: 16, height: 16, color: "#CBD5E1", flexShrink: 0 }} />
+            </button>
+          ))}
         </div>
 
         {/* Journal */}
