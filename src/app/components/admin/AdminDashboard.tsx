@@ -11,13 +11,17 @@ import { EleveFicheModal } from "./EleveFicheModal";
 import { CreateRecapModal } from "./CreateRecapModal";
 import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
+import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
-const PROF_MULTIPLIER = parseFloat(import.meta.env.VITE_COLIBRI_PROF_MULTIPLIER ?? "1.25");
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 interface ProfPaiement {
   prof_id: string; prenom: string; nom: string; iban: string | null;
-  recap_ids: string[]; montant_brut: number; montant_net: number; mois_annees: string[];
+  recap_ids: string[];
+  montant_brut: number;      // ce que le parent a payé
+  montant_net_prof: number;  // ce que le prof touchera après impôts (brut × taux_plusvalue)
+  montant_virement: number;  // ce qu'on vire réellement (montant_net_prof / 0.8185)
+  mois_annees: string[];
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
 type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins";
@@ -2006,21 +2010,43 @@ export function AdminDashboard() {
 
   async function loadPendingPayments() {
     setFetching(true);
-    const { data, error } = await supabase.from("recap_mensuel")
-      .select(`id, prof_id, mois, annee, profiles!inner ( prenom, nom, iban ), cours ( montant )`)
-      .eq("statut", "valide");
+    const [{ data, error }, { data: grilleData }] = await Promise.all([
+      supabase.from("recap_mensuel")
+        .select(`id, prof_id, mois, annee, profiles!inner ( prenom, nom, iban ), cours ( montant, eleves ( tarif_heure ) )`)
+        .eq("statut", "valide"),
+      supabase.from("grille_commission").select("tarif_palier, taux_plusvalue, multiplicateur_brut"),
+    ]);
     if (error || !data) { setFetching(false); return; }
+    const grille = (grilleData ?? []) as GrilleRow[];
     const byProf = new Map<string, ProfPaiement>();
     for (const recap of data as any[]) {
-      const montantRecap: number = (recap.cours ?? []).reduce((s: number, c: { montant: number }) => s + Number(c.montant), 0);
       const label = `${String(recap.mois).padStart(2, "0")}/${recap.annee}`;
+      let montantRecap = 0;
+      let virementRecap = 0;
+      for (const cours of recap.cours ?? []) {
+        const montant = Number(cours.montant);
+        const tarifHeure = Number(cours.eleves?.tarif_heure ?? 0);
+        const multiplicateur = getMultiplicateurBrut(grille, tarifHeure);
+        montantRecap += montant;
+        virementRecap += montant * multiplicateur;
+      }
       const existing = byProf.get(recap.prof_id);
       if (existing) {
-        existing.recap_ids.push(recap.id); existing.montant_brut += montantRecap;
-        existing.montant_net = Math.round(existing.montant_brut * PROF_MULTIPLIER * 100) / 100;
+        existing.recap_ids.push(recap.id);
+        existing.montant_brut += montantRecap;
+        existing.montant_virement += virementRecap;
+        existing.montant_net_prof = Math.round(existing.montant_virement * 0.8185 * 100) / 100;
         existing.mois_annees.push(label);
       } else {
-        byProf.set(recap.prof_id, { prof_id: recap.prof_id, prenom: recap.profiles.prenom, nom: recap.profiles.nom, iban: recap.profiles.iban ?? null, recap_ids: [recap.id], montant_brut: montantRecap, montant_net: Math.round(montantRecap * PROF_MULTIPLIER * 100) / 100, mois_annees: [label] });
+        const montantVirement = Math.round(virementRecap * 100) / 100;
+        byProf.set(recap.prof_id, {
+          prof_id: recap.prof_id, prenom: recap.profiles.prenom, nom: recap.profiles.nom,
+          iban: recap.profiles.iban ?? null, recap_ids: [recap.id],
+          montant_brut: montantRecap,
+          montant_net_prof: Math.round(montantVirement * 0.8185 * 100) / 100,
+          montant_virement: montantVirement,
+          mois_annees: [label],
+        });
       }
     }
     setProfs(Array.from(byProf.values())); setFetching(false);
@@ -2040,7 +2066,7 @@ export function AdminDashboard() {
     }
   }
 
-  const totalNet = profs.reduce((s, p) => s + p.montant_net, 0);
+  const totalVirement = profs.reduce((s, p) => s + p.montant_virement, 0);
   const profsWithoutIban = profs.filter((p) => !p.iban);
 
   return (
@@ -2089,7 +2115,7 @@ export function AdminDashboard() {
         {section === "paiements" && (
           <div className="max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
-              <div><h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1><p className="text-sm text-slate-500 mt-1">Rémunération prof : tarif × {PROF_MULTIPLIER}</p></div>
+              <div><h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1><p className="text-sm text-slate-500 mt-1">Rémunération calculée par palier (grille_commission)</p></div>
               <span className="text-xs text-slate-400">Actualisé à {lastRefresh.toLocaleTimeString("fr-FR")}</span>
             </div>
             {profsWithoutIban.length > 0 && (
@@ -2100,9 +2126,9 @@ export function AdminDashboard() {
             )}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { label: "Profs à payer",    value: fetching ? "…" : String(profs.filter((p) => p.iban).length), color: "text-slate-900" },
-                { label: "Total brut",        value: fetching ? "…" : `${profs.reduce((s, p) => s + p.montant_brut, 0).toFixed(2)} €`, color: "text-slate-900" },
-                { label: "Total net à virer", value: fetching ? "…" : `${totalNet.toFixed(2)} €`, color: "text-emerald-600" },
+                { label: "Profs à payer",         value: fetching ? "…" : String(profs.filter((p) => p.iban).length), color: "text-slate-900" },
+                { label: "Total brut (parents)",   value: fetching ? "…" : `${profs.reduce((s, p) => s + p.montant_brut, 0).toFixed(2)} €`, color: "text-slate-900" },
+                { label: "Total à virer (brut)",   value: fetching ? "…" : `${totalVirement.toFixed(2)} €`, color: "text-emerald-600" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 p-5" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">{stat.label}</p>
@@ -2117,7 +2143,7 @@ export function AdminDashboard() {
                 : (
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr>{["Prof","Périodes","Brut","Net","IBAN"].map((h) => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>)}</tr>
+                    <tr>{["Prof","Périodes","Brut parent","Net prof (après impôts)","Virement à envoyer","IBAN"].map((h) => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {profs.map((p) => (
@@ -2125,7 +2151,8 @@ export function AdminDashboard() {
                         <td className="px-5 py-4 font-medium text-slate-900">{p.prenom} {p.nom}</td>
                         <td className="px-5 py-4 text-slate-500">{p.mois_annees.join(", ")}</td>
                         <td className="px-5 py-4 text-slate-700">{p.montant_brut.toFixed(2)} €</td>
-                        <td className="px-5 py-4 font-semibold text-emerald-700">{p.montant_net.toFixed(2)} €</td>
+                        <td className="px-5 py-4 text-blue-700">{p.montant_net_prof.toFixed(2)} €</td>
+                        <td className="px-5 py-4 font-semibold text-emerald-700">{p.montant_virement.toFixed(2)} €</td>
                         <td className="px-5 py-4">{p.iban ? <span className="font-mono text-xs text-slate-600">{p.iban}</span> : <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">IBAN manquant</span>}</td>
                       </tr>
                     ))}
@@ -2142,7 +2169,7 @@ export function AdminDashboard() {
             <div className="flex justify-end">
               <button onClick={() => setShowDispatchConfirm(true)} disabled={dispatchState === "loading" || profs.filter((p) => p.iban).length === 0}
                 className="px-6 py-3 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                {dispatchState === "loading" ? "Envoi en cours…" : `Dispatcher ${profs.filter((p) => p.iban).length} virement(s) — ${totalNet.toFixed(2)} €`}
+                {dispatchState === "loading" ? "Envoi en cours…" : `Dispatcher ${profs.filter((p) => p.iban).length} virement(s) — ${totalVirement.toFixed(2)} €`}
               </button>
             </div>
 
@@ -2161,13 +2188,14 @@ export function AdminDashboard() {
                     </div>
                   </div>
                   <p className="text-sm text-slate-700 mb-3">
-                    Tu t'apprêtes à envoyer <span className="font-semibold text-slate-900">{profs.filter((p) => p.iban).length} virement(s)</span> pour un total de <span className="font-semibold text-emerald-700">{totalNet.toFixed(2)} €</span>.
+                    Tu t'apprêtes à envoyer <span className="font-semibold text-slate-900">{profs.filter((p) => p.iban).length} virement(s)</span> pour un total de <span className="font-semibold text-emerald-700">{totalVirement.toFixed(2)} €</span>.
                   </p>
                   <ul className="mb-5 space-y-1.5">
                     {profs.filter((p) => p.iban).map((p) => (
                       <li key={p.prof_id} className="flex justify-between text-sm">
                         <span className="text-slate-700">{p.prenom} {p.nom}</span>
-                        <span className="font-semibold text-emerald-700">{p.montant_net.toFixed(2)} €</span>
+                        <span className="text-xs text-blue-600 ml-2">(net prof : {p.montant_net_prof.toFixed(2)} €)</span>
+                        <span className="font-semibold text-emerald-700 ml-auto">{p.montant_virement.toFixed(2)} € viré</span>
                       </li>
                     ))}
                   </ul>

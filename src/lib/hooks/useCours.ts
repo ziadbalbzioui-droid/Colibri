@@ -15,6 +15,7 @@ export interface CoursRow {
   statut: "déclaré" | "contesté" | "payé";
   recap_id: string | null;
   taux_plusvalue: number | null;
+  multiplicateur_brut: number | null;
 }
 
 export function useCours() {
@@ -60,7 +61,7 @@ export function useCours() {
   const addCours = async (data: {
     eleve_id: string | null; eleve_nom: string; matiere: string;
     date: string; duree: string; duree_heures: number; montant: number;
-    statut: CoursRow["statut"];
+    statut: CoursRow["statut"]; multiplicateur_brut: number | null;
   }) => {
     if (!user) throw new Error("Non connecté");
     const { data: row, error } = await supabase

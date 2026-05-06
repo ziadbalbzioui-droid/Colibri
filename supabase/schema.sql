@@ -692,4 +692,10 @@ ALTER TABLE public.grille_commission
 UPDATE public.grille_commission
   SET multiplicateur_brut = ROUND((1 + taux_plusvalue) / 0.8185, 4);
 
+-- ─── COLONNE multiplicateur_brut SUR cours ───────────────────
+-- Fige le taux appliqué au moment de la création du cours,
+-- indépendamment des évolutions futures de la grille.
+ALTER TABLE public.cours
+  ADD COLUMN IF NOT EXISTS multiplicateur_brut numeric(8,4);
+
 NOTIFY pgrst, 'reload schema';

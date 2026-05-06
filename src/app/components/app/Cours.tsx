@@ -4,7 +4,7 @@ import { useCours } from "../../../lib/hooks/useCours";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useAuth } from "../../../lib/auth";
 import { useRecapMensuel } from "../../../lib/hooks/useRecapMensuel";
-import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
+import { useGrilleCommission, getTauxPlusvalue, getMultiplicateurBrut } from "../../../lib/hooks/useGrilleCommission";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 import type { RecapStatut } from "../../../lib/database.types";
 import { LoadingGuard } from "../layout/LoadingGuard";
@@ -150,7 +150,7 @@ export function Cours() {
     try {
       const heures = form.duree_minutes / 60;
       const dureeLabel = formatDuree(form.duree_minutes);
-      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: "déclaré" });
+      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: "déclaré", multiplicateur_brut: getMultiplicateurBrut(grille, form.tarif_heure) });
       setAddSuccess(true);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");

@@ -4,7 +4,7 @@ import { LoadingGuard } from "../layout/LoadingGuard";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
 import { useAuth } from "../../../lib/auth";
-import { useGrilleCommission, getTauxPlusvalue } from "../../../lib/hooks/useGrilleCommission";
+import { useGrilleCommission, getTauxPlusvalue, getMultiplicateurBrut } from "../../../lib/hooks/useGrilleCommission";
 import type { EleveRow } from "../../../lib/hooks/useEleves";
 import type { CoursRow } from "../../../lib/hooks/useCours";
 
@@ -128,7 +128,7 @@ export function Dashboard() {
     setSaving(true);
     try {
       const heures = coursForm.duree_minutes / 60;
-      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: formatDuree(coursForm.duree_minutes), duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "déclaré" });
+      await addCours({ eleve_id: coursForm.eleve_id || null, eleve_nom: coursForm.eleve_nom, matiere: coursForm.matiere, date: coursForm.date, duree: formatDuree(coursForm.duree_minutes), duree_heures: heures, montant: coursForm.tarif_heure * heures, statut: "déclaré", multiplicateur_brut: getMultiplicateurBrut(grille, coursForm.tarif_heure) });
       setSuccess(true);
     } finally { setSaving(false); }
   }
