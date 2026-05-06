@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, CreditCard, TrendingUp } from "lucide-react";
+import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, TrendingUp } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
@@ -145,16 +145,6 @@ export function Dashboard() {
   const netThisMonth = Math.round(revenuBrutMois);
   const heuresThisMonth = useMemo(() => coursThisMonth.reduce((s: number, c: CoursRow) => s + c.duree_heures, 0), [coursThisMonth]);
 
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
-  const prevMonthName = MOIS[prevMonthDate.getMonth()];
-  const coursPrevMonth = useMemo(() => cours.filter((c: CoursRow) => c.date.startsWith(prevMonthKey)), [cours, prevMonthKey]);
-  const netPrevMonth = useMemo(() =>
-    Math.round(coursPrevMonth.reduce((s: number, c: CoursRow) => {
-      return s + c.montant * (1 + (c.taux_plusvalue ?? 0));
-    }, 0)),
-    [coursPrevMonth]
-  );
   const elevesActifs = useMemo(() => eleves.filter((e: EleveRow) => e.statut === "actif").length, [eleves]);
 
   const recentCours = useMemo(() => [...cours].sort((a: CoursRow, b: CoursRow) => b.date.localeCompare(a.date)).slice(0, 5), [cours]);
@@ -214,18 +204,6 @@ export function Dashboard() {
                 <span style={S.badge("#ECFDF5", "#065F46")}><CheckCircle2 className="w-3 h-3" />Légal &amp; déclaré</span>
                 <span style={S.badge("#EFF6FF", "#1E3A8A")}><BookOpen className="w-3 h-3" />{heuresThisMonth.toFixed(1)}h travaillées</span>
                 <span style={S.badge("#0F172A", "#fff")}><Users className="w-3 h-3" />{elevesActifs} élèves</span>
-              </div>
-            </div>
-            {/* Dernier virement */}
-            <div style={{ background: "#F8FAFC", border: "1px dashed #C7D8FB", borderRadius: 14, padding: 20, alignSelf: "start" }}>
-              <p style={{ ...S.eyebrow, color: "#1E3A8A" }}>Dernier virement</p>
-              <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 4, marginBottom: 0 }}>{prevMonthName}</p>
-              <div style={{ ...S.serif, fontSize: 44, letterSpacing: "-.02em", marginTop: 4, lineHeight: 1, color: "#0F172A" }}>
-                {netPrevMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}<span style={{ fontSize: 22, marginLeft: 3 }}>€</span>
-              </div>
-              <p style={{ marginTop: 10, fontSize: 12, color: "#64748B" }}>Versé automatiquement sur votre compte bancaire.</p>
-              <div style={{ marginTop: 14, padding: "9px 12px", background: "#fff", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", gap: 8, alignItems: "center" }}>
-                <CreditCard className="w-3.5 h-3.5" /> IBAN · {profile?.iban ? profile.iban.slice(-4) : "****"}
               </div>
             </div>
           </div>
