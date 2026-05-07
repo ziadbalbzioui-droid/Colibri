@@ -150,7 +150,7 @@ export function Cours() {
     try {
       const heures = form.duree_minutes / 60;
       const dureeLabel = formatDuree(form.duree_minutes);
-      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: "déclaré", multiplicateur_brut: getMultiplicateurBrut(grille, form.tarif_heure) });
+      await addCours({ eleve_id: form.eleve_id, eleve_nom: form.eleve_nom, matiere: form.matiere, date: form.date, duree: dureeLabel, duree_heures: heures, montant: form.tarif_heure * heures, statut: "déclaré", multiplicateur_brut: getMultiplicateurBrut(grille, form.tarif_heure), taux_plusvalue: getTauxPlusvalue(grille, form.tarif_heure) });
       setAddSuccess(true);
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");

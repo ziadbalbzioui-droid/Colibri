@@ -149,7 +149,7 @@ export function Eleves() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["Nom", "Niveau", "Matière", "Tarif Famille /h", "Statut", "Dernier cours", ""].map((h) => (
+                {["Nom", "Niveau", "Matière", "Tarif Famille /h", "Pour toi /h", "Statut", "Dernier cours", ""].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#64748B", background: "#F8FAFC" }}>{h}</th>
                 ))}
               </tr>
@@ -167,6 +167,15 @@ export function Eleves() {
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.niveau}</td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: "#64748B" }}>{e.matiere}</td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{e.tarif_heure} €</td>
+                    <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 12 }}>
+                      {(() => {
+                        const taux = getTauxPlusvalue(grille, e.tarif_heure);
+                        const netH = Math.round(e.tarif_heure * (1 + taux));
+                        return taux > 0
+                          ? <span><span style={{ color: "#16A34A", fontWeight: 600 }}>{netH} €</span><span style={{ color: "#6366F1", marginLeft: 4 }}>(+{Math.round(taux * 100)}%)</span></span>
+                          : <span style={{ color: "#94A3B8" }}>—</span>;
+                      })()}
+                    </td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}><StatutBadge statut={e.statut === "actif" && !parentsMap[e.id] ? "en attente" : e.statut} /></td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9", fontSize: 13, color: inactive ? "#92400E" : "#64748B" }}>{formatDernierCours(e.dernier_cours ?? "")}</td>
                     <td style={{ padding: "12px 16px", borderTop: "1px solid #F1F5F9" }}><ChevronRight style={{ width: 14, height: 14, color: "#94A3B8" }} /></td>
@@ -174,7 +183,7 @@ export function Eleves() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", fontSize: 13, color: "#94A3B8" }}>Aucun élève trouvé.</td></tr>
+                <tr><td colSpan={8} style={{ padding: 32, textAlign: "center", fontSize: 13, color: "#94A3B8" }}>Aucun élève trouvé.</td></tr>
               )}
             </tbody>
           </table>

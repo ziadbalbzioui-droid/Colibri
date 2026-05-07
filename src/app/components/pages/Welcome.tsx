@@ -283,7 +283,6 @@ export function Welcome() {
         {/* Zone Liens */}
         <nav className="hidden md:flex items-center justify-center gap-8">
           <a href="#concept" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Le concept</a>
-          <Link to="/tarifs" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Grille tarifaire</Link>
           <Link to="/ecoles" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Les Écoles partenaires</Link>
           <Link to="/mission" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Notre mission</Link>
         </nav>
@@ -486,6 +485,12 @@ export function Welcome() {
                         Une gestion administrative 100 % automatisée.
                       </h3>
                       <p className="text-slate-600 text-sm leading-relaxed pl-7">Nous vous accompagnons dans la création de votre statut en 5 minutes. Ensuite, Colibri génère vos factures et gère les prélèvements. Vous vous concentrez uniquement sur vos cours.</p>
+                      <div className="pl-7 mt-3">
+                        <Link to="/tarifs" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors group">
+                          Consulter notre grille tarifaire (Exclusivité Prof)
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -678,9 +683,7 @@ export function Welcome() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-[#0052D4] rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-xs leading-none">C</span>
-                </div>
+                <img src="/src/assets/colibri.svg" alt="Colibri" className="w-6 h-6 object-contain" />
                 <span className="font-bold text-slate-900">Colibri</span>
               </div>
               <p className="text-sm text-slate-500 mb-6">

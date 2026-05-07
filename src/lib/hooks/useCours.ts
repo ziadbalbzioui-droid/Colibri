@@ -61,7 +61,7 @@ export function useCours() {
   const addCours = async (data: {
     eleve_id: string | null; eleve_nom: string; matiere: string;
     date: string; duree: string; duree_heures: number; montant: number;
-    statut: CoursRow["statut"]; multiplicateur_brut: number | null;
+    statut: CoursRow["statut"]; multiplicateur_brut: number | null; taux_plusvalue: number | null;
   }) => {
     if (!user) throw new Error("Non connecté");
     const { data: row, error } = await supabase
