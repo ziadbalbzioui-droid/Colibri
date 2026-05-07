@@ -173,30 +173,34 @@ interface RecapRow {
   mois: number;
   annee: number;
   profiles: { prenom: string; nom: string; iban: string | null };
-  cours: { montant: number; eleves: { tarif_heure: number } | null }[];
+  cours: { montant: number; multiplicateur_brut: number | null; eleves: { tarif_heure: number } | null }[];
 }
 
-async function dispatchPaymentsToTutors(): Promise<{
+async function dispatchPaymentsToTutors(profIdFilter?: string): Promise<{
   success: string[];
   errors: { prof_id: string; error: string }[];
 }> {
   // Renouvelle le token une fois pour tous les virements du batch
   const accessToken = await getValidAccessToken();
 
-  // Charge la grille de commission
+  // Charge la grille de commission (fallback si cours.multiplicateur_brut est null)
   const { data: grille, error: grilleError } = await supabase
     .from("grille_commission")
     .select("tarif_palier, multiplicateur_brut");
   if (grilleError) throw new Error(`Supabase fetch grille_commission: ${grilleError.message}`);
 
-  const { data: recaps, error } = await supabase
+  let query = supabase
     .from("recap_mensuel")
     .select(`
       id, prof_id, mois, annee,
       profiles!inner ( prenom, nom, iban ),
-      cours ( montant, eleves ( tarif_heure ) )
+      cours ( montant, multiplicateur_brut, eleves ( tarif_heure ) )
     `)
     .eq("statut", "valide");
+
+  if (profIdFilter) query = query.eq("prof_id", profIdFilter);
+
+  const { data: recaps, error } = await query;
 
   if (error) throw new Error(`Supabase fetch recaps: ${error.message}`);
   if (!recaps || recaps.length === 0) {
@@ -219,12 +223,13 @@ async function dispatchPaymentsToTutors(): Promise<{
       continue;
     }
 
-    // Calcule le virement brut cours par cours selon le palier de chaque élève
+    // Utilise le multiplicateur figé sur le cours ; fallback grille si null
     let virementRecap = 0;
     for (const cours of recap.cours ?? []) {
-      const tarifHeure = Number(cours.eleves?.tarif_heure ?? 0);
-      const multiplicateur = getMultiplicateurBrut(grille as GrilleRow[], tarifHeure);
-      virementRecap += Number(cours.montant) * multiplicateur;
+      const multi = cours.multiplicateur_brut != null
+        ? Number(cours.multiplicateur_brut)
+        : getMultiplicateurBrut(grille as GrilleRow[], Number(cours.eleves?.tarif_heure ?? 0));
+      virementRecap += Number(cours.montant) * multi;
     }
 
     const label = `${String(recap.mois).padStart(2, "0")}/${recap.annee}`;
@@ -317,7 +322,11 @@ Deno.serve(async (req) => {
 
   try {
     await assertAdmin(req);
-    const result = await dispatchPaymentsToTutors();
+    const body = req.headers.get("Content-Length") !== "0"
+      ? await req.json().catch(() => ({}))
+      : {};
+    const profIdFilter: string | undefined = body?.prof_id ?? undefined;
+    const result = await dispatchPaymentsToTutors(profIdFilter);
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

@@ -26,6 +26,7 @@ interface ProfPaiement {
   mois_annees: string[];
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
+type SingleDispatchState = Record<string, "idle" | "loading" | "done" | "error">;
 type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
@@ -2009,6 +2010,8 @@ export function AdminDashboard() {
   const [dispatchResult, setDispatchResult] = useState<{ success: string[]; errors: { prof_id: string; error: string }[] } | null>(null);
   const [lastRefresh, setLastRefresh]   = useState(new Date());
   const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
+  const [confirmSingleProf, setConfirmSingleProf] = useState<ProfPaiement | null>(null);
+  const [singleDispatchState, setSingleDispatchState] = useState<SingleDispatchState>({});
 
   useEffect(() => { loadPendingPayments(); }, [lastRefresh]);
 
@@ -2016,7 +2019,7 @@ export function AdminDashboard() {
     setFetching(true);
     const [{ data, error }, { data: grilleData }] = await Promise.all([
       supabase.from("recap_mensuel")
-        .select(`id, prof_id, mois, annee, profiles!inner ( prenom, nom, iban ), cours ( montant, eleves ( tarif_heure ) )`)
+        .select(`id, prof_id, mois, annee, profiles!inner ( prenom, nom, iban ), cours ( montant, multiplicateur_brut, eleves ( tarif_heure ) )`)
         .eq("statut", "valide"),
       supabase.from("grille_commission").select("tarif_palier, taux_plusvalue, multiplicateur_brut"),
     ]);
@@ -2029,8 +2032,10 @@ export function AdminDashboard() {
       let virementRecap = 0;
       for (const cours of recap.cours ?? []) {
         const montant = Number(cours.montant);
-        const tarifHeure = Number(cours.eleves?.tarif_heure ?? 0);
-        const multiplicateur = getMultiplicateurBrut(grille, tarifHeure);
+        // Utilise le multiplicateur figé sur le cours ; fallback grille si null
+        const multiplicateur = cours.multiplicateur_brut != null
+          ? Number(cours.multiplicateur_brut)
+          : getMultiplicateurBrut(grille, Number(cours.eleves?.tarif_heure ?? 0));
         montantRecap += montant;
         virementRecap += montant * multiplicateur;
       }
@@ -2056,17 +2061,35 @@ export function AdminDashboard() {
     setProfs(Array.from(byProf.values())); setFetching(false);
   }
 
-  async function handleDispatch() {
+  async function handleDispatch(profId?: string) {
     if (!session) return;
-    setDispatchState("loading"); setDispatchResult(null);
+    if (profId) {
+      setSingleDispatchState((s) => ({ ...s, [profId]: "loading" }));
+    } else {
+      setDispatchState("loading"); setDispatchResult(null);
+    }
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/dispatch-payments`, { method: "POST", headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" } });
+      const body = profId ? JSON.stringify({ prof_id: profId }) : "{}";
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/dispatch-payments`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body,
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      setDispatchResult(json); setDispatchState(json.errors?.length > 0 ? "error" : "success"); setLastRefresh(new Date());
+      if (profId) {
+        setSingleDispatchState((s) => ({ ...s, [profId]: json.errors?.length > 0 ? "error" : "done" }));
+        setLastRefresh(new Date());
+      } else {
+        setDispatchResult(json); setDispatchState(json.errors?.length > 0 ? "error" : "success"); setLastRefresh(new Date());
+      }
     } catch (e) {
-      setDispatchResult({ success: [], errors: [{ prof_id: "global", error: e instanceof Error ? e.message : String(e) }] });
-      setDispatchState("error");
+      if (profId) {
+        setSingleDispatchState((s) => ({ ...s, [profId]: "error" }));
+      } else {
+        setDispatchResult({ success: [], errors: [{ prof_id: "global", error: e instanceof Error ? e.message : String(e) }] });
+        setDispatchState("error");
+      }
     }
   }
 
@@ -2119,7 +2142,7 @@ export function AdminDashboard() {
         {section === "paiements" && (
           <div className="max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
-              <div><h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1><p className="text-sm text-slate-500 mt-1">Rémunération calculée par palier (grille_commission)</p></div>
+              <div><h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1><p className="text-sm text-slate-500 mt-1">Montants calculés depuis le multiplicateur figé sur chaque cours</p></div>
               <span className="text-xs text-slate-400">Actualisé à {lastRefresh.toLocaleTimeString("fr-FR")}</span>
             </div>
             {profsWithoutIban.length > 0 && (
@@ -2147,10 +2170,12 @@ export function AdminDashboard() {
                 : (
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-100">
-                    <tr>{["Prof","Périodes","Brut parent","Net prof (après impôts)","Virement à envoyer","IBAN"].map((h) => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>)}</tr>
+                    <tr>{["Prof","Périodes","Montant cours","Net prof (après impôts)","Virement à envoyer","IBAN","Action"].map((h) => <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {profs.map((p) => (
+                    {profs.map((p) => {
+                      const st = singleDispatchState[p.prof_id] ?? "idle";
+                      return (
                       <tr key={p.prof_id} className={!p.iban ? "bg-amber-50/50" : "hover:bg-slate-50/60 transition-colors"}>
                         <td className="px-5 py-4 font-medium text-slate-900">{p.prenom} {p.nom}</td>
                         <td className="px-5 py-4 text-slate-500">{p.mois_annees.join(", ")}</td>
@@ -2158,8 +2183,23 @@ export function AdminDashboard() {
                         <td className="px-5 py-4 text-blue-700">{p.montant_net_prof.toFixed(2)} €</td>
                         <td className="px-5 py-4 font-semibold text-emerald-700">{p.montant_virement.toFixed(2)} €</td>
                         <td className="px-5 py-4">{p.iban ? <span className="font-mono text-xs text-slate-600">{p.iban}</span> : <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">IBAN manquant</span>}</td>
+                        <td className="px-5 py-4">
+                          {st === "done" ? (
+                            <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1"><Check className="w-3.5 h-3.5" />Envoyé</span>
+                          ) : st === "error" ? (
+                            <span className="text-xs font-semibold text-red-600">Échec</span>
+                          ) : (
+                            <button
+                              disabled={!p.iban || st === "loading" || dispatchState === "loading"}
+                              onClick={() => setConfirmSingleProf(p)}
+                              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                            >
+                              {st === "loading" ? <><Loader2 className="w-3 h-3 animate-spin" />Envoi…</> : "Virer"}
+                            </button>
+                          )}
+                        </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               )}
@@ -2176,6 +2216,25 @@ export function AdminDashboard() {
                 {dispatchState === "loading" ? "Envoi en cours…" : `Dispatcher ${profs.filter((p) => p.iban).length} virement(s) — ${totalVirement.toFixed(2)} €`}
               </button>
             </div>
+
+            {confirmSingleProf && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+                  <h3 className="font-bold text-slate-900 text-base mb-1">Confirmer le virement</h3>
+                  <p className="text-xs text-slate-500 mb-4">Cette action est irréversible</p>
+                  <div className="bg-slate-50 rounded-xl p-4 mb-5 space-y-1.5 text-sm">
+                    <div className="flex justify-between"><span className="text-slate-500">Prof</span><span className="font-medium text-slate-900">{confirmSingleProf.prenom} {confirmSingleProf.nom}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Périodes</span><span className="text-slate-700">{confirmSingleProf.mois_annees.join(", ")}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">IBAN</span><span className="font-mono text-xs text-slate-600">{confirmSingleProf.iban}</span></div>
+                    <div className="flex justify-between border-t border-slate-200 pt-1.5 mt-1.5"><span className="text-slate-500">Virement</span><span className="font-bold text-emerald-700">{confirmSingleProf.montant_virement.toFixed(2)} €</span></div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setConfirmSingleProf(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">Annuler</button>
+                    <button onClick={() => { const p = confirmSingleProf; setConfirmSingleProf(null); handleDispatch(p.prof_id); }} className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">Confirmer</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {showDispatchConfirm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -2208,7 +2267,7 @@ export function AdminDashboard() {
                       className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                       Annuler
                     </button>
-                    <button onClick={() => { setShowDispatchConfirm(false); handleDispatch(); }}
+                    <button onClick={() => { setShowDispatchConfirm(false); handleDispatch(undefined); }}
                       className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
                       Confirmer l'envoi
                     </button>
