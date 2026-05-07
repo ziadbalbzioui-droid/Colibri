@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, FileText, X, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Download, FileText, X, CheckCircle2, Clock, AlertCircle, Info } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useAuth } from "../../../lib/auth";
 import { supabase } from "../../../lib/supabase";
@@ -168,6 +168,15 @@ export function Factures() {
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#0F172A", marginBottom: 4 }}>Factures & Paiements</h1>
           <p style={{ color: "#64748B", fontSize: 13 }}>Factures envoyées aux familles et suivi des paiements.</p>
+        </div>
+
+        {/* Explanatory banner */}
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", marginBottom: 28, display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <Info style={{ width: 18, height: 18, color: "#2563EB", flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 13, color: "#1E40AF", lineHeight: 1.65, margin: 0 }}>
+            <strong>Pourquoi Colibri vous vire plus que vos récaps ?</strong><br />
+            Les gains promis et affichés avec leurs pourcentages correspondent aux gains que vous touchez <strong>après cotisations et impôts</strong>. C'est pour cette raison que Colibri vous vire plus que ce qui est affiché dans vos récaps du mois — ainsi, après avoir payé vos cotisations et vos impôts, il vous restera exactement le montant promis.
+          </p>
         </div>
 
         {/* Stats */}
