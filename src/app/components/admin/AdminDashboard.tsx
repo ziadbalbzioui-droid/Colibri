@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
-  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent,
+  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
@@ -12,6 +12,7 @@ import { CreateRecapModal } from "./CreateRecapModal";
 import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
 import { AdminGrille } from "./AdminGrille";
+import { AdminCompta } from "./AdminCompta";
 import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -25,7 +26,7 @@ interface ProfPaiement {
   mois_annees: string[];
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
-type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille";
+type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paiements",     label: "Dispatch paiements", Icon: Banknote },
@@ -39,6 +40,7 @@ const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "search",        label: "Recherche globale",  Icon: Search },
   { key: "orphelins",     label: "Cours orphelins",    Icon: Link2 },
   { key: "grille",        label: "Grille commission",  Icon: Percent },
+  { key: "compta",        label: "Comptabilité",       Icon: Receipt },
 ];
 
 const MOIS_LABELS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -2226,6 +2228,7 @@ export function AdminDashboard() {
         {section === "search"        && <AdminSearch />}
         {section === "orphelins"     && <AdminOrphelins />}
         {section === "grille"        && <AdminGrille />}
+        {section === "compta"        && <AdminCompta />}
       </main>
     </div>
   );
