@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap, Plus, Loader2, CheckCircle2, KeyRound } from "lucide-react";
+import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap, Plus, Loader2, CheckCircle2, KeyRound, Flag } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useParentData } from "../../../lib/hooks/useParentData";
 
@@ -108,7 +108,7 @@ function LierProfWidget({ ajouterCode }: { ajouterCode: (code: string) => Promis
 }
 
 export function ParentDashboard() {
-  const { children, cours, factures, loading, profile, ajouterCode } = useParentData();
+  const { children, cours, factures, validations, loading, profile, ajouterCode } = useParentData();
   const navigate = useNavigate();
 
   const isActivationPending = profile?.urssaf_status === "activation_pending";
@@ -189,6 +189,41 @@ export function ParentDashboard() {
             </div>
           </button>
         )}
+
+        {/* Banner: validations en attente */}
+        {(() => {
+          const pending = validations.filter((v) => v.statut === "en_attente_parent");
+          if (pending.length === 0) return null;
+          const MOIS_NOMS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+          return (
+            <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 16, padding: "16px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <Flag style={{ width: 15, height: 15, color: "#B45309" }} />
+                <p style={{ fontWeight: 700, fontSize: 13, color: "#92400E", margin: 0 }}>
+                  {pending.length === 1
+                    ? "1 récapitulatif en attente de votre validation"
+                    : `${pending.length} récapitulatifs en attente de validation`}
+                </p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {pending.map((v) => {
+                  const moisLabel = `${MOIS_NOMS[(v.recap_mensuel.mois ?? 1) - 1]} ${v.recap_mensuel.annee}`;
+                  return (
+                    <div key={v.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 12, padding: "10px 16px", border: "1px solid #FDE68A" }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel}</p>
+                      <Link
+                        to="/parent/cours"
+                        style={{ fontSize: 12, background: "#B45309", color: "#fff", padding: "6px 14px", borderRadius: 10, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+                      >
+                        Voir & Valider
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         <div style={{ opacity: isActivationPending ? 0.4 : 1, pointerEvents: isActivationPending ? "none" : "auto", display: "flex", flexDirection: "column", gap: 16 }}>
 

@@ -172,20 +172,33 @@ export function useParentData() {
     setFactures((prev) => prev.map((f) => f.id === id ? { ...f, statut: "payée" } : f));
   };
 
-  const validerRecap = async (validationId: string, _recapId: string) => {
-    // Le parent met la ligne à 'valide'. Le trigger SQL gère la suite.
-    console.log("[validerRecap] Tentative validation:", { validationId, _recapId });
-
-    const { data, error: valErr, status } = await (supabase
-      .from("recap_eleve_validation") as any)
+  const validerRecap = async (validationId: string, recapId: string) => {
+    // 1. Mettre cette validation à 'valide'
+    const { error: valErr } = await supabase
+      .from("recap_eleve_validation")
       .update({ statut: "valide" })
-      .eq("id", validationId)
-      .select();
-
-    console.log("[validerRecap] Résultat:", { data, error: valErr, status });
-
+      .eq("id", validationId);
     if (valErr) throw valErr;
 
+    // 2. Vérifier si TOUS les parents du recap ont validé
+    const { data: allRows, error: checkErr } = await supabase
+      .from("recap_eleve_validation")
+      .select("id, statut")
+      .eq("recap_id", recapId);
+    if (checkErr) throw checkErr;
+
+    const allValide = (allRows ?? []).every((r) =>
+      r.id === validationId ? true : r.statut === "valide"
+    );
+
+    if (allValide) {
+      await supabase
+        .from("recap_mensuel")
+        .update({ statut: "en_attente_paiement" })
+        .eq("id", recapId);
+    }
+
+    // 3. Mise à jour locale
     setValidations((prev) =>
       prev.map((v) => v.id === validationId ? { ...v, statut: "valide" } : v)
     );
