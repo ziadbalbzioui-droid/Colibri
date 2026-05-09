@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
-  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt,
+  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt, Info,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
@@ -118,6 +118,26 @@ const FS = "w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded
 const TH = "text-left px-3 py-2.5 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap";
 const TD = "px-3 py-2.5 text-sm";
 
+function InfoBox({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+      <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+      <div className="text-xs text-blue-800 leading-relaxed space-y-1">
+        {title && <p className="font-bold text-blue-900 text-[11px] uppercase tracking-wide mb-1.5">{title}</p>}
+        {children}
+      </div>
+    </div>
+  );
+}
+function WarnBox({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+      <div className="text-xs text-amber-800 leading-relaxed space-y-1">{children}</div>
+    </div>
+  );
+}
+
 // ── AdminProfs ────────────────────────────────────────────────────────────────
 function AdminProfs() {
   const [profs, setProfs] = useState<any[]>([]);
@@ -189,6 +209,12 @@ function AdminProfs() {
       <div className="flex items-center justify-between mb-4">
         <div><h1 className="text-xl font-bold text-slate-900">Profs</h1><p className="text-xs font-mono text-slate-400 mt-0.5">{profs.length} rows · profiles WHERE role='prof'</p></div>
       </div>
+      <InfoBox title="Données critiques pour les virements">
+        <p><span className="font-semibold">SIRET</span> — identifiant auto-entrepreneur requis pour les déclarations Urssaf et la génération des factures. Sans SIRET, le prof ne peut pas utiliser la plateforme.</p>
+        <p><span className="font-semibold">IBAN</span> — nécessaire pour recevoir les virements Colibri. Un IBAN absent bloque le dispatch paiement pour ce prof.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer un prof est irréversible et supprime en cascade tous ses élèves, cours, récaps et validations parentes associées.</p>
+        <p className="font-semibold text-amber-700">⚠ Modifier l'IBAN prend effet immédiatement sur les prochains virements — toujours vérifier le RIB avant de sauvegarder.</p>
+      </InfoBox>
       <SearchInput value={search} onChange={setSearch} placeholder="Rechercher…" />
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
         {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div> : (
@@ -341,6 +367,12 @@ function AdminEleves() {
       <div className="flex items-center justify-between mb-4">
         <div><h1 className="text-xl font-bold text-slate-900">Élèves</h1><p className="text-xs font-mono text-slate-400 mt-0.5">{eleves.length} rows · eleves</p></div>
       </div>
+      <InfoBox title="Gestion des élèves">
+        <p>Chaque élève est rattaché à un seul prof. Le <span className="font-semibold">tarif_heure</span> est le tarif famille — il sert à calculer le montant des cours et le net prof via la grille de commission.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer un élève dissocie ses cours (eleve_id → null) mais ne les supprime pas. Les cours restent dans les récaps associés.</p>
+        <p className="font-semibold text-amber-700">⚠ Modifier le tarif/heure ne rétroagit pas sur les cours déjà déclarés — le montant est figé à la déclaration du cours.</p>
+        <p>Le statut «en attente» signifie qu'aucun parent n'est encore lié à cet élève via un code d'invitation.</p>
+      </InfoBox>
       <SearchInput value={search} onChange={setSearch} placeholder="Rechercher…" />
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
         {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div> : (
@@ -664,6 +696,14 @@ function AdminCours() {
         </div>
       </div>
 
+      <InfoBox title="Statuts des cours et conséquences des modifications">
+        <p><span className="font-semibold">déclaré</span> — cours saisi par le prof, en attente de validation parent.</p>
+        <p><span className="font-semibold">contesté</span> — un parent a contesté ce cours (voir section Contestations). Le cours est exclu du calcul de paiement tant que la contestation n'est pas résolue.</p>
+        <p><span className="font-semibold">payé</span> — cours inclus dans un récap payé. Ne pas modifier sauf correction exceptionnelle.</p>
+        <p className="font-semibold text-amber-700">⚠ Modifier le montant d'un cours rattaché à un récap «en_attente_paiement» ou «valide» crée une incohérence entre le récap et les calculs de paiement. Préférer la suppression + recréation.</p>
+        <p className="font-semibold text-amber-700">⚠ Le taux_plusvalue est figé à la création du cours — le modifier ne recalcule pas le net prof automatiquement.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer le dernier cours d'un élève dans un récap supprime aussi la validation parente de cet élève (affiché dans le confirm).</p>
+      </InfoBox>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <SearchInput value={search} onChange={setSearch} placeholder="Élève ou matière…" className="relative flex-1 min-w-[180px]" />
         <select value={filterYear} onChange={(e) => { setFilterYear(e.target.value); setFilterMonth("tous"); }} className={SEL}>
@@ -1111,6 +1151,15 @@ function AdminRecaps() {
           ))}
         </div>
       </div>
+      <InfoBox title="Cycle de vie d'un récapitulatif mensuel">
+        <p><span className="font-semibold text-blue-900">en_cours</span> → le prof saisit ses cours du mois.</p>
+        <p><span className="font-semibold text-blue-900">en_attente_parent</span> → le prof a clôturé. Chaque parent valide sa partie (recap_eleve_validation). Le récap passe automatiquement à l'étape suivante quand TOUS les parents ont validé.</p>
+        <p><span className="font-semibold text-blue-900">en_attente_paiement</span> → toutes les validations sont à «valide». Prêt pour le dispatch (section Paiements).</p>
+        <p><span className="font-semibold text-blue-900">valide / payé</span> → virement émis via le dispatcher Qonto.</p>
+        <p className="font-semibold text-amber-700">⚠ Forcer la validation d'un élève contourne son accord parental — à n'utiliser qu'en cas de blocage avéré (parent injoignable depuis plus de 7 jours).</p>
+        <p className="font-semibold text-amber-700">⚠ Ne passer manuellement à «Payé» que si le virement a été effectué hors dispatcher — le dispatcher le fait automatiquement.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer un récap détache ses cours (orphelins) mais ne les supprime pas. Les validations parentes associées sont supprimées en cascade.</p>
+      </InfoBox>
       <SearchInput value={search} onChange={setSearch} placeholder="Rechercher par prof ou mois…" />
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
@@ -1410,7 +1459,7 @@ function AdminContestations() {
   const [search, setSearch]           = useState("");
   const [selected, setSelected]       = useState<any | null>(null);
   const [editMode, setEditMode]       = useState(false);
-  const [editFields, setEditFields]   = useState({ duree: "", duree_heures: "", montant: "" });
+  const [editFields, setEditFields]   = useState({ date: "", duree: "", duree_heures: "", montant: "" });
   const [actionLoading, setActionLoading] = useState(false);
   const [bulkSelectedC, setBulkSelectedC] = useState<Set<string>>(new Set());
   const [bulkLoadingC, setBulkLoadingC] = useState(false);
@@ -1427,7 +1476,7 @@ function AdminContestations() {
 
   function openItem(item: any) {
     setSelected(item); setEditMode(false);
-    setEditFields({ duree: item.cours?.duree ?? "", duree_heures: String(item.cours?.duree_heures ?? ""), montant: String(item.cours?.montant ?? "") });
+    setEditFields({ date: item.cours?.date ?? "", duree: item.cours?.duree ?? "", duree_heures: String(item.cours?.duree_heures ?? ""), montant: String(item.cours?.montant ?? "") });
   }
 
   async function rejeterContestation() {
@@ -1447,6 +1496,7 @@ function AdminContestations() {
     if (!selected) return;
     setActionLoading(true);
     await supabase.from("cours").update({
+      date: editFields.date || undefined,
       duree: editFields.duree, duree_heures: parseFloat(editFields.duree_heures),
       montant: parseFloat(editFields.montant), statut: "déclaré",
     }).eq("id", selected.cours.id);
@@ -1494,6 +1544,13 @@ function AdminContestations() {
           <p className="text-xs font-mono text-slate-400 mt-0.5">{items.length} rows · contestation_cours</p>
         </div>
       </div>
+      <InfoBox title="Circuit de résolution d'une contestation">
+        <p>Une contestation est créée par un parent qui n'est pas d'accord avec un cours déclaré par le prof. Le cours passe à «contesté», la validation recap de l'élève repasse à «en attente parent».</p>
+        <p><span className="font-semibold">Rejeter la contestation</span> — supprime la contestation, remet le cours à «déclaré». Le parent devra re-valider le récap complet. À utiliser si la contestation est infondée.</p>
+        <p><span className="font-semibold">Modifier + résoudre</span> — corrige la date, la durée ou le montant du cours pour tenir compte de la remarque du parent, puis clôt la contestation. Le cours repasse à «déclaré» et le parent re-valide. À utiliser si la contestation est partiellement justifiée.</p>
+        <p className="font-semibold text-amber-700">⚠ Dans les deux cas, la validation parente du recap repasse à «en attente parent» — le cycle de validation recommence pour cet élève.</p>
+        <p className="font-semibold text-amber-700">⚠ Contactez toujours le prof ET le parent avant de résoudre pour s'assurer que les deux parties sont d'accord.</p>
+      </InfoBox>
       <SearchInput value={search} onChange={setSearch} placeholder="Élève, matière ou raison…" />
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
@@ -1564,9 +1621,22 @@ function AdminContestations() {
               {editMode && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                   <p className="text-xs font-mono font-bold text-blue-500">UPDATE cours SET …</p>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className={FL}>date (YYYY-MM-DD)</label>
+                      <input type="date" value={editFields.date}
+                        onChange={(e) => setEditFields({ ...editFields, date: e.target.value })}
+                        className={FI} />
+                    </div>
+                    <div>
+                      <label className={FL}>duree (texte)</label>
+                      <input type="text" value={editFields.duree}
+                        onChange={(e) => setEditFields({ ...editFields, duree: e.target.value })}
+                        className={FI} />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: "duree (texte)", key: "duree", type: "text", step: undefined },
                       { label: "duree_heures",  key: "duree_heures", type: "number", step: "0.25" },
                       { label: "montant (€)",   key: "montant",      type: "number", step: "0.01" },
                     ].map(({ label, key, type, step }) => (
@@ -1778,6 +1848,12 @@ function AdminPaps() {
           <Plus className="w-4 h-4" /> Nouvelle annonce
         </button>
       </div>
+      <InfoBox title="PAPS — Programme d'Accès aux Profs Solidaires">
+        <p>PAPS est un espace d'annonces inter-profs : un prof qui cherche un remplaçant ou un partenaire pour un élève peut poster une annonce. D'autres profs peuvent y postuler.</p>
+        <p>Ces annonces sont <span className="font-semibold">visibles uniquement par les profs connectés</span>, pas par les parents ni les élèves.</p>
+        <p>L'admin peut créer, modifier et supprimer des annonces au nom de n'importe quel prof, et consulter les candidatures reçues.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer une annonce supprime aussi toutes ses candidatures en cascade.</p>
+      </InfoBox>
       <SearchInput value={search} onChange={setSearch} placeholder="Prof, matière, niveau…" />
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
         {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div>
@@ -2142,9 +2218,21 @@ export function AdminDashboard() {
         {section === "paiements" && (
           <div className="max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
-              <div><h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1><p className="text-sm text-slate-500 mt-1">Montants calculés depuis le multiplicateur figé sur chaque cours</p></div>
+              <div>
+              <h1 className="text-xl font-bold text-slate-900">Dispatch des paiements</h1>
+              <p className="text-sm text-slate-500 mt-1">Montants calculés depuis le multiplicateur figé sur chaque cours</p>
+            </div>
               <span className="text-xs text-slate-400">Actualisé à {lastRefresh.toLocaleTimeString("fr-FR")}</span>
             </div>
+            <InfoBox title="Comment les montants sont calculés">
+              <p><span className="font-semibold">Montant brut</span> — ce que le parent a payé (tarif famille × heures).</p>
+              <p><span className="font-semibold">Net prof (après impôts)</span> — montant_brut × (1 + taux_plusvalue). C'est ce que le prof doit toucher une fois ses cotisations et impôts payés.</p>
+              <p><span className="font-semibold">Virement à envoyer</span> — net_prof ÷ 0,8264. On vire volontairement plus que le net, car le prof doit ensuite acquitter ~18% de charges (11% cotisations + 7,15% IR). Après ces charges, il lui reste exactement le net promis.</p>
+              <p>Exemple : famille paie 30 € · taux +28 % → net 38,40 € → virement 46,47 € → après charges : ≈ 38,40 € net.</p>
+              <p className="font-semibold text-amber-700">⚠ Un virement Qonto est irréversible. Toujours vérifier l'IBAN avant de confirmer.</p>
+              <p className="font-semibold text-amber-700">⚠ Le dispatcher passe automatiquement le récap à «Payé» — ne pas le faire manuellement en plus dans la section Récaps.</p>
+              <p className="font-semibold text-amber-700">⚠ Seuls les récaps au statut «en_attente_paiement» apparaissent ici. Si un récap attendu est absent, vérifier que toutes les validations parentes sont bien à «valide».</p>
+            </InfoBox>
             {profsWithoutIban.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <p className="text-sm font-semibold text-amber-800">{profsWithoutIban.length} prof(s) sans IBAN :</p>

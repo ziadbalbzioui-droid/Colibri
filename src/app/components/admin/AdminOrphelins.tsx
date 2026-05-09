@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, Link2, Check, X } from "lucide-react";
+import { Loader2, Link2, Check, X, Info, AlertTriangle } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { MOIS_LABELS, TH, TD, CopyID } from "./adminShared";
 
@@ -80,6 +80,24 @@ export function AdminOrphelins() {
         <div>
           <h1 className="text-xl font-bold text-slate-900">Cours orphelins</h1>
           <p className="text-xs font-mono text-slate-400 mt-0.5">{filtered.length}/{cours.length} rows · cours WHERE recap_id IS NULL</p>
+        </div>
+      </div>
+
+      <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+        <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-blue-800 leading-relaxed space-y-1">
+          <p className="font-bold text-blue-900 text-[11px] uppercase tracking-wide mb-1.5">Cours orphelins — à quoi ça sert ?</p>
+          <p>Un cours est «orphelin» s'il n'est rattaché à aucun récap (<code className="bg-blue-100 px-1 rounded">recap_id = NULL</code>). Il n'apparaît donc dans aucun récap mensuel et ne sera pas inclus dans les calculs de paiement.</p>
+          <p><strong>Causes courantes :</strong> cours déclaré avant la création du récap du mois concerné, ou cours dont le récap a été supprimé après coup.</p>
+          <p><strong>Action :</strong> utilisez «Attacher» pour relier le cours au bon récap mensuel du prof concerné — il sera alors comptabilisé dans les totaux et visible côté parent.</p>
+        </div>
+      </div>
+      <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-800 leading-relaxed space-y-1">
+          <p className="font-bold text-amber-900 text-[11px] uppercase tracking-wide mb-1.5">Attention avant d'attacher</p>
+          <p>Attacher un cours à un récap déjà <strong>validé par les parents</strong> ou <strong>en attente de paiement</strong> modifiera le total du récap sans invalider les validations déjà faites — risque d'incohérence. Une confirmation est demandée dans ce cas.</p>
+          <p>Attacher un cours à un récap <strong>«Payé»</strong> est bloqué : le paiement Qonto est irreversible.</p>
         </div>
       </div>
 

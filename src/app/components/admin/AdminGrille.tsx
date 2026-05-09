@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Plus, Trash2, Save, RotateCcw, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Save, RotateCcw, AlertTriangle, Info } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 
 interface GrilleRow {
@@ -227,6 +227,17 @@ export function AdminGrille() {
         </div>
         <div className="border-t border-blue-200 pt-2 text-blue-700">
           Toutes les colonnes sont interconnectées : modifier l'une recalcule automatiquement les autres.
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5 flex items-start gap-3">
+        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <div className="text-xs text-amber-800 leading-relaxed space-y-1">
+          <p className="font-bold text-amber-900 text-[11px] uppercase tracking-wide mb-1.5">Conséquences d'une modification de grille</p>
+          <p><span className="font-semibold">Pas de rétroactivité</span> — modifier ou supprimer un palier n'affecte PAS les cours déjà déclarés. Le taux_plusvalue et le multiplicateur_brut sont figés sur chaque cours au moment de sa déclaration par le prof.</p>
+          <p>Les changements de grille ne s'appliquent qu'aux <span className="font-semibold">cours déclarés après</span> la modification.</p>
+          <p>Ajouter un palier pour un tarif qui n'existait pas permet aux profs à ce tarif de bénéficier du nouveau taux sur leurs futurs cours.</p>
+          <p className="font-semibold">⚠ Supprimer un palier n'empêche pas les cours existants de fonctionner — cela empêche uniquement les nouveaux cours à ce tarif d'avoir un taux associé (ils hériteront du palier inférieur).</p>
         </div>
       </div>
 
