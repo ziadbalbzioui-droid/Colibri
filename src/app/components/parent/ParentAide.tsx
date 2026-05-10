@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, Laptop, Zap, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare } from "lucide-react";
+import { ChevronDown, ChevronLeft, Laptop, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare, Landmark, TrendingUp, HeartHandshake, Flag, Send, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 
 // ─── Mock components ───────────────────────────────────────────
@@ -14,24 +14,18 @@ function MockDashboard() {
           <span style={{ color: "#94A3B8", fontSize: 16 }}>Tableau de bord de suivi</span>
         </p>
       </div>
-
-      {/* Encart info */}
       <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
-        Tous les montants affichés = <strong>votre part après crédit d'impôt de 50%</strong>. L'État règle l'autre moitié.
+        Tous les montants = <strong>votre part après crédit d'impôt de 50%</strong>. L'État règle l'autre moitié.
       </div>
-
-      {/* Child card */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "#1D4ED8" }} />
         <div style={{ width: 36, height: 36, background: "#EFF6FF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "#1D4ED8", flexShrink: 0 }}>T</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1 }}>
           <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 14, color: "#0F172A", margin: 0 }}>Thomas</p>
           <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Terminale · Prof : M. Dupont</p>
         </div>
         <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>Maths</span>
       </div>
-
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px" }}>
           <div style={{ width: 24, height: 24, background: "#F0FDF4", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
@@ -51,8 +45,6 @@ function MockDashboard() {
           <p style={{ fontSize: 10, color: "#16A34A", margin: 0 }}>après crédit d'impôt</p>
         </div>
       </div>
-
-      {/* Dernière facture */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
         <AlertCircle style={{ width: 13, height: 13, color: "#F59E0B", flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
@@ -73,13 +65,9 @@ function MockCours() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
       <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Suivi des séances</p>
-
-      {/* Encart info prix */}
       <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "8px 11px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
         Les <span style={{ textDecoration: "line-through" }}>prix barrés</span> = tarif plein. Le montant <strong style={{ color: "#16A34A" }}>vert</strong> = votre part après crédit d'impôt 50%.
       </div>
-
-      {/* Month nav */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div style={{ width: 26, height: 26, border: "1px solid #E2E8F0", borderRadius: 7, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <ChevronLeft style={{ width: 12, height: 12, color: "#64748B" }} />
@@ -89,8 +77,6 @@ function MockCours() {
           <ChevronLeft style={{ width: 12, height: 12, color: "#64748B", transform: "rotate(180deg)" }} />
         </div>
       </div>
-
-      {/* Course cards */}
       {[
         { matiere: "Mathématiques", date: "Lundi 5 Mai", duree: "1h30", montant: 45 },
         { matiere: "Mathématiques", date: "Lundi 12 Mai", duree: "1h30", montant: 45 },
@@ -121,16 +107,10 @@ function MockValidations() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
       <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Récapitulatifs mensuels</p>
-
-      {/* Encart info */}
       <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "8px 11px", marginBottom: 12, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
         Votre prof clôture son mois → vous validez → la facture est générée automatiquement.
       </div>
-
-      {/* En attente label */}
       <p style={{ fontSize: 10, fontWeight: 700, color: "#92400E", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8 }}>En attente de validation (1)</p>
-
-      {/* Pending item */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, borderLeft: "3px solid #F59E0B" }}>
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 3px" }}>Avril 2026</p>
@@ -143,11 +123,7 @@ function MockValidations() {
         </div>
         <span style={{ fontSize: 10, background: "#2E6BEA", color: "#fff", padding: "4px 10px", borderRadius: 7, fontWeight: 600 }}>Voir & Valider</span>
       </div>
-
-      {/* Historique label */}
       <p style={{ fontSize: 10, fontWeight: 700, color: "#065F46", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8 }}>Historique (1)</p>
-
-      {/* Done item */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "3px solid #22C55E" }}>
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: "0 0 2px" }}>Mars 2026</p>
@@ -162,21 +138,35 @@ function MockValidations() {
 function MockValidationModal() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
-      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Modale de validation — Avril 2026</p>
-      {/* Warning */}
+      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Modale — Valider Avril 2026</p>
       <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 10, padding: "10px 12px", display: "flex", gap: 8, marginBottom: 12 }}>
         <AlertTriangle style={{ width: 13, height: 13, color: "#B45309", flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 11, color: "#92400E", margin: 0, lineHeight: 1.5 }}>
           <strong>Action irréversible.</strong> Une fois validé, la facture est générée.
         </p>
       </div>
-      {/* Totals */}
-      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+      {[
+        { matiere: "Mathématiques", date: "Lundi 7 Avril", duree: "1h30", montant: 45 },
+        { matiere: "Mathématiques", date: "Lundi 14 Avril", duree: "1h30", montant: 45 },
+      ].map((c, i) => (
+        <div key={i} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <div style={{ width: 2, height: 32, borderRadius: 2, background: "#1D4ED8", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.matiere} · {c.duree}</p>
+            <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>{c.date}</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant * 2} €</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#16A34A", margin: 0 }}>{c.montant} €</p>
+          </div>
+        </div>
+      ))}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 9, padding: "10px 12px", marginTop: 8, marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
           <span style={{ color: "#64748B" }}>Prix facturé</span>
           <span style={{ color: "#94A3B8", textDecoration: "line-through" }}>180 €</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
           <span style={{ color: "#64748B" }}>Crédit d'impôt (50%)</span>
           <span style={{ color: "#16A34A", fontWeight: 600 }}>−90 €</span>
         </div>
@@ -185,14 +175,12 @@ function MockValidationModal() {
           <span style={{ fontWeight: 700, color: "#16A34A" }}>90 €</span>
         </div>
       </div>
-      {/* Checkbox */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
         <div style={{ width: 14, height: 14, border: "2px solid #2E6BEA", borderRadius: 3, background: "#2E6BEA", flexShrink: 0, marginTop: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <CheckCircle style={{ width: 9, height: 9, color: "#fff" }} />
         </div>
         <p style={{ fontSize: 11, color: "#374151", margin: 0, lineHeight: 1.5 }}>J'ai vérifié les séances et confirme leur exactitude.</p>
       </div>
-      {/* CTAs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
         <div style={{ flex: 1, border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px", textAlign: "center", fontSize: 11, color: "#64748B" }}>Annuler</div>
         <div style={{ flex: 1, border: "1.5px solid #FB923C", background: "#FFF7ED", borderRadius: 9, padding: "8px", textAlign: "center", fontSize: 11, color: "#EA580C", fontWeight: 600 }}>Contester</div>
@@ -200,6 +188,149 @@ function MockValidationModal() {
       <div style={{ background: "#2E6BEA", borderRadius: 9, padding: "9px", textAlign: "center", color: "#fff", fontWeight: 600, fontSize: 12 }}>
         Valider le mois
       </div>
+    </div>
+  );
+}
+
+function MockContestation() {
+  return (
+    <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
+      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Contester Avril 2026</p>
+      <div style={{ background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 9, padding: "8px 11px", marginBottom: 12, fontSize: 11, color: "#92400E", lineHeight: 1.5 }}>
+        Sélectionnez les cours qui vous semblent incorrects et expliquez le problème.
+      </div>
+      {[
+        { matiere: "Mathématiques", date: "Lundi 7 Avril", duree: "1h30", conteste: false },
+        { matiere: "Mathématiques", date: "Lundi 14 Avril", duree: "2h", conteste: true, raison: "La durée devrait être 1h30 et non 2h" },
+      ].map((c, i) => (
+        <div key={i} style={{ background: "#fff", border: `1px solid ${c.conteste ? "#FDBA74" : "#E2E8F0"}`, borderRadius: 9, padding: "10px 12px", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: c.conteste ? 8 : 0 }}>
+            <div style={{ width: 2, height: 32, borderRadius: 2, background: "#1D4ED8", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.matiere} · {c.duree}</p>
+              <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>{c.date}</p>
+            </div>
+            <div style={{ display: "flex", gap: 5 }}>
+              <span style={{ fontSize: 10, padding: "3px 9px", borderRadius: 6, fontWeight: 600, background: c.conteste ? "#F8FAFC" : "#ECFDF5", color: c.conteste ? "#94A3B8" : "#065F46", border: `1px solid ${c.conteste ? "#E2E8F0" : "#BBF7D0"}` }}>OK</span>
+              <span style={{ fontSize: 10, padding: "3px 9px", borderRadius: 6, fontWeight: 600, background: c.conteste ? "#FFF7ED" : "#F8FAFC", color: c.conteste ? "#EA580C" : "#94A3B8", border: `1px solid ${c.conteste ? "#FDBA74" : "#E2E8F0"}` }}>
+                <Flag style={{ width: 9, height: 9, display: "inline", marginRight: 3 }} />Contester
+              </span>
+            </div>
+          </div>
+          {c.conteste && (
+            <div style={{ background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 7, padding: "7px 10px", fontSize: 11, color: "#92400E", fontStyle: "italic" }}>
+              « {c.raison} »
+            </div>
+          )}
+        </div>
+      ))}
+      <div style={{ background: "#EA580C", borderRadius: 9, padding: "9px", textAlign: "center", color: "#fff", fontWeight: 600, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <Send style={{ width: 12, height: 12 }} /> Envoyer la contestation
+      </div>
+    </div>
+  );
+}
+
+function MockApresValidation() {
+  return (
+    <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
+      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Ce qui se passe ensuite</p>
+      {/* Étapes */}
+      {[
+        { n: "1", label: "Facture générée automatiquement", done: true },
+        { n: "2", label: "L'Urssaf vous envoie un email de notification", done: true },
+        { n: "3", label: "48h pour contester auprès de l'Urssaf", done: false, highlight: true },
+        { n: "4", label: "L'Urssaf prélève votre 50% (le reste : État)", done: false },
+      ].map((step) => (
+        <div key={step.n} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+          <div style={{ width: 22, height: 22, borderRadius: "50%", background: step.done ? "#ECFDF5" : step.highlight ? "#FFFBEB" : "#F1F5F9", border: `1.5px solid ${step.done ? "#22C55E" : step.highlight ? "#FCD34D" : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+            {step.done
+              ? <CheckCircle style={{ width: 11, height: 11, color: "#22C55E" }} />
+              : <span style={{ fontSize: 10, fontWeight: 700, color: step.highlight ? "#B45309" : "#94A3B8" }}>{step.n}</span>
+            }
+          </div>
+          <p style={{ fontSize: 11, color: step.done ? "#0F172A" : step.highlight ? "#92400E" : "#64748B", margin: 0, lineHeight: 1.5, fontWeight: step.highlight ? 600 : 400 }}>{step.label}</p>
+        </div>
+      ))}
+      {/* Facture preview */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 9, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+        <AlertCircle style={{ width: 13, height: 13, color: "#F59E0B", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", margin: 0 }}>Avril 2026 — nouvelle facture</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>En attente de paiement Urssaf</p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>180 €</p>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>90 €</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockMecanisme() {
+  return (
+    <div style={{ background: "#F8FAFC", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden", fontSize: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+        {/* Avant */}
+        <div style={{ padding: "14px 16px", borderRight: "1px solid #E2E8F0" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#94A3B8", marginBottom: 10 }}>Avant Colibri</p>
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>20 €</span>
+            <p style={{ fontSize: 10, color: "#64748B", margin: "2px 0 0" }}>en liquide au prof</p>
+          </div>
+          <div style={{ fontSize: 10, color: "#94A3B8", lineHeight: 1.6 }}>
+            <p style={{ margin: 0 }}>✗ Aucun justificatif</p>
+            <p style={{ margin: 0 }}>✗ Pas de crédit d'impôt</p>
+            <p style={{ margin: 0 }}>✗ Pas de cotisations</p>
+          </div>
+        </div>
+        {/* Avec Colibri */}
+        <div style={{ padding: "14px 16px", background: "#EFF6FF" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#2563EB", marginBottom: 10 }}>Avec Colibri</p>
+          <div style={{ fontSize: 11, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+              <span style={{ color: "#64748B" }}>Facture déclarée</span>
+              <span style={{ fontWeight: 600, color: "#0F172A" }}>40 €</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+              <span style={{ color: "#64748B" }}>Crédit d'impôt État</span>
+              <span style={{ fontWeight: 600, color: "#2563EB" }}>− 20 €</span>
+            </div>
+            <div style={{ height: 1, background: "#BFDBFE", margin: "6px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 700, color: "#0F172A" }}>Vous payez</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>20 €</span>
+            </div>
+          </div>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", margin: 0 }}>Identique à avant.</p>
+        </div>
+      </div>
+      <div style={{ padding: "10px 16px", background: "#DBEAFE", borderTop: "1px solid #BFDBFE", fontSize: 11, color: "#1E40AF" }}>
+        <strong>Pas d'avance, pas d'attente.</strong> Le crédit d'impôt est déduit en temps réel au prélèvement.
+      </div>
+    </div>
+  );
+}
+
+function MockParcours() {
+  const steps = [
+    { n: "01", title: "Colibri crée votre compte Urssaf.", body: "Dès votre inscription, nous créons votre espace Urssaf en votre nom. Zéro démarche de votre côté." },
+    { n: "02", title: "Vous activez et renseignez votre IBAN.", body: "Vous recevez un email de l'Urssaf. Vous activez votre espace sur particulier.urssaf.fr et saisissez votre IBAN." },
+    { n: "03", title: "Chaque mois, validation en 48h.", body: "Colibri émet la demande. Vous recevez une notification Urssaf. 48h pour valider ou contester — sans action, accepté automatiquement." },
+    { n: "04", title: "L'Urssaf prélève uniquement vos 50%.", body: "L'Urssaf débite uniquement le reste à charge. L'État règle l'autre moitié directement." },
+  ];
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden", fontSize: 12 }}>
+      {steps.map((step, i) => (
+        <div key={step.n} style={{ display: "flex", gap: 12, padding: "12px 16px", borderBottom: i < steps.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+          <span style={{ fontSize: 18, fontWeight: 900, color: "#E2E8F0", flexShrink: 0, lineHeight: 1.2 }}>{step.n}</span>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", margin: "0 0 2px" }}>{step.title}</p>
+            <p style={{ fontSize: 10, color: "#64748B", margin: 0, lineHeight: 1.5 }}>{step.body}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -235,17 +366,17 @@ const GUIDES: {
     items: [
       {
         title: "Votre tableau de bord",
-        desc: "La page d'accueil résume l'activité de votre enfant : heures ce mois, montant en attente après crédit d'impôt, dernières factures. Tous les montants affichés sont votre part nette — après déduction du crédit d'impôt de 50% appliqué automatiquement via l'avance immédiate Urssaf.",
+        desc: "La page d'accueil résume l'activité de votre enfant : heures ce mois, montant en attente après crédit d'impôt, dernières factures. Tous les montants affichés sont votre part nette — après déduction du crédit d'impôt de 50%.",
         MockComponent: MockDashboard,
       },
       {
         title: "Suivre les cours par mois",
-        desc: "Dans la section « Cours », naviguez mois par mois avec les flèches. Chaque cours détaille la matière, la durée, le professeur et votre part après crédit d'impôt. Le prix barré correspond au tarif plein — le montant en vert est ce que vous payez réellement.",
+        desc: "Dans la section « Cours », naviguez mois par mois avec les flèches. Chaque cours détaille la matière, la durée, le professeur et votre part après crédit d'impôt. Le prix barré = tarif plein, le montant vert = ce que vous payez réellement.",
         MockComponent: MockCours,
       },
       {
         title: "Ajouter un professeur",
-        desc: "Demandez à votre professeur son code d'invitation (disponible dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » → saisissez le code → « Ajouter ». Les cours apparaissent automatiquement dans votre espace.",
+        desc: "Demandez à votre professeur son code d'invitation (disponible dans son espace Colibri, section « Mon profil »). Dans « Mon profil », saisissez le code et cliquez « Ajouter ». Les cours apparaissent automatiquement dans votre espace.",
       },
     ],
   },
@@ -260,56 +391,54 @@ const GUIDES: {
     items: [
       {
         title: "La page Validations",
-        desc: "En fin de mois, votre professeur clôture son récapitulatif. Une notification apparaît sur votre tableau de bord et dans la section « Validations ». Vous y retrouvez tous les mois en attente avec le détail des séances et les montants.",
+        desc: "En fin de mois, votre professeur clôture son récapitulatif. Une notification apparaît sur votre tableau de bord et dans la section « Validations ». Vous y retrouvez tous les mois en attente, avec le détail des séances et les montants votre part.",
         MockComponent: MockValidations,
       },
       {
         title: "Valider un mois",
-        desc: "Cliquez sur « Voir & Valider » pour ouvrir la modale de validation. Examinez chaque cours, vérifiez les dates et les durées. Cochez la case de confirmation, puis cliquez « Valider le mois ». La facture est générée automatiquement — cette action est irréversible.",
+        desc: "Cliquez sur « Voir & Valider » pour ouvrir la modale. Examinez chaque cours, vérifiez les dates et les durées. Cochez la case de confirmation puis cliquez « Valider le mois ». Cette action est irréversible — la facture est générée automatiquement.",
         MockComponent: MockValidationModal,
       },
       {
         title: "Contester un cours",
-        desc: "Si un cours vous semble incorrect (date erronée, durée excessive…), cliquez « Contester » dans la modale. Vous serez redirigé vers la page de contestation où vous pourrez signaler précisément les cours problématiques. L'équipe Colibri traitera la contestation avec votre professeur.",
-        link: "/parent/validations",
-        linkLabel: "Aller à la page Validations →",
+        desc: "Si un cours vous semble incorrect (date erronée, durée excessive…), cliquez « Contester » dans la modale. Vous pouvez signaler précisément les cours problématiques et expliquer la raison. L'équipe Colibri traitera la contestation avec votre professeur.",
+        MockComponent: MockContestation,
       },
       {
-        title: "Que se passe-t-il après la validation ?",
-        desc: "Une facture est créée automatiquement. Elle apparaît dans la section « Factures » avec le montant après crédit d'impôt. Si plusieurs parents ont des élèves chez le même professeur, tous doivent valider pour que la facture soit générée.",
+        title: "Ce qui se passe après la validation",
+        desc: "Une facture est créée automatiquement et l'Urssaf vous envoie un email de notification de prélèvement. Vous disposez de 48h pour contester directement auprès de l'Urssaf sur particulier.urssaf.fr. Passé ce délai, l'Urssaf prélève uniquement votre 50% — l'État règle l'autre moitié directement.",
+        MockComponent: MockApresValidation,
       },
     ],
   },
   {
-    id: "avance",
-    Icon: Zap,
-    title: "L'avance immédiate Urssaf",
-    desc: "Requis pour utiliser Colibri — 50% de réduction sur chaque facture.",
-    color: "text-amber-600",
-    iconBg: "bg-amber-50",
-    accent: "#d97706",
+    id: "mecanisme",
+    Icon: Landmark,
+    title: "Le mécanisme financier",
+    desc: "Pourquoi vous payez la même chose qu'avant, et à quoi sert l'argent de l'État.",
+    color: "text-blue-700",
+    iconBg: "bg-blue-50",
+    accent: "#0052D4",
     items: [
       {
-        title: "Qu'est-ce que l'avance immédiate ?",
-        desc: "C'est un dispositif officiel de l'Urssaf qui permet aux familles employant un service à la personne (cours particuliers inclus) de bénéficier de leur crédit d'impôt de 50% directement sur chaque facture. Vous ne payez que la moitié — l'État règle l'autre moitié directement au professeur.",
+        title: "Vous payez la même chose qu'avant",
+        desc: "Colibri facture le double de votre prix habituel. L'Urssaf déduit 50% en temps réel — vous payez exactement ce que vous payiez avant en liquide. La différence : tout est déclaré, le prof cotise, et vous avez un justificatif.",
+        MockComponent: MockMecanisme,
       },
       {
-        title: "Pourquoi c'est obligatoire sur Colibri ?",
-        desc: "Colibri est conçu autour du dispositif d'avance immédiate Urssaf. Tous les montants affichés dans l'application correspondent à votre part après crédit d'impôt (50% du brut). L'activation est requise pour utiliser la plateforme.",
+        title: "Votre parcours, de l'inscription au prélèvement",
+        desc: "La mécanique se déroule en 4 étapes : Colibri crée votre espace Urssaf → vous l'activez et renseignez votre IBAN → chaque mois l'Urssaf vous notifie et vous avez 48h pour valider ou contester → l'Urssaf prélève uniquement vos 50%.",
+        MockComponent: MockParcours,
       },
       {
-        title: "Comment ça marche concrètement ?",
-        desc: "Exemple : une séance facturée 40 €. Avec l'avance immédiate, vous payez 20 €. L'Urssaf verse les 20 € restants directement au professeur. Aucune démarche supplémentaire, aucune attente de remboursement : la réduction est appliquée sur chaque facture, automatiquement.",
+        title: "L'argent de l'État, il va où ?",
+        desc: "Les 20% qui transitent via l'État ne génèrent aucun bénéfice pour Colibri. Ils permettent trois choses : rémunérer les profs à +40% par rapport au marché au noir tout en les faisant cotiser, éliminer le travail non déclaré, et financer des cours gratuits pour des familles qui ne pourraient pas se les payer.",
       },
       {
-        title: "Comment l'activer ?",
-        desc: "La procédure d'activation sera disponible prochainement directement dans l'application. Vous serez notifié par email dès qu'elle sera ouverte. Vous aurez besoin de vos informations d'état civil et de votre IBAN — la procédure prend environ 5 minutes.",
-        link: "/parent/activation",
-        linkLabel: "Voir la page d'activation →",
-      },
-      {
-        title: "Mon compte est « en attente »",
-        desc: "Cela signifie que votre dossier est en cours de traitement par l'Urssaf. Consultez votre boîte mail — un email de confirmation vous a été envoyé. Une fois validé, la réduction s'applique automatiquement sur les prochaines factures.",
+        title: "Conditions et plafonds",
+        desc: "Le crédit d'impôt est soumis à des plafonds légaux fixés par l'administration fiscale. Compte bancaire SEPA requis et au moins une déclaration de revenus en France. Pour toute question sur une facture ou les heures déclarées, contactez Colibri directement — l'Urssaf ne gère pas les litiges liés aux prestations.",
+        link: "https://www.impots.gouv.fr/portail/particulier/emploi-domicile",
+        linkLabel: "Consulter les plafonds en vigueur →",
       },
     ],
   },
@@ -331,12 +460,12 @@ const GUIDES: {
         desc: "Le montant brut = total des cours au tarif plein. Vous ne payez que 50% — la différence est couverte par l'Urssaf directement. Vous n'avancez rien : la réduction est immédiate et s'applique sur chaque facture.",
       },
       {
-        title: "Comment payer ?",
-        desc: "Dans la section « Factures », cliquez sur « Payer » à côté de la facture en attente. Vous pouvez régler par carte bancaire ou par virement. Une confirmation vous est envoyée par email.",
+        title: "Comment se passe le paiement ?",
+        desc: "Une fois la facture générée, l'Urssaf vous envoie un email vous informant du montant qui va être prélevé. Vous avez 48 heures pour contester directement auprès de l'Urssaf sur particulier.urssaf.fr si quelque chose vous semble incorrect. Passé ce délai, l'Urssaf prélève automatiquement votre 50% sur votre compte bancaire.",
       },
       {
         title: "Une facture semble incorrecte ?",
-        desc: "La facture correspond au récapitulatif que vous avez validé. Si vous pensez qu'il y a une erreur, contactez directement votre professeur ou notre support à contact@colibri-soutien.fr avant la prochaine validation.",
+        desc: "La facture correspond au récapitulatif que vous avez validé dans Colibri. Si vous avez un doute avant de valider, utilisez la contestation dans Colibri. Si la facture a déjà été émise et prélevée, contactez notre support à contact@colibri-soutien.fr.",
       },
     ],
   },
@@ -345,11 +474,11 @@ const GUIDES: {
 const FAQ_ITEMS = [
   { q: "Que se passe-t-il si je ne valide pas le récapitulatif mensuel ?", a: "Le mois reste en statut « en attente » dans la section Validations. Aucune facture ne peut être générée. Si vous avez une question sur un cours, contactez votre professeur avant de valider — ou contestez directement depuis la modale de validation." },
   { q: "Puis-je modifier un cours après avoir validé le récapitulatif ?", a: "Non. La validation est irréversible : elle clôture le mois et déclenche la génération de la facture. C'est pourquoi nous vous recommandons d'examiner attentivement chaque cours avant de confirmer, et d'utiliser la contestation si quelque chose vous paraît incorrect." },
-  { q: "L'avance immédiate est-elle vraiment obligatoire ?", a: "Oui. Colibri est conçu autour du dispositif d'avance immédiate Urssaf. Tous les prix affichés dans l'application sont les prix après crédit d'impôt (50% du brut). L'activation est requise pour accéder aux fonctionnalités de paiement." },
-  { q: "Suis-je remboursé après paiement avec l'avance immédiate ?", a: "Non, et c'est précisément l'avantage. La réduction est appliquée directement sur chaque facture. Vous ne payez que 50%, l'Urssaf règle le reste directement au professeur. Pas de délai, pas d'avance de trésorerie de votre part." },
-  { q: "Comment ajouter un deuxième professeur ?", a: "Demandez à ce professeur de vous communiquer son code d'invitation (dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » et saisissez le code. Ses cours apparaîtront dans votre espace dès le lendemain." },
-  { q: "Plusieurs parents doivent-ils valider pour le même professeur ?", a: "Oui. Si plusieurs familles ont des élèves chez le même professeur, chaque famille doit valider séparément. La facture n'est générée qu'une fois que tous les parents ont validé. Cela garantit que tout le monde est d'accord avant le paiement." },
-  { q: "Mes données personnelles sont-elles sécurisées ?", a: "Oui. Les données sont hébergées sur serveurs européens, conformes au RGPD. Vos informations bancaires sont chiffrées et ne sont jamais partagées avec des tiers autres que l'Urssaf dans le cadre de l'avance immédiate." },
+  { q: "Comment fonctionne le prélèvement Urssaf ?", a: "Après votre validation dans Colibri, l'Urssaf vous envoie un email de notification. Vous avez 48h pour contester sur particulier.urssaf.fr. Passé ce délai, l'Urssaf prélève automatiquement votre 50% — l'État verse l'autre moitié directement au professeur. Aucune avance, aucun remboursement." },
+  { q: "Suis-je remboursé après paiement avec l'avance immédiate ?", a: "Non, et c'est précisément l'avantage. La réduction est appliquée directement sur chaque prélèvement. Vous ne payez que 50%, l'Urssaf règle le reste directement au professeur. Pas de délai, pas d'avance de trésorerie de votre part." },
+  { q: "Comment ajouter un deuxième professeur ?", a: "Demandez à ce professeur de vous communiquer son code d'invitation (dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » et saisissez le code. Ses cours apparaîtront dans votre espace dès qu'il les déclarera." },
+  { q: "Plusieurs parents doivent-ils valider pour le même professeur ?", a: "Oui. Si plusieurs familles ont des élèves chez le même professeur, chaque famille valide séparément. La facture n'est émise qu'une fois que tous les parents ont validé. Cela garantit que tout le monde est d'accord avant le prélèvement." },
+  { q: "Mes données personnelles sont-elles sécurisées ?", a: "Oui. Les données sont hébergées sur serveurs européens, conformes au RGPD. Vos informations bancaires sont gérées directement par l'Urssaf et ne transitent pas par Colibri." },
 ];
 
 // ─── Guide detail page ─────────────────────────────────────────
@@ -391,12 +520,14 @@ function GuidePage({ guide, onBack }: { guide: typeof GUIDES[0]; onBack: () => v
                 </div>
               )}
               {item.link && (
-                <Link
-                  to={item.link}
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`inline-flex items-center gap-1 text-xs font-semibold mt-3 hover:underline ${guide.color}`}
                 >
                   <ExternalLink className="w-3 h-3" />{item.linkLabel}
-                </Link>
+                </a>
               )}
             </div>
           </div>
