@@ -314,15 +314,12 @@ export function Welcome() {
 
                 <h1 className="tracking-tight leading-[1.1]">
                   <span style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "clamp(2.4rem, 6vw, 4.2rem)", color: "#0F172A", display: "block", letterSpacing: "-0.02em" }}>
-                    L'excellence du soutien scolaire.
-                  </span>
-                  <span className="text-slate-500 font-semibold" style={{ fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)", marginTop: "0.5rem", display: "block", letterSpacing: "-0.01em" }}>
-                    La sérénité administrative absolue.
+                    Le soutien scolaire d'excellence, enfin simple à déclarer.
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-700 leading-relaxed max-w-2xl mx-auto font-medium drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">
-                  Rejoignez le premier réseau de soutien scolaire d'excellence où la légalité ne coûte rien aux parents et rapporte enfin plus aux étudiants.
+                  Colibri met en relation familles et étudiants de grandes écoles pour des cours particuliers de haut niveau, déclarés simplement et accessibles grâce au dispositif de service à la personne.
                 </p>
 
                 {/* BOUTONS D'ACTION */}
@@ -356,23 +353,13 @@ export function Welcome() {
                 {/* BARRE D'ARGUMENTS - Cartes Glassmorphism */}
                 <div className="flex flex-wrap justify-center gap-5 pt-8 mt-6 border-t border-white/30 text-left">
 
-                  <div className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] flex items-start gap-4 p-5 bg-white/85 backdrop-blur-xl border border-rose-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group">
-                    <div className="mt-0.5 bg-gradient-to-br from-rose-100 to-pink-100 p-2.5 rounded-xl text-rose-600 group-hover:scale-110 transition-transform shrink-0">
-                      <HeartHandshake className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-[15px]">Impact Social</h3>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Notre modèle redistributif rend l'excellence accessible aux classes moyennes.</p>
-                    </div>
-                  </div>
-
                   <div className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] flex items-start gap-4 p-5 bg-white/85 backdrop-blur-xl border border-indigo-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group">
                     <div className="mt-0.5 bg-gradient-to-br from-indigo-100 to-blue-100 p-2.5 rounded-xl text-indigo-600 group-hover:scale-110 transition-transform shrink-0">
                       <GraduationCap className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 text-[15px]">Profs issus du Top 10</h3>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Mines Paris, Centrale Supélec, HEC, ESSEC. Un casting ultra-sélectif.</p>
+                      <h3 className="font-bold text-slate-900 text-[15px]">Profs issus de Grandes Ecoles</h3>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Nous travaillons avec des étudiants issus des établissements français les plus prestigieux : Mines Paris, HEC, ESSEC, ...</p>
                     </div>
                   </div>
 
@@ -382,7 +369,27 @@ export function Welcome() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-[15px]">Rémunération +40%</h3>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Nos professeurs gagnent jusqu'à 40% de plus que sur le marché au black.</p>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Nos professeurs gagnent jusqu'à 40% de plus que lorsqu'ils ne déclarent pas grâce au dispositif de service à la personne.</p>
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] flex items-start gap-4 p-5 bg-white/85 backdrop-blur-xl border border-rose-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group">
+                    <div className="mt-0.5 bg-gradient-to-br from-rose-100 to-pink-100 p-2.5 rounded-xl text-rose-600 group-hover:scale-110 transition-transform shrink-0">
+                      <HeartHandshake className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-[15px]">Impact Social</h3>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Notre modèle de rémunération revalorise les petits budgets pour rééquilibrer l'accès aux cours particuliers.</p>
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] flex items-start gap-4 p-5 bg-white/85 backdrop-blur-xl border border-blue-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group">
+                    <div className="mt-0.5 bg-gradient-to-br from-blue-100 to-cyan-100 p-2.5 rounded-xl text-blue-600 group-hover:scale-110 transition-transform shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-[15px]">L'administratif automatisé</h3>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Soyez en règle sans difficultés avec vos démarches centralisées et automatisées par Colibri.</p>
                     </div>
                   </div>
 
@@ -392,19 +399,10 @@ export function Welcome() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-[15px]">Cotisations & Retraite</h3>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Validez vos trimestres de retraite et constituez un historique de revenus officiel.</p>
+                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Commencez dès aujourd'hui à valider vos trimestres retraites pour profiter de droits et d'avantages comme le CPF.</p>
                     </div>
                   </div>
 
-                  <div className="w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)] flex items-start gap-4 p-5 bg-white/85 backdrop-blur-xl border border-blue-200/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 group">
-                    <div className="mt-0.5 bg-gradient-to-br from-blue-100 to-cyan-100 p-2.5 rounded-xl text-blue-600 group-hover:scale-110 transition-transform shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-[15px]">100% Légal & Automatisé</h3>
-                      <p className="text-[13px] text-slate-600 mt-1.5 leading-relaxed">Fini le travail au black. L'application gère vos factures et cotisations automatiquement.</p>
-                    </div>
-                  </div>
 
                 </div>
 
@@ -419,7 +417,7 @@ export function Welcome() {
                 <div className="bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-3xl p-8 md:p-10 hover:shadow-[0_16px_48px_rgba(0,82,212,0.1)] hover:-translate-y-1 transition-all duration-300">
                   <div className="mb-8 border-b border-slate-200/60 pb-6">
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Pour les parents :</h2>
-                    <p className="text-xl text-[#0052D4] font-semibold">L'alternative au CESU, sans surcoût.</p>
+                    <p className="text-xl text-[#0052D4] font-semibold">L'alternative au CESU, sans administratif ni surcout.</p>
                   </div>
 
                   <div className="space-y-8">
@@ -428,7 +426,7 @@ export function Welcome() {
                         <BookOpen className="w-5 h-5 text-blue-400" />
                         L'élite académique pour vos enfants.
                       </h3>
-                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Nos profs sont rigoureusement sélectionnés parmi les meilleures formations supérieures (Ingénierie, Sciences Po, Médecine). Plus que des professeurs, ce sont des étudiants qui transmettent l'exigence et la méthodologie de leur propre réussite.</p>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Nos professeurs étudient au sein des grands établissements français. Grâce à leurs formations, ils savent la rigueur et les méthodes de travail qui fonctionnent. De plus, leur âge permet d'installer un rapport de confiance et de proximité avec les élèves et leur donne surtout une position privilégiée pour transmettre des notions dont l’apprentissage est finalement plutôt récent, idéal pour se mettre à la place des élèves qui découvrent.</p>
                     </div>
 
                     <div>
@@ -436,7 +434,7 @@ export function Welcome() {
                         <FileText className="w-5 h-5 text-blue-400" />
                         Zéro charge, zéro paperasse.
                       </h3>
-                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Avec Colibri, vous n'êtes pas un employeur. Vous ne payez aucune charge patronale ni salariale, et vous n'avez aucune déclaration à faire. Nous gérons l'intégralité du cadre légal et des factures.</p>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Avec Colibri, vous n'êtes pas un employeur. Vous ne payez aucune charge patronale ni salariale, et vous n'avez aucune déclaration à faire. Nous gérons l'intégralité des déclarations à l'Urssaf et de la facturation, dont vous pouvez retrouver l'historique dans votre espace.</p>
                     </div>
 
                     <div>
@@ -444,7 +442,7 @@ export function Welcome() {
                         <PiggyBank className="w-5 h-5 text-blue-400" />
                         Votre budget reste intact.
                       </h3>
-                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Offrez à votre enfant des cours déclarés et encadrés par des profs vérifiés, sans dépenser un euro de plus. Le coût final de notre service premium reste strictement identique à celui que vous allouiez jusqu'ici à des cours non déclarés.</p>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Déclarez les cours de votre enfant sans dépenser un euro de plus. En définitive, vous êtes prélevés autant que ce que vous couterait le même cours si vous ne le déclariez pas, cela grâce a l'avance immédiate de crédit d'impôt.</p>
                       <div className="pl-7 mt-3">
                         <Link to="/avance-immediate" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0052D4] hover:text-[#4364F7] transition-colors group">
                           Comprendre le mécanisme financier
@@ -476,7 +474,7 @@ export function Welcome() {
                         <Building className="w-5 h-5 text-emerald-400" />
                         Cotisez et construisez vos droits sociaux.
                       </h3>
-                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Ne laissez plus votre travail dans l'ombre. En facturant légalement via Colibri, vous existez aux yeux de l'État : vous cotisez pour votre retraite, vous validez des trimestres, et vous vous constituez un historique de revenus officiel pour vos futurs dossiers de location.</p>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Ne laissez plus votre travail dans l'ombre. En déclarant via Colibri, vous existez aux yeux de l'État : vous cotisez pour votre retraite en vous validant des trimestres, vous constituez un historique de revenus officiel pour vos futurs dossiers de location, et vous bénéficiez de droits sociaux et d'avantage comme le CPF. Tout cela, sans sortir du foyer fiscal ou perdre des avantages, c'est comme un job d'été.</p>
                     </div>
 
                     <div>
@@ -484,7 +482,7 @@ export function Welcome() {
                         <Shield className="w-5 h-5 text-emerald-400" />
                         Une gestion administrative 100 % automatisée.
                       </h3>
-                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Nous vous accompagnons dans la création de votre statut en 5 minutes. Ensuite, Colibri génère vos factures et gère les prélèvements. Vous vous concentrez uniquement sur vos cours.</p>
+                      <p className="text-slate-600 text-sm leading-relaxed pl-7">Ne laissez plus votre travail dans l'ombre. En déclarant via Colibri, vous existez aux yeux de l'État : vous cotisez pour votre retraite en vous validant des trimestres, vous constituez un historique de revenus officiel pour vos futurs dossiers de location, et vous bénéficiez de droits sociaux et d'avantage comme le CPF. Tout cela, sans sortir du foyer fiscal ou perdre des avantages, c'est comme un job d'été.</p>
                       <div className="pl-7 mt-3">
                         <Link to="/tarifs" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors group">
                           Consulter notre grille tarifaire (Exclusivité Prof)

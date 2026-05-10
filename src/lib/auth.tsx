@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {emailRedirectTo: `${window.location.origin}/onboarding`, data: { role, prenom, nom, ...extra } },
+      options: { data: { role, prenom, nom, ...extra } },
     });
     if (error) return { error: error.message };
     return { error: null };
@@ -172,7 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("colibri_pending_role", role);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
     });
     if (error) return { error: error.message };
     return { error: null };
