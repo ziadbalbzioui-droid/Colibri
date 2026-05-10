@@ -17,6 +17,7 @@ import { Paps } from "./components/app/Paps";
 import { Parrainage } from "./components/app/Parrainage";
 import { Factures } from "./components/app/Factures";
 import { Aide } from "./components/app/Aide";
+import { GuideStatutAutoEntrepreneur } from "./components/app/GuideStatutAutoEntrepreneur";
 import { CasierJudiciaire } from "./components/app/CasierJudiciaire";
 import { CarteIdentite } from "./components/app/CarteIdentite";
 import { ParentDashboard } from "./components/parent/ParentDashboard";
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
               { path: "profil/identite", Component: CarteIdentite },
               { path: "parrainage", Component: Parrainage },
               { path: "aide", Component: Aide },
+              { path: "aide/guide-statut", Component: GuideStatutAutoEntrepreneur },
             ],
           },
         ],

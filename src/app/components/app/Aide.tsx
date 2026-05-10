@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { ChevronDown, ChevronLeft, Laptop, Store, Sparkles, CalendarClock, TrendingUp, HelpCircle, Mail, Phone, ExternalLink, AlertTriangle, X, BookOpen, Plus, Users } from "lucide-react";
 
 // ─── Mock style system (matching exact app styles) ─────────────
@@ -874,6 +875,7 @@ function FaqItem({ item, open, onToggle }: { item: { q: string; a: string }; ope
 
 function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-12">
@@ -886,7 +888,7 @@ function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Guides</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {GUIDES.map((guide) => (
-            <button key={guide.id} onClick={() => onSelectGuide(guide.id)}
+            <button key={guide.id} onClick={() => guide.id === "auto-entrepreneur" ? navigate("/app/aide/guide-statut") : onSelectGuide(guide.id)}
               className="group flex items-start gap-4 p-5 bg-white border border-slate-100 rounded-xl text-left hover:border-slate-200 transition-colors">
               <div className={`w-9 h-9 ${guide.iconBg} rounded-lg flex items-center justify-center shrink-0 mt-0.5`}>
                 <guide.Icon className={`w-4 h-4 ${guide.color}`} />
