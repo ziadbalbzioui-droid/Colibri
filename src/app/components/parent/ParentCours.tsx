@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, BookOpen, CheckCircle, Loader2, AlertCircle, X, FileText, AlertTriangle, Flag } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { ChevronLeft, ChevronRight, BookOpen, Loader2, AlertCircle, Info } from "lucide-react";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { CoursRow } from "../../../lib/hooks/useCours";
-import type { ValidationWithRecap } from "../../../lib/hooks/useParentData";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -85,31 +83,13 @@ function MiniCalendar({ year, month, activeDays }: { year: number; month: number
 }
 
 export function ParentCours() {
-  const { cours, children, validations, validerRecap, loading } = useParentData();
-  const navigate = useNavigate();
-  const [recapModal, setRecapModal] = useState<ValidationWithRecap | null>(null);
-  const [validating, setValidating] = useState(false);
-  const [validError, setValidError] = useState<string | null>(null);
-  const [validated, setValidated] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const { cours, children, loading } = useParentData();
 
   const today = new Date();
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
 
   const profByEleve = Object.fromEntries(children.map((ch) => [ch.id, ch.prof_nom]));
-
-  const pending = validations.filter((v) => v.statut === "en_attente_parent");
-  const contested = validations.filter((v) => v.statut === "conteste");
-
-  function moisLabel(v: ValidationWithRecap) {
-    return `${MOIS[v.recap_mensuel.mois - 1]} ${v.recap_mensuel.annee}`;
-  }
-
-  function coursDuRecap(v: ValidationWithRecap) {
-    const prefix = `${v.recap_mensuel.annee}-${String(v.recap_mensuel.mois).padStart(2, "0")}`;
-    return cours.filter((c) => c.eleve_id === v.eleve_id && c.date.startsWith(prefix));
-  }
 
   const isCurrentMonth = selectedYear === today.getFullYear() && selectedMonth === today.getMonth();
 
@@ -133,34 +113,6 @@ export function ParentCours() {
   const activeDays = new Set(coursOfMonth.map((c) => new Date(c.date).getDate()));
   const sorted = [...coursOfMonth].sort((a, b) => b.date.localeCompare(a.date));
 
-  async function handleValider() {
-    if (!recapModal || !confirmed) return;
-    setValidating(true);
-    setValidError(null);
-    try {
-      await validerRecap(recapModal.id, recapModal.recap_id);
-      setValidated(true);
-    } catch (err) {
-      setValidError(err instanceof Error ? err.message : "Une erreur est survenue");
-    } finally {
-      setValidating(false);
-    }
-  }
-
-  function openModal(r: ValidationWithRecap) {
-    setRecapModal(r);
-    setConfirmed(false);
-    setValidated(false);
-    setValidError(null);
-  }
-
-  function closeModal() {
-    setRecapModal(null);
-    setValidated(false);
-    setValidError(null);
-    setConfirmed(false);
-  }
-
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 240, color: "#94A3B8" }}>
@@ -180,62 +132,14 @@ export function ParentCours() {
         </h1>
       </div>
 
-      {/* Pending validation banner */}
-      {pending.length > 0 && (
-        <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 16, padding: "16px 20px" }}>
-          <p style={{ fontWeight: 600, fontSize: 13, color: "#92400E", margin: "0 0 10px" }}>
-            {pending.length === 1 ? "1 mois en attente de votre validation" : `${pending.length} mois en attente de validation`}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {pending.map((r) => {
-              const items = coursDuRecap(r);
-              const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
-              const totalM = items.reduce((s, c) => s + c.montant, 0);
-              return (
-                <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 12, padding: "10px 16px", border: "1px solid #FDE68A" }}>
-                  <div>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
-                    <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                      {items.length} cours · {totalH}h ·{" "}
-                      <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>{(totalM * 2).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                      {" "}<span style={{ color: "#16A34A", fontWeight: 600 }}>{totalM.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => openModal(r)}
-                    style={{ fontSize: 12, background: "#2E6BEA", color: "#fff", padding: "6px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 600, flexShrink: 0 }}
-                  >
-                    Voir & Valider
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Contested validations */}
-      {contested.length > 0 && (
-        <div style={{ background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 16, padding: "16px 20px" }}>
-          <p style={{ fontWeight: 600, fontSize: 13, color: "#9F1239", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
-            <Flag style={{ width: 14, height: 14 }} />
-            {contested.length === 1 ? "1 mois contesté" : `${contested.length} mois contestés`}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {contested.map((r) => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 10, padding: "10px 14px", border: "1px solid #FECDD3" }}>
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel(r)}</p>
-                  <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 2, marginBottom: 0 }}>En cours de traitement par Colibri</p>
-                </div>
-                <span style={{ fontSize: 11, background: "#FFF1F2", color: "#9F1239", border: "1px solid #FECDD3", padding: "3px 10px", borderRadius: 8, fontWeight: 600 }}>
-                  Contesté
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Encart info prix */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "12px 16px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <Info style={{ width: 15, height: 15, color: "#2563EB", flexShrink: 0, marginTop: 2 }} />
+        <p style={{ fontSize: 12, color: "#1E40AF", lineHeight: 1.65, margin: 0 }}>
+          Les <span style={{ textDecoration: "line-through" }}>prix barrés</span> correspondent au tarif plein horaire. Le montant <strong style={{ color: "#16A34A" }}>en vert</strong> est votre part réelle après crédit d'impôt de 50% — pris en charge directement par l'Urssaf via l'avance immédiate.
+          Pour valider ou contester un mois, rendez-vous dans <strong>Validations</strong>.
+        </p>
+      </div>
 
       {/* Month navigation */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -330,166 +234,6 @@ export function ParentCours() {
         </div>
       </div>
 
-      {/* Recap validation modal */}
-      {recapModal && (() => {
-        const items = coursDuRecap(recapModal);
-        const totalH = items.reduce((s, c) => s + c.duree_heures, 0);
-        const totalM = items.reduce((s, c) => s + c.montant, 0);
-        const partParent = totalM;
-        return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: "0 16px" }}>
-            <div style={{ background: "#fff", borderRadius: 22, boxShadow: "0 8px 48px rgba(15,23,42,.22)", width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column" }}>
-
-              {validated ? (
-                /* ── Succès ── */
-                <div style={{ padding: 32, textAlign: "center" }}>
-                  <div style={{ width: 72, height: 72, background: "#ECFDF5", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                    <CheckCircle style={{ width: 36, height: 36, color: "#22C55E" }} />
-                  </div>
-                  <h3 style={{ fontWeight: 700, color: "#0F172A", fontSize: 20, margin: "0 0 8px" }}>Mois validé !</h3>
-                  <p style={{ fontSize: 14, color: "#64748B", margin: "0 0 28px", lineHeight: 1.6 }}>
-                    {moisLabel(recapModal)} a été validé avec succès. Une facture va être générée et votre professeur sera notifié.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <Link
-                      to="/parent/factures"
-                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#2E6BEA", color: "#fff", padding: "12px 20px", borderRadius: 14, fontWeight: 600, fontSize: 14, textDecoration: "none" }}
-                    >
-                      <FileText style={{ width: 16, height: 16 }} /> Voir mes factures
-                    </Link>
-                    <button onClick={closeModal} style={{ padding: "12px 20px", borderRadius: 14, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 14, color: "#64748B" }}>
-                      Fermer
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* ── Header ── */}
-                  <div style={{ padding: "24px 28px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                    <div>
-                      <h3 style={{ fontWeight: 700, color: "#0F172A", fontSize: 17, margin: "0 0 4px" }}>
-                        Valider {moisLabel(recapModal)}
-                      </h3>
-                      <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>
-                        {items.length} séance{items.length > 1 ? "s" : ""} · {totalH.toFixed(1)} h · {totalM.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €
-                      </p>
-                    </div>
-                    <button
-                      onClick={closeModal}
-                      style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E2E8F0", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
-                    >
-                      <X style={{ width: 14, height: 14, color: "#64748B" }} />
-                    </button>
-                  </div>
-
-                  {/* ── Warning irreversible ── */}
-                  <div style={{ margin: "16px 28px 0", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: "12px 16px", display: "flex", gap: 10 }}>
-                    <AlertTriangle style={{ width: 16, height: 16, color: "#B45309", flexShrink: 0, marginTop: 1 }} />
-                    <p style={{ fontSize: 12, color: "#92400E", margin: 0, lineHeight: 1.6 }}>
-                      <strong>Action irréversible.</strong> Une fois validé, le récapitulatif est clôturé et la facture est générée. Vous ne pourrez plus apporter de modifications.
-                    </p>
-                  </div>
-
-                  {/* ── Course list ── */}
-                  <div style={{ overflowY: "auto", flex: 1, margin: "16px 28px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-                    {items.map((c) => {
-                      const colors = MATIERE_COLORS[c.matiere] ?? { bg: "#F8FAFC", dot: "#475569" };
-                      const profNom = profByEleve[c.eleve_id ?? ""] ?? "Professeur";
-                      return (
-                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "#F8FAFC", borderRadius: 12 }}>
-                          <div style={{ width: 3, height: 40, borderRadius: 3, background: colors.dot, flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{c.matiere}</p>
-                              <span style={{ fontSize: 10, background: colors.bg, color: colors.dot, padding: "1px 6px", borderRadius: 5, fontWeight: 600 }}>{c.duree}</span>
-                            </div>
-                            <p style={{ fontSize: 11, color: "#64748B", marginTop: 2, marginBottom: 0 }}>
-                              {formatDateFull(c.date)} · {profNom}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: "right", flexShrink: 0 }}>
-                            <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{(c.montant * 2).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</p>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", margin: 0 }}>{c.montant.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* ── Totals ── */}
-                  <div style={{ margin: "14px 28px 0", background: "#F8FAFC", borderRadius: 12, padding: "14px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: "#64748B" }}>Prix facturé</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#94A3B8", textDecoration: "line-through" }}>{(totalM * 2).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: "#64748B" }}>Crédit d'impôt (50%)</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#16A34A" }}>−{totalM.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid #E2E8F0" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>Votre part</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#16A34A" }}>{partParent.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €</span>
-                    </div>
-                  </div>
-
-                  {/* ── Confirmation checkbox ── */}
-                  <div style={{ margin: "14px 28px 0" }}>
-                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        onChange={(e) => setConfirmed(e.target.checked)}
-                        style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2E6BEA", flexShrink: 0, cursor: "pointer" }}
-                      />
-                      <span style={{ fontSize: 13, color: "#374151", lineHeight: 1.55 }}>
-                        J'ai vérifié le détail des séances et je confirme l'exactitude de ce récapitulatif.
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* ── Error ── */}
-                  {validError && (
-                    <p style={{ fontSize: 12, color: "#DC2626", background: "#FEF2F2", borderRadius: 8, padding: "8px 12px", margin: "10px 28px 0" }}>{validError}</p>
-                  )}
-
-                  {/* ── Actions ── */}
-                  <div style={{ padding: "16px 28px 28px", display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={closeModal}
-                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 13, color: "#64748B", fontWeight: 500 }}
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        onClick={() => { closeModal(); navigate(`/parent/contestation/${recapModal.id}`); }}
-                        style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1.5px solid #FB923C", background: "#FFF7ED", cursor: "pointer", fontSize: 13, color: "#EA580C", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-                      >
-                        <Flag style={{ width: 13, height: 13 }} /> Contester
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleValider}
-                      disabled={validating || !confirmed}
-                      style={{
-                        width: "100%", background: confirmed ? "#2E6BEA" : "#94A3B8", color: "#fff",
-                        padding: "13px", borderRadius: 12, border: "none",
-                        cursor: confirmed && !validating ? "pointer" : "not-allowed",
-                        fontSize: 14, fontWeight: 600,
-                        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                        transition: "background .15s",
-                      }}
-                    >
-                      {validating && <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />}
-                      Valider le mois
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

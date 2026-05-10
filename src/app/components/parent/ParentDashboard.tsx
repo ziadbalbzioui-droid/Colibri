@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap, Plus, Loader2, CheckCircle2, KeyRound, Flag } from "lucide-react";
+import { Clock, CreditCard, ChevronRight, CheckCircle, AlertCircle, Zap, Plus, Loader2, CheckCircle2, KeyRound, Flag, Info } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useParentData } from "../../../lib/hooks/useParentData";
 
@@ -212,7 +212,7 @@ export function ParentDashboard() {
                     <div key={v.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 12, padding: "10px 16px", border: "1px solid #FDE68A" }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel}</p>
                       <Link
-                        to="/parent/cours"
+                        to="/parent/validations"
                         style={{ fontSize: 12, background: "#B45309", color: "#fff", padding: "6px 14px", borderRadius: 10, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
                       >
                         Voir & Valider
@@ -283,6 +283,14 @@ export function ParentDashboard() {
                   );
                 })}
                 <LierProfWidget ajouterCode={ajouterCode} />
+              </div>
+
+              {/* Encart crédit d'impôt */}
+              <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "12px 16px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <Info style={{ width: 15, height: 15, color: "#2563EB", flexShrink: 0, marginTop: 2 }} />
+                <p style={{ fontSize: 12, color: "#1E40AF", lineHeight: 1.65, margin: 0 }}>
+                  Tous les montants affichés correspondent à <strong>votre part réelle après crédit d'impôt de 50%</strong>. L'État prend en charge l'autre moitié directement via l'Urssaf — aucune avance, aucun remboursement à attendre.
+                </p>
               </div>
 
               {/* Stats */}

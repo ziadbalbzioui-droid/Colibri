@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, Laptop, Zap, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronLeft, Laptop, Zap, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare } from "lucide-react";
 import { Link } from "react-router";
 
 // ─── Mock components ───────────────────────────────────────────
@@ -7,26 +7,31 @@ import { Link } from "react-router";
 function MockDashboard() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: 12 }}>
         <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Tableau de bord</p>
         <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, color: "#0F172A", margin: 0, lineHeight: 1.1 }}>
           Bonjour, Marie<br />
           <span style={{ color: "#94A3B8", fontSize: 16 }}>Tableau de bord de suivi</span>
         </p>
       </div>
-      {/* Child card */}
-      <div style={{ background: "linear-gradient(135deg,#1E40AF,#2E6BEA)", borderRadius: 12, padding: "14px 16px", color: "#fff", marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, background: "rgba(255,255,255,.2)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>T</div>
-          <div>
-            <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 14, color: "#fff", margin: 0 }}>Thomas</p>
-            <p style={{ fontSize: 10, color: "#BFDBFE", margin: 0 }}>Terminale · Prof : M. Dupont</p>
-          </div>
-          <div style={{ marginLeft: "auto", background: "rgba(255,255,255,.2)", fontSize: 10, padding: "2px 8px", borderRadius: 999, fontWeight: 600 }}>Maths</div>
-        </div>
+
+      {/* Encart info */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
+        Tous les montants affichés = <strong>votre part après crédit d'impôt de 50%</strong>. L'État règle l'autre moitié.
       </div>
-      {/* Stats row */}
+
+      {/* Child card */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "#1D4ED8" }} />
+        <div style={{ width: 36, height: 36, background: "#EFF6FF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "#1D4ED8", flexShrink: 0 }}>T</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 14, color: "#0F172A", margin: 0 }}>Thomas</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Terminale · Prof : M. Dupont</p>
+        </div>
+        <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>Maths</span>
+      </div>
+
+      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px" }}>
           <div style={{ width: 24, height: 24, background: "#F0FDF4", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
@@ -41,17 +46,18 @@ function MockDashboard() {
             <CreditCard style={{ width: 11, height: 11, color: "#D97706" }} />
           </div>
           <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Montant en attente</p>
-          <p style={{ fontSize: 11, color: "#94A3B8", textDecoration: "line-through", margin: "2px 0 0" }}>120 € brut</p>
+          <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: "2px 0 0" }}>120 € brut</p>
           <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, color: "#16A34A", margin: "1px 0 0" }}>60 €</p>
           <p style={{ fontSize: 10, color: "#16A34A", margin: 0 }}>après crédit d'impôt</p>
         </div>
       </div>
-      {/* Last invoice row */}
+
+      {/* Dernière facture */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
         <AlertCircle style={{ width: 13, height: 13, color: "#F59E0B", flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", margin: 0 }}>Avril 2026</p>
-          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Avril 2026</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>4 cours</p>
         </div>
         <div style={{ textAlign: "right" }}>
           <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>120 €</p>
@@ -67,6 +73,12 @@ function MockCours() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
       <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Suivi des séances</p>
+
+      {/* Encart info prix */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "8px 11px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
+        Les <span style={{ textDecoration: "line-through" }}>prix barrés</span> = tarif plein. Le montant <strong style={{ color: "#16A34A" }}>vert</strong> = votre part après crédit d'impôt 50%.
+      </div>
+
       {/* Month nav */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <div style={{ width: 26, height: 26, border: "1px solid #E2E8F0", borderRadius: 7, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -77,6 +89,7 @@ function MockCours() {
           <ChevronLeft style={{ width: 12, height: 12, color: "#64748B", transform: "rotate(180deg)" }} />
         </div>
       </div>
+
       {/* Course cards */}
       {[
         { matiere: "Mathématiques", date: "Lundi 5 Mai", duree: "1h30", montant: 45 },
@@ -95,8 +108,8 @@ function MockCours() {
             <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>{c.date}</p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant} €</p>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>{Math.round(c.montant * 0.5)} €</p>
+            <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant * 2} €</p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>{c.montant} €</p>
           </div>
         </div>
       ))}
@@ -104,10 +117,52 @@ function MockCours() {
   );
 }
 
-function MockValidation() {
+function MockValidations() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
-      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Validation du mois</p>
+      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Récapitulatifs mensuels</p>
+
+      {/* Encart info */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "8px 11px", marginBottom: 12, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
+        Votre prof clôture son mois → vous validez → la facture est générée automatiquement.
+      </div>
+
+      {/* En attente label */}
+      <p style={{ fontSize: 10, fontWeight: 700, color: "#92400E", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8 }}>En attente de validation (1)</p>
+
+      {/* Pending item */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, borderLeft: "3px solid #F59E0B" }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: "0 0 3px" }}>Avril 2026</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>
+            4 cours · 6h ·{" "}
+            <span style={{ textDecoration: "line-through", color: "#94A3B8" }}>180 € brut</span>
+            {" → "}
+            <span style={{ color: "#16A34A", fontWeight: 600 }}>90 € votre part</span>
+          </p>
+        </div>
+        <span style={{ fontSize: 10, background: "#2E6BEA", color: "#fff", padding: "4px 10px", borderRadius: 7, fontWeight: 600 }}>Voir & Valider</span>
+      </div>
+
+      {/* Historique label */}
+      <p style={{ fontSize: 10, fontWeight: 700, color: "#065F46", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8 }}>Historique (1)</p>
+
+      {/* Done item */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "3px solid #22C55E" }}>
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: "0 0 2px" }}>Mars 2026</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>3 cours · 75 €</p>
+        </div>
+        <span style={{ fontSize: 10, background: "#ECFDF5", color: "#065F46", border: "1px solid #BBF7D0", padding: "3px 9px", borderRadius: 7, fontWeight: 600 }}>Validé ✓</span>
+      </div>
+    </div>
+  );
+}
+
+function MockValidationModal() {
+  return (
+    <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
+      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Modale de validation — Avril 2026</p>
       {/* Warning */}
       <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 10, padding: "10px 12px", display: "flex", gap: 8, marginBottom: 12 }}>
         <AlertTriangle style={{ width: 13, height: 13, color: "#B45309", flexShrink: 0, marginTop: 1 }} />
@@ -118,11 +173,11 @@ function MockValidation() {
       {/* Totals */}
       <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ color: "#64748B" }}>Total brut</span>
+          <span style={{ color: "#64748B" }}>Prix facturé</span>
           <span style={{ color: "#94A3B8", textDecoration: "line-through" }}>180 €</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-          <span style={{ color: "#64748B" }}>Prise en charge Urssaf (50%)</span>
+          <span style={{ color: "#64748B" }}>Crédit d'impôt (50%)</span>
           <span style={{ color: "#16A34A", fontWeight: 600 }}>−90 €</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 6, borderTop: "1px solid #E2E8F0" }}>
@@ -137,8 +192,12 @@ function MockValidation() {
         </div>
         <p style={{ fontSize: 11, color: "#374151", margin: 0, lineHeight: 1.5 }}>J'ai vérifié les séances et confirme leur exactitude.</p>
       </div>
-      {/* CTA */}
-      <div style={{ background: "#2E6BEA", borderRadius: 10, padding: "10px", textAlign: "center", color: "#fff", fontWeight: 600, fontSize: 12 }}>
+      {/* CTAs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+        <div style={{ flex: 1, border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px", textAlign: "center", fontSize: 11, color: "#64748B" }}>Annuler</div>
+        <div style={{ flex: 1, border: "1.5px solid #FB923C", background: "#FFF7ED", borderRadius: 9, padding: "8px", textAlign: "center", fontSize: 11, color: "#EA580C", fontWeight: 600 }}>Contester</div>
+      </div>
+      <div style={{ background: "#2E6BEA", borderRadius: 9, padding: "9px", textAlign: "center", color: "#fff", fontWeight: 600, fontSize: 12 }}>
         Valider le mois
       </div>
     </div>
@@ -169,29 +228,55 @@ const GUIDES: {
     id: "utilisation",
     Icon: Laptop,
     title: "Utiliser Colibri",
-    desc: "Tableau de bord, suivi des cours par mois, validation mensuelle.",
+    desc: "Tableau de bord, suivi des cours par mois, ajouter un professeur.",
     color: "text-blue-600",
     iconBg: "bg-blue-50",
     accent: "#2563eb",
     items: [
       {
         title: "Votre tableau de bord",
-        desc: "La page d'accueil résume l'activité de votre enfant : heures ce mois, montants en attente après crédit d'impôt, dernières factures. Cliquez sur « Voir tout » pour accéder aux listes complètes.",
+        desc: "La page d'accueil résume l'activité de votre enfant : heures ce mois, montant en attente après crédit d'impôt, dernières factures. Tous les montants affichés sont votre part nette — après déduction du crédit d'impôt de 50% appliqué automatiquement via l'avance immédiate Urssaf.",
         MockComponent: MockDashboard,
       },
       {
         title: "Suivre les cours par mois",
-        desc: "Dans la section « Cours », naviguez mois par mois avec les flèches. Chaque cours détaille la matière, la durée, le professeur et votre part après crédit d'impôt (50% du brut).",
+        desc: "Dans la section « Cours », naviguez mois par mois avec les flèches. Chaque cours détaille la matière, la durée, le professeur et votre part après crédit d'impôt. Le prix barré correspond au tarif plein — le montant en vert est ce que vous payez réellement.",
         MockComponent: MockCours,
       },
       {
-        title: "Valider un récapitulatif mensuel",
-        desc: "En fin de mois, votre professeur clôture son récapitulatif et vous demande de le valider. Une bannière orange s'affiche en haut de la page Cours. Examinez chaque cours attentivement, cochez la confirmation, puis cliquez « Valider le mois ».",
-        MockComponent: MockValidation,
+        title: "Ajouter un professeur",
+        desc: "Demandez à votre professeur son code d'invitation (disponible dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » → saisissez le code → « Ajouter ». Les cours apparaissent automatiquement dans votre espace.",
+      },
+    ],
+  },
+  {
+    id: "validations",
+    Icon: CheckSquare,
+    title: "Valider un récapitulatif",
+    desc: "Comment valider ou contester le bilan mensuel de votre professeur.",
+    color: "text-emerald-600",
+    iconBg: "bg-emerald-50",
+    accent: "#059669",
+    items: [
+      {
+        title: "La page Validations",
+        desc: "En fin de mois, votre professeur clôture son récapitulatif. Une notification apparaît sur votre tableau de bord et dans la section « Validations ». Vous y retrouvez tous les mois en attente avec le détail des séances et les montants.",
+        MockComponent: MockValidations,
       },
       {
-        title: "Ajouter un professeur",
-        desc: "Demandez à votre professeur son code d'invitation (disponible dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » → « Professeurs & matières » → saisissez le code → « Ajouter ». Les cours apparaissent automatiquement.",
+        title: "Valider un mois",
+        desc: "Cliquez sur « Voir & Valider » pour ouvrir la modale de validation. Examinez chaque cours, vérifiez les dates et les durées. Cochez la case de confirmation, puis cliquez « Valider le mois ». La facture est générée automatiquement — cette action est irréversible.",
+        MockComponent: MockValidationModal,
+      },
+      {
+        title: "Contester un cours",
+        desc: "Si un cours vous semble incorrect (date erronée, durée excessive…), cliquez « Contester » dans la modale. Vous serez redirigé vers la page de contestation où vous pourrez signaler précisément les cours problématiques. L'équipe Colibri traitera la contestation avec votre professeur.",
+        link: "/parent/validations",
+        linkLabel: "Aller à la page Validations →",
+      },
+      {
+        title: "Que se passe-t-il après la validation ?",
+        desc: "Une facture est créée automatiquement. Elle apparaît dans la section « Factures » avec le montant après crédit d'impôt. Si plusieurs parents ont des élèves chez le même professeur, tous doivent valider pour que la facture soit générée.",
       },
     ],
   },
@@ -217,10 +302,6 @@ const GUIDES: {
         desc: "Exemple : une séance facturée 40 €. Avec l'avance immédiate, vous payez 20 €. L'Urssaf verse les 20 € restants directement au professeur. Aucune démarche supplémentaire, aucune attente de remboursement : la réduction est appliquée sur chaque facture, automatiquement.",
       },
       {
-        title: "Qui y a droit ?",
-        desc: "Toute famille qui utilise un service à la personne (cours particuliers, aide à domicile, garde d'enfants…). Il n'y a pas de condition de revenus. Le seul prérequis : que votre professeur soit déclaré SAP auprès des autorités compétentes.",
-      },
-      {
         title: "Comment l'activer ?",
         desc: "La procédure d'activation sera disponible prochainement directement dans l'application. Vous serez notifié par email dès qu'elle sera ouverte. Vous aurez besoin de vos informations d'état civil et de votre IBAN — la procédure prend environ 5 minutes.",
         link: "/parent/activation",
@@ -236,18 +317,18 @@ const GUIDES: {
     id: "factures",
     Icon: FileText,
     title: "Vos factures",
-    desc: "Comprendre, valider et payer vos factures en toute sérénité.",
+    desc: "Comprendre et payer vos factures en toute sérénité.",
     color: "text-purple-600",
     iconBg: "bg-purple-50",
     accent: "#7c3aed",
     items: [
       {
         title: "Quand est générée une facture ?",
-        desc: "Une facture est créée automatiquement après que vous avez validé le récapitulatif mensuel. Elle récapitule tous les cours du mois avec le montant brut et votre part nette après crédit d'impôt.",
+        desc: "Une facture est créée automatiquement après que vous avez validé le récapitulatif mensuel dans la section « Validations ». Elle récapitule tous les cours du mois avec le montant brut et votre part nette après crédit d'impôt.",
       },
       {
         title: "Comprendre le montant",
-        desc: "Le montant brut = total des cours. Vous ne payez que 50% — la différence est couverte par l'Urssaf directement. Vous n'avancez rien : la réduction est immédiate et s'applique sur chaque facture.",
+        desc: "Le montant brut = total des cours au tarif plein. Vous ne payez que 50% — la différence est couverte par l'Urssaf directement. Vous n'avancez rien : la réduction est immédiate et s'applique sur chaque facture.",
       },
       {
         title: "Comment payer ?",
@@ -255,18 +336,19 @@ const GUIDES: {
       },
       {
         title: "Une facture semble incorrecte ?",
-        desc: "La facture doit correspondre exactement au récapitulatif que vous avez validé. Si vous pensez qu'il y a une erreur, contactez directement votre professeur ou notre support à contact@colibri-soutien.fr.",
+        desc: "La facture correspond au récapitulatif que vous avez validé. Si vous pensez qu'il y a une erreur, contactez directement votre professeur ou notre support à contact@colibri-soutien.fr avant la prochaine validation.",
       },
     ],
   },
 ];
 
 const FAQ_ITEMS = [
-  { q: "Que se passe-t-il si je ne valide pas le récapitulatif mensuel ?", a: "Le mois reste en statut « en attente ». Votre professeur sera notifié. Aucune facture ne peut être générée tant que vous n'avez pas validé. Si vous avez une question sur un cours, contactez votre professeur avant de valider." },
-  { q: "Puis-je modifier un cours après avoir validé le récapitulatif ?", a: "Non. La validation est irréversible : elle clôture le mois et déclenche la génération de la facture. C'est pourquoi nous vous recommandons d'examiner attentivement chaque cours avant de confirmer." },
+  { q: "Que se passe-t-il si je ne valide pas le récapitulatif mensuel ?", a: "Le mois reste en statut « en attente » dans la section Validations. Aucune facture ne peut être générée. Si vous avez une question sur un cours, contactez votre professeur avant de valider — ou contestez directement depuis la modale de validation." },
+  { q: "Puis-je modifier un cours après avoir validé le récapitulatif ?", a: "Non. La validation est irréversible : elle clôture le mois et déclenche la génération de la facture. C'est pourquoi nous vous recommandons d'examiner attentivement chaque cours avant de confirmer, et d'utiliser la contestation si quelque chose vous paraît incorrect." },
   { q: "L'avance immédiate est-elle vraiment obligatoire ?", a: "Oui. Colibri est conçu autour du dispositif d'avance immédiate Urssaf. Tous les prix affichés dans l'application sont les prix après crédit d'impôt (50% du brut). L'activation est requise pour accéder aux fonctionnalités de paiement." },
   { q: "Suis-je remboursé après paiement avec l'avance immédiate ?", a: "Non, et c'est précisément l'avantage. La réduction est appliquée directement sur chaque facture. Vous ne payez que 50%, l'Urssaf règle le reste directement au professeur. Pas de délai, pas d'avance de trésorerie de votre part." },
-  { q: "Comment ajouter un deuxième professeur ?", a: "Demandez à ce professeur de vous communiquer son code d'invitation (dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » → « Professeurs & matières » et saisissez le code. Ses cours apparaîtront dans votre espace." },
+  { q: "Comment ajouter un deuxième professeur ?", a: "Demandez à ce professeur de vous communiquer son code d'invitation (dans son espace Colibri, section « Mon profil »). Allez dans « Mon profil » et saisissez le code. Ses cours apparaîtront dans votre espace dès le lendemain." },
+  { q: "Plusieurs parents doivent-ils valider pour le même professeur ?", a: "Oui. Si plusieurs familles ont des élèves chez le même professeur, chaque famille doit valider séparément. La facture n'est générée qu'une fois que tous les parents ont validé. Cela garantit que tout le monde est d'accord avant le paiement." },
   { q: "Mes données personnelles sont-elles sécurisées ?", a: "Oui. Les données sont hébergées sur serveurs européens, conformes au RGPD. Vos informations bancaires sont chiffrées et ne sont jamais partagées avec des tiers autres que l'Urssaf dans le cadre de l'avance immédiate." },
 ];
 

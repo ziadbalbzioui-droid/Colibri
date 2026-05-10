@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, AlertCircle, X, CreditCard, Building2, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, X, CreditCard, Building2, Loader2, Info } from "lucide-react";
 import { useParentData } from "../../../lib/hooks/useParentData";
 import type { FactureRow } from "../../../lib/hooks/useFactures";
 
@@ -48,6 +48,15 @@ export function ParentFactures() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Factures</h1>
         <p className="text-muted-foreground text-sm mt-1">Suivez et payez les factures</p>
+      </div>
+
+      {/* Encart explicatif */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "14px 18px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <Info style={{ width: 16, height: 16, color: "#2563EB", flexShrink: 0, marginTop: 2 }} />
+        <p style={{ fontSize: 13, color: "#1E40AF", lineHeight: 1.65, margin: 0 }}>
+          <strong>Pourquoi les montants sont-ils deux fois moins élevés que le tarif affiché ?</strong><br />
+          Grâce à l'avance immédiate Urssaf, le crédit d'impôt de 50% est déduit directement sur chaque facture. Vous ne payez que votre part nette — l'État règle l'autre moitié directement à votre professeur, sans délai ni remboursement de votre part.
+        </p>
       </div>
 
       {/* Stats */}

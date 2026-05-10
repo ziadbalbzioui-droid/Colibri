@@ -26,6 +26,7 @@ import { ParentProfil } from "./components/parent/ParentProfil";
 import { ParentAide } from "./components/parent/ParentAide";
 import { ParentActivation } from "./components/parent/ParentActivation";
 import { ParentContestation } from "./components/parent/ParentContestation";
+import { ParentValidations } from "./components/parent/ParentValidations";
 import { Onboarding } from "./components/onboarding/Onboarding";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { ForgotPassword } from "./components/pages/ForgotPassword";
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, Component: ParentDashboard },
               { path: "cours", Component: ParentCours },
+              { path: "validations", Component: ParentValidations },
               { path: "factures", Component: ParentFactures },
               { path: "aide", Component: ParentAide },
               { path: "profil", Component: ParentProfil },

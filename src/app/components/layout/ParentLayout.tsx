@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Outlet, NavLink, Link, useNavigate } from "react-router";
-import { Home, BookOpen, FileText, LogOut, Menu, X, UserCircle, HelpCircle } from "lucide-react";
+import { Home, BookOpen, FileText, LogOut, Menu, X, UserCircle, HelpCircle, CheckSquare } from "lucide-react";
 import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
 
 const NAV_ITEMS = [
   { to: "/parent", icon: Home, label: "Accueil", end: true },
   { to: "/parent/cours", icon: BookOpen, label: "Cours" },
+  { to: "/parent/validations", icon: CheckSquare, label: "Validations" },
   { to: "/parent/factures", icon: FileText, label: "Factures" },
   { to: "/parent/aide", icon: HelpCircle, label: "Aide" },
   { to: "/parent/profil", icon: UserCircle, label: "Mon profil" },
