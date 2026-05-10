@@ -37,7 +37,6 @@ export function AvanceImmediate() {
         </div>
         <nav className="hidden md:flex items-center justify-center gap-8">
           <a href="/#concept" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Le concept</a>
-          <Link to="/tarifs" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Grille tarifaire</Link>
           <Link to="/ecoles" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Les Écoles partenaires</Link>
           <Link to="/mission" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Notre mission</Link>
         </nav>
@@ -51,60 +50,73 @@ export function AvanceImmediate() {
 
         {/* ── HERO ── */}
         <section className="px-6 pt-20 pb-16 max-w-4xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#0052D4] mb-6">Avance Immédiate de Crédit d'Impôt</p>
           <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 400, fontSize: "clamp(2.4rem, 6vw, 4.2rem)", letterSpacing: "-0.025em", lineHeight: 1.1, color: "#0F172A" }}>
-            Vous payez la même chose<br className="hidden md:block" />
-            <span style={{ color: "#0052D4" }}>qu'avant.</span>
+            Vous payez autant qu'un cours<br className="hidden md:block" />
+            <span style={{ color: "#0052D4" }}>non déclaré.</span>
           </h1>
-          <p className="mt-6 text-xl text-slate-500 max-w-2xl font-medium leading-relaxed">
-            On vous facture le double de votre prix habituel. L'Urssaf vous en prélève la moitié. Vous êtes quitte. Mais entre les deux, on a créé quelque chose.
-          </p>
+          <div className="mt-8 max-w-2xl space-y-5">
+            <p className="text-lg text-slate-600 font-medium leading-relaxed">
+              Notre volonté est de valoriser la transmission des connaissances des meilleurs étudiants, sans pour autant les détourner des bourses modestes.
+            </p>
+            <p className="text-base text-slate-500 leading-relaxed">
+              Ainsi, nous utilisons l'avance immédiate de crédit d'impôt dans le but d'<span style={{ color: "#0052D4" }}>augmenter les revenus des étudiants selon un pourcentage dégressif suivant leur taux horaire</span>, ce qui réduit l'enchère des prix, et d'<span style={{ color: "#0052D4" }}>offrir un service qui simplifie les démarches administratives des parents et des étudiants</span> pour les aider à se déclarer.
+            </p>
+            <p className="text-sm font-semibold text-slate-700 pl-4 border-l-2 border-[#0052D4]">
+              Tout cela est fait de sorte qu'il vous est finalement prélevé autant que ce que vous auriez payé sans le déclarer.
+            </p>
+          </div>
         </section>
 
         {/* ── LE MÉCANISME — INFOGRAPHIE ── */}
         <section className="px-6 pb-20">
           <div className="max-w-4xl mx-auto">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Ce que vous payez</p>
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200/60 rounded-3xl overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.07)]">
 
               <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
 
-                {/* AVANT */}
+                {/* SANS COLIBRI */}
                 <div className="px-8 py-10">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-7">Avant Colibri</p>
-                  <div className="flex items-baseline gap-3 mb-6">
-                    <span className="text-5xl font-black text-slate-800 tabular-nums">20 €</span>
-                    <span className="text-sm text-slate-500 leading-snug">en liquide,<br />directement au prof</span>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-7">Sans Colibri</p>
+                  <div className="space-y-3 mb-5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Cours (non déclaré)</span>
+                      <span className="font-semibold text-slate-700 tabular-nums">30 €</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Crédit d'impôt État</span>
+                      <span className="font-semibold text-slate-300 tabular-nums">0 €</span>
+                    </div>
+                    <div className="h-px bg-slate-200" />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-900">Vous payez</span>
+                      <span className="text-3xl font-black text-slate-900 tabular-nums">30 €</span>
+                    </div>
                   </div>
-                  <ul className="space-y-2.5 text-sm text-slate-400">
-                    <li className="flex items-start gap-2.5"><span className="mt-1.5 w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />Aucun justificatif, aucun reçu</li>
-                    <li className="flex items-start gap-2.5"><span className="mt-1.5 w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />Pas de crédit d'impôt</li>
-                    <li className="flex items-start gap-2.5"><span className="mt-1.5 w-1 h-1 rounded-full bg-slate-300 flex-shrink-0" />Le prof ne cotise pour rien</li>
-                  </ul>
+                  <p className="text-sm text-slate-400">Le prof touche 30 €, sans protection sociale ni cotisations.</p>
                 </div>
 
                 {/* AVEC COLIBRI */}
                 <div className="px-8 py-10 bg-slate-50/60">
                   <p className="text-xs font-bold uppercase tracking-widest text-[#0052D4] mb-7">Avec Colibri</p>
-
-                  {/* Décompte style reçu */}
                   <div className="space-y-3 mb-5">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-500">Facture déclarée</span>
-                      <span className="font-semibold text-slate-700 tabular-nums">40 €</span>
+                      <span className="text-slate-500">Facture déclarée (cours et services)</span>
+                      <span className="font-semibold text-slate-700 tabular-nums">60 €</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-500">Crédit d'impôt État</span>
-                      <span className="font-semibold text-[#0052D4] tabular-nums">− 20 €</span>
+                      <span className="font-semibold text-[#0052D4] tabular-nums">− 30 €</span>
                     </div>
                     <div className="h-px bg-slate-200" />
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-slate-900">Vous payez</span>
-                      <span className="text-3xl font-black text-slate-900 tabular-nums">20 €</span>
+                      <span className="text-3xl font-black text-slate-900 tabular-nums">30 €</span>
                     </div>
                   </div>
-
+                  <p className="text-sm text-slate-500 mb-3">Le prof touche <strong className="text-slate-700">46 € bruts</strong>.</p>
                   <p className="text-sm font-semibold text-[#0052D4]">
-                    Identique à ce que vous payiez avant.
+                    Vous payez le même prix que sans Colibri, sans démarches lourdes supplémentaires.
                   </p>
                 </div>
               </div>
@@ -123,34 +135,34 @@ export function AvanceImmediate() {
         <section className="px-6 pb-20">
           <div className="max-w-4xl mx-auto">
 
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-5">Et l'argent de l'État, il va où ?</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-5">A quoi ça sert ?</p>
             <p className="text-slate-500 text-lg leading-relaxed max-w-2xl mb-14">
-              Le fait de facturer le double ne génère pas un bénéfice pour Colibri. Ça rend possible un modèle que le travail au noir ne peut pas financer.
+              Avec notre modèle, nous rêvons de lisser les revenus des étudiants pour <span className="font-bold">mettre en avant la transmission du savoir sans l'impact des limites financières des familles</span> et d'augmenter les revenus des étudiants qui enseignent pour les encourager à partager leurs connaissances.
             </p>
 
             <div className="grid md:grid-cols-3 gap-10">
 
               <div className="border-t-2 border-[#0052D4] pt-6">
                 <p className="text-4xl font-black text-[#0052D4] tabular-nums mb-4">+40 %</p>
-                <h3 className="font-bold text-slate-900 mb-2">Les profs gagnent plus.</h3>
+                <h3 className="font-bold text-slate-900 mb-2">Les étudiants sont mieux rémunérés.</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Un professeur Colibri est rémunéré à un taux horaire bien supérieur au marché au noir — et ce, même après les cotisations sociales. C'est un modèle qui attire les meilleurs profils et les fidélise.
+                  Avec une revalorisation dégressive suivant le taux horaire du professeur, nous encourageons les étudiants à enseigner, en rémunérant davantage leur travail (même après cotisations sociales) et sans se soucier du revenu des familles.
                 </p>
               </div>
 
               <div className="border-t-2 border-[#0052D4] pt-6">
                 <p className="text-4xl font-black text-[#0052D4] tabular-nums mb-4">0 €</p>
-                <h3 className="font-bold text-slate-900 mb-2">De travail au noir.</h3>
+                <h3 className="font-bold text-slate-900 mb-2">De travail non déclaré.</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  En déclarant leurs revenus, les profs cotisent pour leur retraite, valident des trimestres, et s'ouvrent des droits. Ce qui était de la précarité invisible devient une activité qui compte légalement.
+                  En déclarant leurs revenus, les étudiants cotisent pour leur retraite, valident des trimestres, et s'octroient des droits. Ce qui était de la précarité invisible devient une activité valorisante, sans impact sur le portefeuille des parents.
                 </p>
               </div>
 
               <div className="border-t-2 border-[#0052D4] pt-6">
                 <p className="text-4xl font-black text-[#0052D4] mb-4">∞</p>
-                <h3 className="font-bold text-slate-900 mb-2">Cours pour les familles précaires.</h3>
+                <h3 className="font-bold text-slate-900 mb-2">Cours pour les revenus plus modestes.</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Ce modèle économique viable permet à Colibri de financer des cours de soutien gratuits ou fortement subventionnés pour des familles qui n'auraient jamais pu se les payer. Votre cours finance le leur.
+                  Ce modèle économique permet à Colibri de revaloriser sans bénéfice les étudiants aux tarifs les plus bas grâce aux revenus des étudiants aux tarifs les plus élevés.
                 </p>
               </div>
 
@@ -258,7 +270,6 @@ export function AvanceImmediate() {
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
                 <li><a href="/#concept" className="hover:text-blue-600 transition-colors">Le concept</a></li>
-                <li><Link to="/tarifs" className="hover:text-blue-600 transition-colors">Grille tarifaire</Link></li>
                 <li><Link to="/ecoles" className="hover:text-blue-600 transition-colors">Écoles partenaires</Link></li>
               </ul>
             </div>

@@ -696,7 +696,6 @@ export function Welcome() {
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
                 <li><a href="#" className="hover:text-[#0052D4] transition-colors">Le concept</a></li>
-                <li><Link to="/tarifs" className="hover:text-[#0052D4] transition-colors">Grille tarifaire</Link></li>
                 <li><Link to="/ecoles" className="hover:text-[#0052D4] transition-colors">Écoles partenaires</Link></li>
               </ul>
             </div>

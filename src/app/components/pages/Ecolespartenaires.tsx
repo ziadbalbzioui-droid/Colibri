@@ -1,16 +1,5 @@
 import { useNavigate, Link } from "react-router";
-import {
-  GraduationCap,
-  CheckCircle2,
-  ArrowRight,
-  Search,
-  ShieldCheck,
-  Trophy,
-  Users,
-  Building2,
-  FileSearch,
-  UserCheck
-} from "lucide-react";
+import { ShieldCheck, FileSearch, UserCheck } from "lucide-react";
 import urssafBlanc from "../../../assets/Urssaf_BLANC.png";
 
 const SCHOOLS = [
@@ -165,7 +154,6 @@ export function EcolesPartenaires() {
         
         <nav className="hidden md:flex items-center justify-center gap-8">
           <a href="/#concept" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Le concept</a>
-          <Link to="/tarifs" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Grille tarifaire</Link>
           <Link to="/ecoles" className="text-sm font-semibold text-blue-600">Les Écoles partenaires</Link>
           <Link to="/mission" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Notre mission</Link>
         </nav>
@@ -188,50 +176,49 @@ export function EcolesPartenaires() {
               Nos Écoles Partenaires
             </h1>
             <p className="text-base text-slate-500 max-w-xl mx-auto font-medium leading-relaxed">
-              Nous collaborons avec les meilleures institutions académiques françaises pour garantir un niveau d'excellence inégalé à nos élèves.
+              Nous collaborons avec les étudiants des meilleures institutions académiques françaises pour garantir un niveau d'excellence et des méthodes efficaces à nos élèves.
             </p>
           </div>
         </section>
 
         {/* GRID DES ECOLES */}
-        <section className="pb-20 px-6 max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-6">
+        <section className="pb-20 px-6">
+          <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
             {SCHOOLS.map((school, index) => (
-              <div key={index} className="group border border-white/50 rounded-2xl p-8 bg-white/85 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-300">
-                <div className="flex items-center gap-4 mb-6">
-                  {/* Container avec l'image locale */}
-                  <div className="w-14 h-14 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm p-2 overflow-hidden">
-                    <img 
-                      src={school.logo} 
-                      alt={`Logo ${school.name}`} 
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">{school.name}</h3>
-                    <span className="text-[11px] font-bold text-blue-600 uppercase tracking-widest">{school.tag}</span>
-                  </div>
+              <div key={index} className="group flex flex-col items-center gap-4 p-6 bg-white/85 backdrop-blur-xl border border-white/50 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.09)] transition-all duration-300">
+                <div className="w-14 h-14 bg-white border border-slate-100 rounded-xl flex items-center justify-center shadow-sm p-2 overflow-hidden">
+                  <img
+                    src={school.logo}
+                    alt={`Logo ${school.name}`}
+                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                  />
                 </div>
-                
-                <p className="text-slate-600 leading-relaxed mb-6 text-sm font-medium">
-                  {school.description}
-                </p>
+                <h3 className="text-sm font-bold text-slate-900 text-center leading-tight">{school.name}</h3>
               </div>
             ))}
           </div>
         </section>
 
+        {/* ENCART INFO LISTE */}
+        <div className="px-6 pb-12">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-xs text-slate-400 text-center">
+              La liste des établissements partenaires est amenée à évoluer et se limite pour le moment à ces établissements.
+            </p>
+          </div>
+        </div>
+
         {/* SECTION CRITÈRES - Confiance & Audit (Nouveau design) */}
         <section className="py-24 px-6">
           <div className="max-w-5xl mx-auto text-center">
             <div className="mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Un standard de qualité strict.</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Un standard de qualité.</h2>
               <p className="text-slate-500 font-medium leading-relaxed max-w-2xl mx-auto text-lg">
-                La confiance ne se décrète pas, elle se prouve. L'accès à Colibri est conditionné par un processus de vérification en 4 étapes.
+                Nous faisons le choix de ne travailler qu'avec des étudiants des grands établissements afin de garantir une cohérence entre les méthodes et l'esprit de l'enseignement.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+            <div className="grid md:grid-cols-3 gap-6 text-left">
               {/* Etape 1 */}
               <div className="bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] p-8 rounded-3xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-300 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -240,7 +227,7 @@ export function EcolesPartenaires() {
                 </div>
                 <h4 className="font-bold text-slate-900 text-lg mb-3">Parcours Académique</h4>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Nous exigeons un certificat de scolarité valide, vérifié manuellement auprès du secrétariat des écoles d'excellence.
+                  Nous exigeons un certificat de scolarité valide pour s'assurer du niveau académique des professeurs.
                 </p>
               </div>
 
@@ -252,7 +239,7 @@ export function EcolesPartenaires() {
                 </div>
                 <h4 className="font-bold text-slate-900 text-lg mb-3">Sécurité et Légalité</h4>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Extrait de casier judiciaire vierge obligatoire, couplé à une vérification d'identité stricte pour garantir la sécurité des élèves.
+                  Nous demandons un extrait de casier judiciaire vierge, ainsi que qu'un document d'identité des professeurs.
                 </p>
               </div>
 
@@ -262,23 +249,12 @@ export function EcolesPartenaires() {
                 <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center mb-6 text-amber-600">
                   <UserCheck className="w-6 h-6" />
                 </div>
-                <h4 className="font-bold text-slate-900 text-lg mb-3">Transparence</h4>
+                <h4 className="font-bold text-slate-900 text-lg mb-3">Liberté</h4>
                 <p className="text-slate-500 text-sm leading-relaxed">
-                  Pas de mise en relation à l'aveugle. Les professeurs détaillent leur pédagogie. Vous choisissez l'étudiant idéal pour votre enfant.
+                  Vous vous organisez librement et indépendamment avec les étudiants afin de trouver le système qui vous convient le mieux
                 </p>
               </div>
 
-              {/* Etape 4 */}
-              <div className="bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] p-8 rounded-3xl hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mb-6 text-purple-600">
-                  <Trophy className="w-6 h-6" />
-                </div>
-                <h4 className="font-bold text-slate-900 text-lg mb-3">Évaluation Continue</h4>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Les professeurs sont évalués en temps réel. Un niveau de satisfaction inférieur à 4.8/5 entraîne une exclusion de la plateforme.
-                </p>
-              </div>
             </div>
           </div>
         </section>
@@ -305,7 +281,6 @@ export function EcolesPartenaires() {
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
                 <li><a href="/#concept" className="hover:text-blue-600 transition-colors">Le concept</a></li>
-                <li><Link to="/tarifs" className="hover:text-blue-600 transition-colors">Grille tarifaire</Link></li>
                 <li><Link to="/ecoles" className="hover:text-blue-600 transition-colors">Écoles partenaires</Link></li>
               </ul>
             </div>

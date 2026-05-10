@@ -155,7 +155,6 @@ export function Tarifs() {
         
         <nav className="hidden md:flex items-center justify-center gap-8">
           <a href="/#concept" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Le concept</a>
-          <Link to="/tarifs" className="text-sm font-semibold text-blue-600 transition-colors">Grille tarifaire</Link>
           <Link to="/ecoles" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Les Écoles partenaires</Link>
           <Link to="/mission" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Notre mission</Link>
         </nav>
@@ -370,7 +369,6 @@ export function Tarifs() {
               <h4 className="font-semibold text-slate-900 mb-4 text-sm">Plateforme</h4>
               <ul className="space-y-3 text-sm text-slate-500">
                 <li><a href="/#concept" className="hover:text-blue-600 transition-colors">Le concept</a></li>
-                <li><Link to="/tarifs" className="hover:text-blue-600 transition-colors">Grille tarifaire</Link></li>
                 <li><Link to="/ecoles" className="hover:text-blue-600 transition-colors">Écoles partenaires</Link></li>
               </ul>
             </div>
