@@ -13,8 +13,8 @@ import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
 import { AdminGrille } from "./AdminGrille";
 import { AdminCompta } from "./AdminCompta";
-import { OTPPrompt } from "./OTPPrompt";
-import { useEmailOTP } from "../../hooks/useEmailOTP";
+import { ReauthPrompt } from "./ReauthPrompt";
+import { useReauth } from "../../hooks/useReauth";
 import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -2090,7 +2090,7 @@ export function AdminDashboard() {
   const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
   const [confirmSingleProf, setConfirmSingleProf] = useState<ProfPaiement | null>(null);
   const [singleDispatchState, setSingleDispatchState] = useState<SingleDispatchState>({});
-  const { isVerified, sendOTP, verifyOTP, resetVerified } = useEmailOTP();
+  const { isVerified, verifyPassword, resetVerified } = useReauth();
   const [showOTP, setShowOTP] = useState(false);
   const pendingDispatchRef = useRef<(() => void) | null>(null);
 
@@ -2381,12 +2381,11 @@ export function AdminDashboard() {
             )}
           </div>
         )}
-        <OTPPrompt
+        <ReauthPrompt
           open={showOTP}
           onClose={() => { setShowOTP(false); pendingDispatchRef.current = null; }}
           onSuccess={() => { setShowOTP(false); pendingDispatchRef.current?.(); pendingDispatchRef.current = null; }}
-          sendOTP={sendOTP}
-          verifyOTP={verifyOTP}
+          verifyPassword={verifyPassword}
         />
         {section === "echeancier"    && <AdminEcheancier />}
         {section === "profs"         && <AdminProfs />}

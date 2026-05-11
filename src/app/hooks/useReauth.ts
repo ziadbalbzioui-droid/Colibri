@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useAuth } from "../../lib/auth";
 import { supabase } from "../../lib/supabase";
 
-export function useEmailOTP() {
+export function useReauth() {
   const { user } = useAuth();
   const [isVerified, setIsVerified] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -12,17 +12,11 @@ export function useEmailOTP() {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
-  const sendOTP = useCallback(async () => {
-    const { error } = await supabase.auth.reauthenticate();
-    if (error) throw error;
-  }, []);
-
-  const verifyOTP = useCallback(async (code: string): Promise<boolean> => {
+  const verifyPassword = useCallback(async (password: string): Promise<boolean> => {
     if (!user?.email) return false;
-    const { error } = await supabase.auth.verifyOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email: user.email,
-      token: code,
-      type: "reauthentication",
+      password,
     });
     if (error) return false;
     setIsVerified(true);
@@ -31,5 +25,5 @@ export function useEmailOTP() {
     return true;
   }, [user?.email]);
 
-  return { isVerified, sendOTP, verifyOTP, resetVerified };
+  return { isVerified, verifyPassword, resetVerified };
 }
