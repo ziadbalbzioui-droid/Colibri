@@ -906,7 +906,7 @@ function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Guides</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {GUIDES.map((guide) => (
-            <button key={guide.id} onClick={() => guide.id === "auto-entrepreneur" ? navigate("/app/aide/guide-statut") : onSelectGuide(guide.id)}
+            <button key={guide.id} onClick={() => guide.id === "auto-entrepreneur" ? navigate("/app/aide/guide-statut") : guide.id === "acre" ? navigate("/app/aide/guide-acre") : guide.id === "urssaf" ? navigate("/app/aide/guide-declaration-urssaf") : onSelectGuide(guide.id)}
               className="group flex items-start gap-4 p-5 bg-white border border-slate-100 rounded-xl text-left hover:border-slate-200 transition-colors">
               <div className={`w-9 h-9 ${guide.iconBg} rounded-lg flex items-center justify-center shrink-0 mt-0.5`}>
                 <guide.Icon className={`w-4 h-4 ${guide.color}`} />
