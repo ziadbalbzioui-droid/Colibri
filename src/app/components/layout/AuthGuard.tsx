@@ -2,9 +2,12 @@ import { Navigate, Outlet, useLocation, useSearchParams } from "react-router";
 import { useAuth } from "../../../lib/auth";
 import { LoadingGuard } from "./LoadingGuard";
 
+const ONBOARDING_ALLOWED_PATHS = ["/app/aide"];
+
 /** Protects /app routes (Profs only) */
 export function AuthGuard() {
   const { user, profile, loading } = useAuth();
+  const location = useLocation();
 
   // 1. On attend que l'initialisation (session + profil) soit terminée
   if (loading) return <LoadingGuard loading>{null}</LoadingGuard>;
@@ -33,8 +36,9 @@ export function AuthGuard() {
   if (profile.role === "parent") return <Navigate to="/parent" replace />;
   if (profile.role === "admin") return <Navigate to="/admin" replace />;
 
-  // 5. Onboarding non complété → tunnel d'onboarding
-  if (!profile.onboarding_complete) return <Navigate to="/onboarding" replace />;
+  // 5. Onboarding non complété → tunnel d'onboarding (sauf pages autorisées)
+  if (!profile.onboarding_complete && !ONBOARDING_ALLOWED_PATHS.some(p => location.pathname.startsWith(p)))
+    return <Navigate to="/onboarding" replace />;
 
   // 6. Tout est parfait, on affiche le tableau de bord / les cours
   return <Outlet />;
@@ -88,13 +92,8 @@ export function OnboardingGuard() {
     return <LoadingGuard loading>{null}</LoadingGuard>;
   }
 
-  let isFullyOnboarded = profile.onboarding_complete;
-  if (profile.role === "prof") {
-    isFullyOnboarded = !!(profile.onboarding_complete && profile.iban);
-  }
-
   // Si l'onboarding est déjà fait, on le renvoie à sa place
-  if (isFullyOnboarded) {
+  if (profile.onboarding_complete) {
     return <Navigate to={profile.role === "prof" ? "/app" : "/parent"} replace />;
   }
 

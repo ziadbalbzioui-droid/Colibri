@@ -231,15 +231,24 @@ function Step2Siret({ onNext, onSkip, prenom }: { onNext: (data: { siret: string
         </p>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-800">
-          Vous n'avez pas encore de statut auto-entrepreneur ?{" "}
-          <a href="https://www.autoentrepreneur.urssaf.fr/portail/accueil/creer-mon-auto-entreprise.html"
-            target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-amber-900">
-            Créez-le ici gratuitement →
-          </a>
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+        <div className="flex gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            Vous n'avez pas encore de statut auto-entrepreneur ?{" "}
+            <a href="https://www.autoentrepreneur.urssaf.fr/portail/accueil/creer-mon-auto-entreprise.html"
+              target="_blank" rel="noopener noreferrer" className="font-semibold underline hover:text-amber-900">
+              Créez-le ici gratuitement →
+            </a>
+          </p>
         </div>
+        <a
+          href="/app/aide#auto-entrepreneur"
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
+        >
+          <FileCheck className="w-4 h-4" /> Voir notre guide étape par étape →
+        </a>
       </div>
 
       <div>
@@ -367,11 +376,18 @@ function Step4Iban({ onNext, onSkip }: { onNext: (iban: string) => void; onSkip:
 }
 
 // ─── Step 5 : Confirmation ────────────────────────────────────
-function Step5Confirmation({ prenom }: { prenom: string }) {
+function Step5Confirmation({ prenom, onComplete }: { prenom: string; onComplete: () => Promise<void> }) {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const shareText = encodeURIComponent("Je viens de rejoindre Colibri, la plateforme qui simplifie les cours particuliers ! Rejoins-moi 🎉");
   const shareUrl = encodeURIComponent("https://colibri.app");
+
+  async function handleDiscover() {
+    setLoading(true);
+    navigate("/app/aide#plateforme");
+    onComplete();
+  }
 
   return (
     <div className="text-center space-y-6">
@@ -417,20 +433,35 @@ function Step5Confirmation({ prenom }: { prenom: string }) {
       </div>
 
       <button
-        onClick={() => navigate("/app")}
-        className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 flex items-center justify-center gap-2"
+        onClick={handleDiscover}
+        disabled={loading}
+        className="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2"
       >
-        Accéder à mon dashboard <ChevronRight className="w-4 h-4" />
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Découvrir la plateforme <ChevronRight className="w-4 h-4" /></>}
       </button>
     </div>
   );
 }
 
 // ─── Main Onboarding ──────────────────────────────────────────
+function deriveStepFromProfile(profile: ReturnType<typeof useAuth>["profile"]): number {
+  if (!profile) return 2;
+  if (profile.iban) return 5;
+  if (profile.siret) return 4;
+  if (profile.cgu_accepted && profile.mandat_accepted) return 3;
+  return 2;
+}
+
 export function OnboardingProf() {
   const { user, profile, updateProfile } = useAuth();
   const [searchParams] = useSearchParams();
-  const initialStep = Math.max(2, Math.min(5, Number(searchParams.get("step")) || 2));
+
+  const initialStep = (() => {
+    const fromParam = Number(searchParams.get("step"));
+    if (fromParam >= 2 && fromParam <= 5) return fromParam;
+    return deriveStepFromProfile(profile);
+  })();
+
   const [step, setStep] = useState(initialStep);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -457,7 +488,6 @@ export function OnboardingProf() {
     }
   }
 
-  // Seul le SIRET est persisté en base, les autres étapes sont locales
   const handleSiretDone = (data: { siret: string; nom_entreprise: string; adresse: string }) =>
     save({ siret: data.siret }, 4);
 
@@ -466,21 +496,20 @@ export function OnboardingProf() {
 
   const handleLegalDone = async (codeParrain?: string) => {
     if (codeParrain && user) {
-      // Cherche le parrain par code et crée le lien parrainage
       const { data: parrainId } = await supabase.rpc("find_parrain_by_code", { p_code: codeParrain });
       if (parrainId && parrainId !== user.id) {
         await supabase.from("profiles").update({ parrain_id: parrainId }).eq("id", user.id);
         await supabase.from("parrainages").insert({ parrain_id: parrainId, filleul_id: user.id });
       }
     }
-    setStep(3);
+    await save({ cgu_accepted: true, mandat_accepted: true, competence_accepted: true }, 3);
   };
 
   const handleIbanDone = (iban: string) =>
-    save({ iban, onboarding_complete: true }, 5);
+    save({ iban }, 5);
 
   const handleIbanSkip = () =>
-    save({ onboarding_complete: true }, 5);
+    setStep(5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E3F2FD] via-white to-[#F0F7FF] flex flex-col">
@@ -511,7 +540,7 @@ export function OnboardingProf() {
             {step === 2 && <Step3Legal onNext={handleLegalDone} />}
             {step === 3 && <Step2Siret onNext={handleSiretDone} onSkip={handleSiretSkip} prenom={prenom} />}
             {step === 4 && <Step4Iban onNext={handleIbanDone} onSkip={handleIbanSkip} />}
-            {step === 5 && <Step5Confirmation prenom={prenom} />}
+            {step === 5 && <Step5Confirmation prenom={prenom} onComplete={() => updateProfile({ onboarding_complete: true }).then(() => {})} />}
           </div>
 
           {step < 5 && (

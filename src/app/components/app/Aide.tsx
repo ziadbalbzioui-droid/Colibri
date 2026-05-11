@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { useAuth } from "../../../lib/auth";
 import { ChevronDown, ChevronLeft, Laptop, Store, Sparkles, CalendarClock, TrendingUp, HelpCircle, Mail, Phone, ExternalLink, AlertTriangle, X, BookOpen, Plus, Users } from "lucide-react";
 
 // ─── Mock style system (matching exact app styles) ─────────────
@@ -809,7 +810,13 @@ const FAQ_ITEMS = [
 
 // ─── Guide detail page ─────────────────────────────────────────
 
+const ONBOARDING_GUIDE_IDS = ["auto-entrepreneur", "plateforme"];
+
 function GuidePage({ guide, onBack }: { guide: typeof GUIDES[0]; onBack: () => void }) {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const showOnboardingButton = ONBOARDING_GUIDE_IDS.includes(guide.id) && !profile?.onboarding_complete;
+
   return (
     <div>
       <button
@@ -853,6 +860,17 @@ function GuidePage({ guide, onBack }: { guide: typeof GUIDES[0]; onBack: () => v
           </div>
         ))}
       </div>
+
+      {showOnboardingButton && (
+        <div className="mt-10 pt-8 border-t border-slate-100">
+          <button
+            onClick={() => navigate("/onboarding")}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Revenir à l'onboarding
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -943,7 +961,10 @@ function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
 // ─── Main ──────────────────────────────────────────────────────
 
 export function Aide() {
-  const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
+  const { hash } = useLocation();
+  const hashId = hash ? hash.slice(1) : null;
+  const validHashId = hashId && GUIDES.some((g) => g.id === hashId) ? hashId : null;
+  const [activeGuideId, setActiveGuideId] = useState<string | null>(validHashId);
   const activeGuide = GUIDES.find((g) => g.id === activeGuideId) ?? null;
 
   return (

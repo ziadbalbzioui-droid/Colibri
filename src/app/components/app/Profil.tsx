@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X } from "lucide-react";
+import { User, BookOpen, CreditCard, Save, Loader2, CheckCircle2, X, AlertCircle } from "lucide-react";
+import { validateIban, formatIban } from "../../../lib/validateIban";
 import { Navigate, useNavigate } from "react-router";
 import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
@@ -34,6 +35,7 @@ export function Profil() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [ibanError, setIbanError] = useState<string | null>(null);
   const [matieres, setMatieres] = useState<string[]>([]);
   const [matiereInput, setMatiereInput] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -67,6 +69,11 @@ export function Profil() {
   const suggestions = MATIERES.filter((m) => !matieres.includes(m) && m.toLowerCase().includes(matiereInput.toLowerCase()));
 
   async function handleSave() {
+    if (form.iban) {
+      const err = validateIban(form.iban);
+      if (err) { setIbanError(err); return; }
+    }
+    setIbanError(null);
     setSaving(true);
     try {
       const { error } = await updateProfile({ prenom: form.prenom, nom: form.nom, telephone: form.telephone, etablissement: form.etablissement, niveau_etudes: form.niveau_etudes, matieres_enseignees: matieres.join(", "), siret: form.siret, adresse: form.adresse, iban: form.iban });
@@ -194,15 +201,22 @@ export function Profil() {
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>IBAN</label>
             <input
-              style={{ ...S.input, fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase" }}
+              style={{ ...S.input, fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase", borderColor: ibanError ? "#EF4444" : undefined }}
               value={form.iban}
-              onChange={(e) => setForm({ ...form, iban: e.target.value.replace(/\s/g, "").toUpperCase() })}
+              onChange={(e) => { setForm({ ...form, iban: formatIban(e.target.value) }); setIbanError(null); }}
               placeholder="FR76 3000 6000 0112 3456 7890 189"
+              maxLength={42}
             />
-            {form.iban && (
+            {ibanError && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 11, color: "#EF4444" }}>
+                <AlertCircle style={{ width: 12, height: 12 }} />
+                {ibanError}
+              </div>
+            )}
+            {!ibanError && form.iban && !validateIban(form.iban) && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 11, color: "#059669" }}>
                 <CheckCircle2 style={{ width: 12, height: 12 }} />
-                IBAN renseigné
+                IBAN valide
               </div>
             )}
           </div>
