@@ -13,20 +13,16 @@ export function useEmailOTP() {
   }, []);
 
   const sendOTP = useCallback(async () => {
-    if (!user?.email) throw new Error("No email");
-    const { error } = await supabase.auth.signInWithOtp({
-      email: user.email,
-      options: { shouldCreateUser: false },
-    });
+    const { error } = await supabase.auth.reauthenticate();
     if (error) throw error;
-  }, [user?.email]);
+  }, []);
 
   const verifyOTP = useCallback(async (code: string): Promise<boolean> => {
     if (!user?.email) return false;
     const { error } = await supabase.auth.verifyOtp({
       email: user.email,
       token: code,
-      type: "email",
+      type: "reauthentication",
     });
     if (error) return false;
     setIsVerified(true);
