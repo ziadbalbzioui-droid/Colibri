@@ -243,7 +243,7 @@ function Step2Siret({ onNext, onSkip, prenom }: { onNext: (data: { siret: string
           </p>
         </div>
         <a
-          href="/app/aide#auto-entrepreneur"
+          href="/app/aide/guide-statut"
           target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
         >

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { ChevronLeft, AlertTriangle, Info } from "lucide-react";
+import { useAuth } from "../../../lib/auth";
 
 // ─── INPI design tokens ────────────────────────────────────────────
 const T = "#009EA0";
@@ -741,6 +742,7 @@ const TOTAL = 13;
 
 export function GuideStatutAutoEntrepreneur() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
 
   return (
     <div>
@@ -772,6 +774,17 @@ export function GuideStatutAutoEntrepreneur() {
       </div>
 
       <div className="border-t border-slate-100 mb-12" />
+
+      {!profile?.onboarding_complete && (
+        <div className="mb-10">
+          <button
+            onClick={() => navigate("/onboarding")}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Revenir à l'onboarding
+          </button>
+        </div>
+      )}
 
       <Step n={1} total={TOTAL} title="Identité de l'entrepreneur"
         mock={<MockStep1 />}
