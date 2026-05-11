@@ -24,7 +24,7 @@ export function OTPPrompt({ open, onClose, onSuccess, sendOTP, verifyOTP }: Prop
   }, [open]);
 
   async function handleVerify() {
-    if (code.length !== 6) return;
+    if (code.length !== 8) return;
     setStatus("verifying");
     const ok = await verifyOTP(code);
     if (ok) { onSuccess(); }
@@ -71,15 +71,15 @@ export function OTPPrompt({ open, onClose, onSuccess, sendOTP, verifyOTP }: Prop
               ref={inputRef}
               type="text"
               inputMode="numeric"
-              maxLength={6}
+              maxLength={8}
               value={code}
               onChange={(e) => { setCode(e.target.value.replace(/\D/g, "")); setErrorMsg(""); if (status === "error") setStatus("waiting"); }}
               onKeyDown={(e) => { if (e.key === "Enter") handleVerify(); }}
-              placeholder="000000"
-              className="w-full text-center text-2xl font-mono tracking-[0.4em] border-2 border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-blue-500 transition-colors mb-1"
+              placeholder="00000000"
+              className="w-full text-center text-2xl font-mono tracking-[0.3em] border-2 border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-blue-500 transition-colors mb-1"
             />
             {errorMsg && <p className="text-xs text-red-600 text-center mb-3">{errorMsg}</p>}
-            {!errorMsg && <p className="text-xs text-slate-400 text-center mb-3">Entre le code à 6 chiffres</p>}
+            {!errorMsg && <p className="text-xs text-slate-400 text-center mb-3">Entre le code à 8 chiffres</p>}
 
             <div className="flex gap-3 mt-2">
               <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
@@ -87,7 +87,7 @@ export function OTPPrompt({ open, onClose, onSuccess, sendOTP, verifyOTP }: Prop
               </button>
               <button
                 onClick={handleVerify}
-                disabled={code.length !== 6 || status === "verifying"}
+                disabled={code.length !== 8 || status === "verifying"}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {status === "verifying" ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Vérification…</> : "Confirmer"}
