@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, Laptop, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare, Landmark, TrendingUp, HeartHandshake, Flag, Send, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Laptop, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare, Landmark, TrendingUp, HeartHandshake, Flag, Send, ArrowRight, KeyRound, Info, Plus } from "lucide-react";
 import { Link } from "react-router";
 
 // ─── Mock components ───────────────────────────────────────────
@@ -7,98 +7,184 @@ import { Link } from "react-router";
 function MockDashboard() {
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
-      <div style={{ marginBottom: 12 }}>
-        <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Tableau de bord</p>
-        <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, color: "#0F172A", margin: 0, lineHeight: 1.1 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 14 }}>
+        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#64748B", margin: "0 0 6px" }}>
+          Lundi 5 Mai 2026 · semaine 2
+        </p>
+        <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 22, color: "#0F172A", margin: 0, lineHeight: 1.1 }}>
           Bonjour, Marie<br />
-          <span style={{ color: "#94A3B8", fontSize: 16 }}>Tableau de bord de suivi</span>
+          <span style={{ color: "#94A3B8", fontSize: 17 }}>Tableau de bord de suivi</span>
         </p>
       </div>
-      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "8px 12px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
-        Tous les montants = <strong>votre part après crédit d'impôt de 50%</strong>. L'État règle l'autre moitié.
-      </div>
-      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "#1D4ED8" }} />
-        <div style={{ width: 36, height: 36, background: "#EFF6FF", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, color: "#1D4ED8", flexShrink: 0 }}>T</div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 14, color: "#0F172A", margin: 0 }}>Thomas</p>
-          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Terminale · Prof : M. Dupont</p>
+      {/* Child card */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 14, padding: "12px 16px 12px 20px", display: "flex", alignItems: "center", gap: 12, marginBottom: 8, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "#1D4ED8" }} />
+        <div style={{ width: 38, height: 38, background: "#EFF6FF", borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#1D4ED8", flexShrink: 0 }}>T</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#0F172A", margin: "0 0 2px" }}>Thomas</p>
+          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Terminale</p>
         </div>
-        <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 8px", borderRadius: 999, fontWeight: 700 }}>Maths</span>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <span style={{ display: "inline-block", background: "#EFF6FF", color: "#1D4ED8", fontSize: 10, padding: "3px 9px", borderRadius: 999, fontWeight: 700 }}>Mathématiques</span>
+          <p style={{ fontSize: 10, color: "#94A3B8", marginTop: 4, marginBottom: 0 }}>M. Dupont</p>
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px" }}>
-          <div style={{ width: 24, height: 24, background: "#F0FDF4", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
-            <Clock style={{ width: 11, height: 11, color: "#16A34A" }} />
+      {/* Lier prof */}
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#fff", border: "1.5px dashed #CBD5E1", borderRadius: 11, padding: "8px 14px", fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 12 }}>
+        <Plus style={{ width: 12, height: 12 }} /> Lier un professeur
+      </div>
+      {/* Encart info */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 11, padding: "9px 12px", marginBottom: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <Info style={{ width: 13, height: 13, color: "#2563EB", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 11, color: "#1E40AF", lineHeight: 1.6, margin: 0 }}>
+          Tous les montants = <strong>votre part après crédit d'impôt de 50%</strong>. L'État règle l'autre moitié directement.
+        </p>
+      </div>
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ width: 30, height: 30, background: "#F0FDF4", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <Clock style={{ width: 12, height: 12, color: "#16A34A" }} />
           </div>
           <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Heures ce mois</p>
-          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, color: "#0F172A", margin: "2px 0 0" }}>6.0h</p>
+          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 22, color: "#0F172A", margin: "2px 0 0", letterSpacing: "-.02em" }}>6.0h</p>
           <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>4 séances</p>
         </div>
-        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px" }}>
-          <div style={{ width: 24, height: 24, background: "#FFFBEB", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}>
-            <CreditCard style={{ width: 11, height: 11, color: "#D97706" }} />
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "14px 16px" }}>
+          <div style={{ width: 30, height: 30, background: "#FFFBEB", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+            <CreditCard style={{ width: 12, height: 12, color: "#D97706" }} />
           </div>
           <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>Montant en attente</p>
-          <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: "2px 0 0" }}>120 € brut</p>
-          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, color: "#16A34A", margin: "1px 0 0" }}>60 €</p>
-          <p style={{ fontSize: 10, color: "#16A34A", margin: 0 }}>après crédit d'impôt</p>
+          <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: "4px 0 0" }}>240 € facturé</p>
+          <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, color: "#16A34A", margin: "1px 0 0", letterSpacing: "-.02em" }}>120 €</p>
+          <p style={{ fontSize: 10, color: "#16A34A", margin: 0 }}>après crédit d'impôt (50%)</p>
         </div>
       </div>
-      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-        <AlertCircle style={{ width: 13, height: 13, color: "#F59E0B", flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: "#0F172A", margin: 0 }}>Avril 2026</p>
-          <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>4 cours</p>
+      {/* Dernières factures */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ padding: "11px 16px", borderBottom: "1px solid #F1F5F9" }}>
+          <p style={{ fontWeight: 600, fontSize: 12, color: "#0F172A", margin: 0 }}>Dernières factures</p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>120 €</p>
-          <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>60 €</p>
-        </div>
-        <span style={{ fontSize: 10, background: "#2E6BEA", color: "#fff", padding: "3px 8px", borderRadius: 7, fontWeight: 600 }}>Payer</span>
+        {[
+          { label: "Avril 2026", n: "4 cours", brut: 240, net: 120, statut: "attente" },
+          { label: "Mars 2026",  n: "3 cours", brut: 180, net: 90,  statut: "ok" },
+        ].map((f, i) => (
+          <div key={i} style={{ padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: i === 0 ? "1px solid #F1F5F9" : "none" }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#0F172A", margin: 0 }}>{f.label}</p>
+              <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>{f.n}</p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{f.brut} €</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>{f.net} €</p>
+            </div>
+            <span style={{ fontSize: 10, padding: "3px 9px", borderRadius: 7, fontWeight: 600, ...(f.statut === "attente" ? { background: "#FEF9C3", color: "#B45309" } : { background: "#ECFDF5", color: "#065F46" }) }}>
+              {f.statut === "attente" ? "En attente" : "Payée"}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 function MockCours() {
+  const cours = [
+    { matiere: "Mathématiques",  duree: "1h30", date: "Lundi 26 Mai",     prof: "M. Dupont",    eleve: "Thomas", montant: 45, bg: "#EFF6FF", dot: "#1D4ED8" },
+    { matiere: "Physique-Chimie", duree: "2h",  date: "Mercredi 21 Mai",  prof: "Mme Bernard",  eleve: "Thomas", montant: 60, bg: "#F5F3FF", dot: "#7C3AED" },
+    { matiere: "Mathématiques",  duree: "1h30", date: "Lundi 19 Mai",     prof: "M. Dupont",    eleve: "Thomas", montant: 45, bg: "#EFF6FF", dot: "#1D4ED8" },
+    { matiere: "Mathématiques",  duree: "1h30", date: "Lundi 5 Mai",      prof: "M. Dupont",    eleve: "Thomas", montant: 45, bg: "#EFF6FF", dot: "#1D4ED8" },
+  ];
+  const totalNet = cours.reduce((s, c) => s + c.montant, 0);
+
   return (
     <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
-      <p style={{ fontSize: 10, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 10 }}>Suivi des séances</p>
-      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 9, padding: "8px 11px", marginBottom: 10, fontSize: 11, color: "#1E40AF", lineHeight: 1.5 }}>
-        Les <span style={{ textDecoration: "line-through" }}>prix barrés</span> = tarif plein. Le montant <strong style={{ color: "#16A34A" }}>vert</strong> = votre part après crédit d'impôt 50%.
+      {/* Encart info */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 11, padding: "9px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <Info style={{ width: 13, height: 13, color: "#2563EB", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 11, color: "#1E40AF", lineHeight: 1.6, margin: 0 }}>
+          Les <span style={{ textDecoration: "line-through" }}>prix barrés</span> = tarif plein. Le montant <strong style={{ color: "#16A34A" }}>en vert</strong> = votre part après crédit d'impôt 50%.
+        </p>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 26, height: 26, border: "1px solid #E2E8F0", borderRadius: 7, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ChevronLeft style={{ width: 12, height: 12, color: "#64748B" }} />
+      {/* Month nav */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 32, height: 32, border: "1px solid #E2E8F0", borderRadius: 9, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ChevronLeft style={{ width: 14, height: 14, color: "#64748B" }} />
         </div>
-        <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 15, color: "#0F172A", margin: 0, flex: 1, textAlign: "center" }}>Mai 2026</p>
-        <div style={{ width: 26, height: 26, border: "1px solid #E2E8F0", borderRadius: 7, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.35 }}>
-          <ChevronLeft style={{ width: 12, height: 12, color: "#64748B", transform: "rotate(180deg)" }} />
+        <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 18, color: "#0F172A", margin: 0, flex: 1, textAlign: "center" }}>Mai 2026</p>
+        <div style={{ width: 32, height: 32, border: "1px solid #E2E8F0", borderRadius: 9, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.35 }}>
+          <ChevronRight style={{ width: 14, height: 14, color: "#64748B" }} />
         </div>
       </div>
-      {[
-        { matiere: "Mathématiques", date: "Lundi 5 Mai", duree: "1h30", montant: 45 },
-        { matiere: "Mathématiques", date: "Lundi 12 Mai", duree: "1h30", montant: 45 },
-      ].map((c, i) => (
-        <div key={i} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-          <div style={{ width: 3, height: 36, borderRadius: 3, background: "#1D4ED8", flexShrink: 0 }} />
-          <div style={{ width: 28, height: 28, background: "#EFF6FF", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <BookOpen style={{ width: 11, height: 11, color: "#1D4ED8" }} />
+      {/* Stats résumé */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {[
+          { label: "Séances", value: `${cours.length}` },
+          { label: "Durée totale", value: "6.0 h" },
+          { label: "Votre part", value: `${totalNet} €`, green: true },
+        ].map((s, i) => (
+          <div key={i} style={{ background: i === 2 ? "#ECFDF5" : "#fff", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px" }}>
+            <p style={{ fontSize: 10, color: i === 2 ? "#065F46" : "#64748B", margin: "0 0 3px" }}>{s.label}</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: i === 2 ? "#065F46" : "#0F172A", margin: 0 }}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+      {/* Course list */}
+      {cours.map((c, i) => (
+        <div key={i} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 11, padding: "11px 14px", display: "flex", alignItems: "center", gap: 12, marginBottom: i < cours.length - 1 ? 8 : 0 }}>
+          <div style={{ width: 3, height: 46, borderRadius: 3, background: c.dot, flexShrink: 0 }} />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <BookOpen style={{ width: 13, height: 13, color: c.dot }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: "#0F172A" }}>{c.matiere}</span>
-              <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1D4ED8", padding: "1px 5px", borderRadius: 5, fontWeight: 600 }}>{c.duree}</span>
+              <span style={{ fontSize: 10, background: c.bg, color: c.dot, padding: "1px 7px", borderRadius: 5, fontWeight: 600 }}>{c.duree}</span>
             </div>
             <p style={{ fontSize: 10, color: "#64748B", margin: 0 }}>{c.date}</p>
+            <p style={{ fontSize: 10, color: "#94A3B8", margin: "1px 0 0" }}>Prof : {c.prof} · Élève : {c.eleve}</p>
           </div>
-          <div style={{ textAlign: "right" }}>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
             <p style={{ fontSize: 10, color: "#94A3B8", textDecoration: "line-through", margin: 0 }}>{c.montant * 2} €</p>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#16A34A", margin: 0 }}>{c.montant} €</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>{c.montant} €</p>
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function MockLierProf() {
+  return (
+    <div style={{ background: "#F8FAFC", borderRadius: 14, padding: 16, border: "1px solid #E2E8F0", fontSize: 12 }}>
+      {/* Étape 1 : trouver le code */}
+      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 11, padding: "9px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <Info style={{ width: 13, height: 13, color: "#2563EB", flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 11, color: "#1E40AF", lineHeight: 1.6, margin: 0 }}>
+          Demandez à votre professeur son <strong>code d'invitation</strong> disponible dans son espace Colibri → Mon profil.
+        </p>
+      </div>
+      {/* Widget form */}
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "16px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <KeyRound style={{ width: 13, height: 13, color: "#64748B" }} />
+          <p style={{ fontWeight: 700, fontSize: 12, color: "#0F172A", margin: 0 }}>Lier un professeur</p>
+        </div>
+        <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
+          <div style={{ flex: 1, padding: "9px 12px", border: "1px solid #E2E8F0", borderRadius: 9, fontFamily: "monospace", letterSpacing: "0.12em", fontSize: 12, color: "#0F172A", background: "#F8FAFC" }}>
+            ABC-XY789
+          </div>
+          <div style={{ padding: "9px 14px", borderRadius: 9, background: "#2E6BEA", color: "#fff", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+            <Plus style={{ width: 11, height: 11 }} /> Ajouter
+          </div>
+        </div>
+        {/* Success */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#ECFDF5", borderRadius: 9, padding: "9px 12px" }}>
+          <CheckCircle style={{ width: 13, height: 13, color: "#16A34A" }} />
+          <span style={{ fontSize: 11, color: "#16A34A", fontWeight: 600 }}>Professeur ajouté avec succès !</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -393,17 +479,18 @@ const GUIDES: {
     items: [
       {
         title: "Votre tableau de bord",
-        desc: "La page d'accueil résume l'activité de votre enfant : heures ce mois, montant en attente après crédit d'impôt, dernières factures. Tous les montants affichés sont votre part nette — après déduction du crédit d'impôt de 50%.",
+        desc: "La page d'accueil centralise tout le suivi. En haut, la carte élève affiche la matière suivie et le professeur associé. En dessous : deux widgets résument le mois en cours — nombre d'heures et montant total à payer (toujours affiché après déduction du crédit d'impôt de 50%). Les dernières factures apparaissent en bas avec leur statut. Si un récapitulatif mensuel attend votre validation, un bandeau jaune s'affiche en priorité en haut de page.",
         MockComponent: MockDashboard,
       },
       {
-        title: "Suivre les cours par mois",
-        desc: "Dans la section « Cours », naviguez mois par mois avec les flèches. Chaque cours détaille la matière, la durée, le professeur et votre part après crédit d'impôt. Le prix barré = tarif plein, le montant vert = ce que vous payez réellement.",
+        title: "Suivre les cours mois par mois",
+        desc: "La section « Cours » liste toutes les séances par date décroissante pour le mois sélectionné. Naviguez avec les flèches gauche/droite. Pour chaque cours : la matière avec sa durée en badge coloré, la date, le nom du professeur et de l'élève, puis les montants — le prix barré est le tarif plein facturé, le montant en vert est ce que vous payez réellement après crédit d'impôt. Un encadré récapitulatif au-dessus de la liste indique le nombre de séances, la durée totale et votre part pour le mois.",
         MockComponent: MockCours,
       },
       {
-        title: "Ajouter un professeur",
-        desc: "Demandez à votre professeur son code d'invitation (disponible dans son espace Colibri, section « Mon profil »). Dans « Mon profil », saisissez le code et cliquez « Ajouter ». Les cours apparaissent automatiquement dans votre espace.",
+        title: "Lier un nouveau professeur",
+        desc: "Pour ajouter un professeur à votre espace, demandez-lui son code d'invitation — il le trouve dans son espace Colibri, section « Mon profil ». Sur votre tableau de bord, cliquez sur « Lier un professeur ». Saisissez le code (format alphanumérique, ex : ABC-XY789) et cliquez « Ajouter ». Les cours de ce professeur apparaissent automatiquement dans vos sections Cours et Validations dès qu'il déclare une séance.",
+        MockComponent: MockLierProf,
       },
     ],
   },
