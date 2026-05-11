@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
   Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt, Info,
@@ -13,6 +13,8 @@ import { AdminSearch } from "./AdminSearch";
 import { AdminOrphelins } from "./AdminOrphelins";
 import { AdminGrille } from "./AdminGrille";
 import { AdminCompta } from "./AdminCompta";
+import { OTPPrompt } from "./OTPPrompt";
+import { useEmailOTP } from "../../hooks/useEmailOTP";
 import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -2088,6 +2090,9 @@ export function AdminDashboard() {
   const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
   const [confirmSingleProf, setConfirmSingleProf] = useState<ProfPaiement | null>(null);
   const [singleDispatchState, setSingleDispatchState] = useState<SingleDispatchState>({});
+  const { isVerified, sendOTP, verifyOTP, resetVerified } = useEmailOTP();
+  const [showOTP, setShowOTP] = useState(false);
+  const pendingDispatchRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { loadPendingPayments(); }, [lastRefresh]);
 
@@ -2318,7 +2323,13 @@ export function AdminDashboard() {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={() => setConfirmSingleProf(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">Annuler</button>
-                    <button onClick={() => { const p = confirmSingleProf; setConfirmSingleProf(null); handleDispatch(p.prof_id); }} className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">Confirmer</button>
+                    <button onClick={() => {
+                      const p = confirmSingleProf!;
+                      setConfirmSingleProf(null);
+                      const action = () => { handleDispatch(p.prof_id); resetVerified(); };
+                      if (isVerified) { action(); }
+                      else { pendingDispatchRef.current = action; setShowOTP(true); }
+                    }} className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">Confirmer</button>
                   </div>
                 </div>
               </div>
@@ -2355,7 +2366,12 @@ export function AdminDashboard() {
                       className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
                       Annuler
                     </button>
-                    <button onClick={() => { setShowDispatchConfirm(false); handleDispatch(undefined); }}
+                    <button onClick={() => {
+                      setShowDispatchConfirm(false);
+                      const action = () => { handleDispatch(undefined); resetVerified(); };
+                      if (isVerified) { action(); }
+                      else { pendingDispatchRef.current = action; setShowOTP(true); }
+                    }}
                       className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
                       Confirmer l'envoi
                     </button>
@@ -2365,6 +2381,13 @@ export function AdminDashboard() {
             )}
           </div>
         )}
+        <OTPPrompt
+          open={showOTP}
+          onClose={() => { setShowOTP(false); pendingDispatchRef.current = null; }}
+          onSuccess={() => { setShowOTP(false); pendingDispatchRef.current?.(); pendingDispatchRef.current = null; }}
+          sendOTP={sendOTP}
+          verifyOTP={verifyOTP}
+        />
         {section === "echeancier"    && <AdminEcheancier />}
         {section === "profs"         && <AdminProfs />}
         {section === "eleves"        && <AdminEleves />}
