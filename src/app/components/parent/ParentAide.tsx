@@ -543,7 +543,7 @@ function GuidePage({ guide, onBack }: { guide: typeof GUIDES[0]; onBack: () => v
               <h3 className="font-semibold text-slate-900 mb-1.5">{item.title}</h3>
               <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
               {item.MockComponent && (
-                <div style={{ marginTop: 16, maxWidth: 480 }}>
+                <div style={{ marginTop: 16, maxWidth: 560, margin: "16px auto 0" }}>
                   <item.MockComponent />
                 </div>
               )}
