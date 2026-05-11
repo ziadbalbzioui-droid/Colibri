@@ -270,20 +270,27 @@ function MockApresValidation() {
 
 function MockMecanisme() {
   return (
-    <div style={{ background: "#F8FAFC", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden", fontSize: 12 }}>
+    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden", fontSize: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-        {/* Avant */}
+        {/* Sans Colibri */}
         <div style={{ padding: "14px 16px", borderRight: "1px solid #E2E8F0" }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#94A3B8", marginBottom: 10 }}>Avant Colibri</p>
-          <div style={{ marginBottom: 8 }}>
-            <span style={{ fontSize: 24, fontWeight: 900, color: "#0F172A" }}>20 €</span>
-            <p style={{ fontSize: 10, color: "#64748B", margin: "2px 0 0" }}>en liquide au prof</p>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#94A3B8", marginBottom: 10 }}>Sans Colibri</p>
+          <div style={{ fontSize: 11, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+              <span style={{ color: "#64748B" }}>Cours (non déclaré)</span>
+              <span style={{ fontWeight: 600, color: "#0F172A" }}>30 €</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+              <span style={{ color: "#64748B" }}>Crédit d'impôt État</span>
+              <span style={{ fontWeight: 600, color: "#CBD5E1" }}>0 €</span>
+            </div>
+            <div style={{ height: 1, background: "#E2E8F0", margin: "6px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 700, color: "#0F172A" }}>Vous payez</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>30 €</span>
+            </div>
           </div>
-          <div style={{ fontSize: 10, color: "#94A3B8", lineHeight: 1.6 }}>
-            <p style={{ margin: 0 }}>✗ Aucun justificatif</p>
-            <p style={{ margin: 0 }}>✗ Pas de crédit d'impôt</p>
-            <p style={{ margin: 0 }}>✗ Pas de cotisations</p>
-          </div>
+          <p style={{ fontSize: 10, color: "#94A3B8", lineHeight: 1.5 }}>Le prof touche 30 €, sans protection sociale ni cotisations.</p>
         </div>
         {/* Avec Colibri */}
         <div style={{ padding: "14px 16px", background: "#EFF6FF" }}>
@@ -291,24 +298,44 @@ function MockMecanisme() {
           <div style={{ fontSize: 11, marginBottom: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
               <span style={{ color: "#64748B" }}>Facture déclarée</span>
-              <span style={{ fontWeight: 600, color: "#0F172A" }}>40 €</span>
+              <span style={{ fontWeight: 600, color: "#0F172A" }}>60 €</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
               <span style={{ color: "#64748B" }}>Crédit d'impôt État</span>
-              <span style={{ fontWeight: 600, color: "#2563EB" }}>− 20 €</span>
+              <span style={{ fontWeight: 600, color: "#2563EB" }}>− 30 €</span>
             </div>
             <div style={{ height: 1, background: "#BFDBFE", margin: "6px 0" }} />
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: 700, color: "#0F172A" }}>Vous payez</span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>20 €</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#0F172A" }}>30 €</span>
             </div>
           </div>
-          <p style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", margin: 0 }}>Identique à avant.</p>
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#2563EB" }}>Le prof touche 46 € bruts.</p>
         </div>
       </div>
       <div style={{ padding: "10px 16px", background: "#DBEAFE", borderTop: "1px solid #BFDBFE", fontSize: 11, color: "#1E40AF" }}>
-        <strong>Pas d'avance, pas d'attente.</strong> Le crédit d'impôt est déduit en temps réel au prélèvement.
+        <strong>Pas d'avance, pas d'attente.</strong> Le crédit d'impôt est déduit en temps réel au moment du prélèvement — vous ne payez que votre 50 %, c'est tout.
       </div>
+    </div>
+  );
+}
+
+function MockStats() {
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, border: "1px solid #E2E8F0", overflow: "hidden", fontSize: 12 }}>
+      {[
+        { stat: "+40 %", title: "Les profs sont mieux rémunérés.", body: "Après cotisations, le prof touche jusqu'à 40 % de plus qu'au marché non déclaré, grâce à une revalorisation dégressive selon le taux horaire." },
+        { stat: "0 €", title: "De travail non déclaré.", body: "Le prof cotise, valide des trimestres et construit ses droits sociaux. Ce qui était de la précarité invisible devient une activité valorisante." },
+        { stat: "∞", title: "Cours accessibles aux familles modestes.", body: "Les revenus des tarifs les plus élevés permettent à Colibri de revaloriser sans bénéfice les profs aux tarifs les plus bas." },
+      ].map((item, i, arr) => (
+        <div key={i} style={{ padding: "12px 16px", borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <span style={{ fontSize: 20, fontWeight: 900, color: "#0052D4", flexShrink: 0, lineHeight: 1.2, minWidth: 44 }}>{item.stat}</span>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#0F172A", margin: "0 0 3px" }}>{item.title}</p>
+            <p style={{ fontSize: 10, color: "#64748B", margin: 0, lineHeight: 1.5 }}>{item.body}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -422,7 +449,7 @@ const GUIDES: {
     items: [
       {
         title: "Vous payez la même chose qu'avant",
-        desc: "Colibri facture le double de votre prix habituel. L'Urssaf déduit 50% en temps réel — vous payez exactement ce que vous payiez avant en liquide. La différence : tout est déclaré, le prof cotise, et vous avez un justificatif.",
+        desc: "Vous n'avancez rien et ne payez pas plus. Colibri facture le double du tarif habituel, et le crédit d'impôt de 50 % est déduit en temps réel par l'Urssaf au moment du prélèvement. En définitive, vous êtes prélevés exactement autant que ce que vous auriez payé sans déclarer — la différence : le prof est déclaré, cotise, et vous avez un justificatif fiscal.",
         MockComponent: MockMecanisme,
       },
       {
@@ -431,8 +458,9 @@ const GUIDES: {
         MockComponent: MockParcours,
       },
       {
-        title: "L'argent de l'État, il va où ?",
-        desc: "Les 20% qui transitent via l'État ne génèrent aucun bénéfice pour Colibri. Ils permettent trois choses : rémunérer les profs à +40% par rapport au marché au noir tout en les faisant cotiser, éliminer le travail non déclaré, et financer des cours gratuits pour des familles qui ne pourraient pas se les payer.",
+        title: "À quoi sert l'argent de l'État ?",
+        desc: "Le crédit d'impôt de 50 % versé par l'État ne génère aucun bénéfice pour Colibri. Il sert à trois choses : revaloriser les profs de +40 % par rapport au marché non déclaré tout en les faisant cotiser, éliminer le travail au noir, et rendre les cours accessibles aux familles qui ne pourraient pas se les permettre autrement.",
+        MockComponent: MockStats,
       },
       {
         title: "Conditions et plafonds",
