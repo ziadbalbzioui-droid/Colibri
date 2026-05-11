@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { ChevronLeft, AlertTriangle, Info, Lightbulb, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, AlertTriangle, Info } from "lucide-react";
 
 // ─── INPI design tokens ────────────────────────────────────────────
 const T = "#009EA0";
@@ -10,20 +10,32 @@ const RD = "#DC2626";
 
 // ─── INPI micro-components ─────────────────────────────────────────
 
-function ILabel({ children, req }: { children: React.ReactNode; req?: boolean }) {
+function INum({ n }: { n: number }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      width: 15, height: 15, borderRadius: "50%",
+      background: "#EEF2FF", border: "1.5px solid #C7D2FE",
+      color: "#4338CA", fontSize: 8, fontWeight: 800,
+      marginLeft: 5, flexShrink: 0, verticalAlign: "middle", lineHeight: 1,
+    }}>{n}</span>
+  );
+}
+
+function ILabel({ children, req, num }: { children: React.ReactNode; req?: boolean; num?: number }) {
   return (
     <p style={{ fontSize: 11, color: "#4B5563", fontWeight: 500, marginBottom: 3, lineHeight: 1.35 }}>
       {children}{req && <span style={{ color: RD }}> *</span>}
       {req && <span style={{ color: RD, fontSize: 9, marginLeft: 2 }}>ⓘ</span>}
+      {num !== undefined && <INum n={num} />}
     </p>
   );
 }
 
-function IInput({ val, hi, mono, placeholder }: { val?: string; hi?: boolean; mono?: boolean; placeholder?: string }) {
+function IInput({ val, mono, placeholder }: { val?: string; mono?: boolean; placeholder?: string }) {
   return (
     <div style={{
-      border: `1px solid ${hi ? RD : GB}`,
-      boxShadow: hi ? `0 0 0 1px ${RD}` : "none",
+      border: `1px solid ${GB}`,
       borderRadius: 3, padding: "6px 9px", background: "#fff",
       fontSize: 12, color: val ? "#111827" : "#9CA3AF", minHeight: 31,
       fontFamily: mono ? "monospace" : "inherit",
@@ -33,11 +45,10 @@ function IInput({ val, hi, mono, placeholder }: { val?: string; hi?: boolean; mo
   );
 }
 
-function IInputArea({ val, hi }: { val: string; hi?: boolean }) {
+function IInputArea({ val }: { val: string }) {
   return (
     <div style={{
-      border: `1px solid ${hi ? RD : GB}`,
-      boxShadow: hi ? `0 0 0 1px ${RD}` : "none",
+      border: `1px solid ${GB}`,
       borderRadius: 3, padding: "7px 9px", background: "#fff",
       fontSize: 11, color: "#111827", minHeight: 56, lineHeight: 1.55,
     }}>
@@ -46,11 +57,10 @@ function IInputArea({ val, hi }: { val: string; hi?: boolean }) {
   );
 }
 
-function ISelect({ val, hi }: { val: string; hi?: boolean }) {
+function ISelect({ val }: { val: string }) {
   return (
     <div style={{
-      border: `1px solid ${hi ? RD : GB}`,
-      boxShadow: hi ? `0 0 0 1px ${RD}` : "none",
+      border: `1px solid ${GB}`,
       borderRadius: 3, padding: "6px 9px", background: "#fff",
       fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center",
     }}>
@@ -94,21 +104,14 @@ function ISection({ title, children }: { title: string; children: React.ReactNod
   );
 }
 
-// Single red-highlight box — wrap only once
-function IHi({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ outline: `2px solid ${RD}`, outlineOffset: 1, borderRadius: 3 }}>{children}</div>
-  );
-}
-
 function IRow({ children, cols = "1fr 1fr" }: { children: React.ReactNode; cols?: string }) {
   return <div style={{ display: "grid", gridTemplateColumns: cols, gap: 10, marginBottom: 8 }}>{children}</div>;
 }
 
-function IField({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
+function IField({ label, req, num, children }: { label: string; req?: boolean; num?: number; children: React.ReactNode }) {
   return (
     <div>
-      <ILabel req={req}>{label}</ILabel>
+      <ILabel req={req} num={num}>{label}</ILabel>
       {children}
     </div>
   );
@@ -128,7 +131,6 @@ function INote({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Divider info-box (matches the amber INPI site warnings)
 function IWarn({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: "#FFFBF3", border: "1px solid #F59E0B", borderRadius: 4, padding: "8px 10px", fontSize: 11, color: "#92400E", lineHeight: 1.5, marginTop: 8 }}>
@@ -199,10 +201,10 @@ function IShell({ sidebar, done, step, children }: { sidebar: string; done?: str
           </div>
         </div>
       </div>
-      {/* Body */}
+      {/* Body — no maxHeight so sidebar and content flow at full height */}
       <div style={{ display: "flex" }}>
         <ISidebar active={sidebar} done={done} />
-        <div style={{ flex: 1, padding: "14px 18px", overflowY: "auto", maxHeight: 500 }}>{children}</div>
+        <div style={{ flex: 1, padding: "14px 18px" }}>{children}</div>
       </div>
       {/* Footer */}
       <div style={{ background: GL, borderTop: `1px solid ${GB}`, padding: "7px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -214,7 +216,7 @@ function IShell({ sidebar, done, step, children }: { sidebar: string; done?: str
   );
 }
 
-// ─── Callout boxes ─────────────────────────────────────────────────
+// ─── Callout boxes — 2 couleurs ────────────────────────────────────
 
 function Warn({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -230,40 +232,15 @@ function Warn({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Note({ title, children }: { title: string; children: React.ReactNode }) {
+function Note({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl p-4" style={{ background: "#FFF7ED", border: "1.5px solid #FB923C" }}>
+    <div className="rounded-xl p-4" style={{ background: "#EFF6FF", border: "1.5px solid #93C5FD" }}>
       <div className="flex gap-3 items-start">
-        <Info className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#EA580C" }} />
+        <Info className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#3B82F6" }} />
         <div>
-          <p className="font-bold text-xs mb-1.5" style={{ color: "#9A3412" }}>{title}</p>
-          <div className="text-xs leading-relaxed" style={{ color: "#7C2D12" }}>{children}</div>
+          {title && <p className="font-bold text-xs mb-1.5" style={{ color: "#1E40AF" }}>{title}</p>}
+          <div className="text-xs leading-relaxed" style={{ color: "#1E3A8A" }}>{children}</div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Tip({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl p-4" style={{ background: "#FEFCE8", border: "1.5px solid #FDE047" }}>
-      <div className="flex gap-3 items-start">
-        <Lightbulb className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#CA8A04" }} />
-        <div>
-          <p className="font-bold text-xs mb-1.5" style={{ color: "#713F12" }}>{title}</p>
-          <div className="text-xs leading-relaxed" style={{ color: "#713F12" }}>{children}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Win({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl p-4" style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC" }}>
-      <div className="flex gap-3 items-start">
-        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#16A34A" }} />
-        <div className="text-xs leading-relaxed" style={{ color: "#166534" }}>{children}</div>
       </div>
     </div>
   );
@@ -288,7 +265,7 @@ function Step({ n, total, title, mock, callouts }: { n: number; total: number; t
         </div>
         {mock}
       </div>
-      <div style={{ paddingTop: 52, display: "flex", flexDirection: "column" as const, gap: 10 }}>{callouts}</div>
+      <div style={{ paddingTop: 52, paddingRight: 16, display: "flex", flexDirection: "column" as const, gap: 10 }}>{callouts}</div>
     </div>
   );
 }
@@ -300,16 +277,12 @@ function MockStep1() {
     <IShell sidebar="identite" step="1 / 9">
       <ISection title="Nature de la création">
         <IRow>
-          <IHi>
-            <IField label="Forme de l'entreprise souhaitée" req>
-              <div style={{ fontSize: 12, color: "#111827", padding: "2px 0" }}>Entrepreneur individuel</div>
-            </IField>
-          </IHi>
-          <IHi>
-            <IField label="Souhaitez-vous opter pour le statut micro entrepreneur ?" req>
-              <div style={{ fontSize: 12, color: "#111827", padding: "2px 0" }}>Oui</div>
-            </IField>
-          </IHi>
+          <IField label="Forme de l'entreprise souhaitée" req num={1}>
+            <div style={{ fontSize: 12, color: "#111827", padding: "2px 0" }}>Entrepreneur individuel</div>
+          </IField>
+          <IField label="Souhaitez-vous opter pour le statut micro entrepreneur ?" req num={2}>
+            <div style={{ fontSize: 12, color: "#111827", padding: "2px 0" }}>Oui</div>
+          </IField>
         </IRow>
         <IField label="L'entrepreneur a-t-il déjà exercé une activité non salariée en France ?" req>
           <IRadioGroup options={["Oui", "Non"]} selected="Non" />
@@ -329,7 +302,7 @@ function MockStep1() {
           <IField label="Genre" req><ISelect val="Masculin" /></IField>
         </IRow>
         <IRow>
-          <IField label="Titre"><IInput placeholder="" /></IField>
+          <IField label="Titre"><IInput /></IField>
           <IField label="Nom d'usage"><IInput /></IField>
         </IRow>
         <IRow>
@@ -348,9 +321,7 @@ function MockStep2() {
   return (
     <IShell sidebar="identite" step="1 / 9">
       <ISection title="Régime microsocial">
-        <IHi>
-          <IField label="Périodicité de versement" req><ISelect val="Mensuel" /></IField>
-        </IHi>
+        <IField label="Périodicité de versement" req num={1}><ISelect val="Mensuel" /></IField>
       </ISection>
       <ISection title="Adresse de l'entrepreneur">
         <IField label="Sélectionner une adresse déjà saisie :"><ISelect val="6 BOULEVARD C…" /></IField>
@@ -380,8 +351,8 @@ function MockStep2() {
       </ISection>
       <ISection title="Volet social de l'entrepreneur">
         <IRow>
-          <IField label="Numéro de sécurité sociale" req>
-            <IHi><IInput val="105101234567890" mono /></IHi>
+          <IField label="Numéro de sécurité sociale" req num={2}>
+            <IInput val="105101234567890" mono />
             <INote>15 caractères</INote>
           </IField>
           <IField label="Activité non salariée antérieure" req>
@@ -445,10 +416,10 @@ function MockStep4() {
   return (
     <IShell sidebar="identite" done={[]} step="2 / 9">
       <ISection title="Déclaration du contrat d'appui">
-        <IField label="Un contrat d'appui a-t-il été conclu ?" req>
+        <IField label="Un contrat d'appui a-t-il été conclu ?" req num={1}>
           <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
             <IRadio checked={false} label="Oui" />
-            <IHi><IRadio checked={true} label="Non" /></IHi>
+            <IRadio checked={true} label="Non" />
           </div>
         </IField>
       </ISection>
@@ -474,13 +445,13 @@ function MockStep6() {
   return (
     <IShell sidebar="insaisissabilite" done={["identite", "composition"]} step="4 / 9">
       <ISection title="Insaisissabilité">
-        <IField label="Votre résidence principale ne peut pas être saisie par vos créanciers professionnels, sauf volonté contraire de votre part exprimée par déclaration devant notaire : avez-vous effectué une telle déclaration ?" req>
+        <IField label="Votre résidence principale ne peut pas être saisie par vos créanciers professionnels, sauf volonté contraire de votre part exprimée par déclaration devant notaire : avez-vous effectué une telle déclaration ?" req num={1}>
           <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 10, color: "#6B7280" }}>ⓘ</span>
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
             <IRadio checked={false} label="Oui" />
-            <IHi><IRadio checked={true} label="Non" /></IHi>
+            <IRadio checked={true} label="Non" />
           </div>
         </IField>
       </ISection>
@@ -493,14 +464,14 @@ function MockStep7() {
     <IShell sidebar="etablissements" done={["identite", "composition", "insaisissabilite"]} step="5 / 9">
       <ISection title="Description de l'établissement">
         <IRow>
-          <IField label="Cet établissement est-il l'établissement principal ?" req>
+          <IField label="Cet établissement est-il l'établissement principal ?" req num={1}>
             <div style={{ display: "flex", gap: 16, marginTop: 4 }}>
-              <IHi><IRadio checked={true} label="Oui" /></IHi>
+              <IRadio checked={true} label="Oui" />
               <IRadio checked={false} label="Non" />
             </div>
           </IField>
-          <IField label="Nom commercial">
-            <IHi><IInput val="DIGHIERO–BRECHT Martin" /></IHi>
+          <IField label="Nom commercial" num={2}>
+            <IInput val="DIGHIERO–BRECHT Martin" />
           </IField>
         </IRow>
       </ISection>
@@ -534,7 +505,6 @@ function MockStep7() {
 function MockStep8() {
   return (
     <IShell sidebar="etablissements" done={["identite", "composition", "insaisissabilite"]} step="5 / 9">
-      {/* Breadcrumb */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 11, color: T, fontWeight: 600 }}>
         <span style={{ fontSize: 13 }}>‹</span> Activités de soutien à l'enseignement
       </div>
@@ -552,28 +522,28 @@ function MockStep8() {
           <IField label="Exercice de l'activité" req>
             <IRadioGroup options={["Permanente", "Saisonnière"]} selected="Permanente" />
           </IField>
-          <IField label="L'activité est-elle exercée de manière ambulante ?" req>
+          <IField label="L'activité est-elle exercée de manière ambulante ?" req num={1}>
             <div style={{ display: "flex", gap: 14, marginTop: 4 }}>
               <IRadio checked={false} label="Oui" />
-              <IHi><IRadio checked={true} label="Non" /></IHi>
+              <IRadio checked={true} label="Non" />
             </div>
           </IField>
         </IRow>
-        <IField label="Description de l'activité principale" req>
-          <IHi><IInputArea val="Cours particuliers de soutien scolaire, à domicile chez les élèves." /></IHi>
+        <IField label="Description de l'activité principale" req num={2}>
+          <IInputArea val="Cours particuliers de soutien scolaire, à domicile chez les élèves." />
           <INote>L'INSEE se basera sur les 140 premiers caractères du libellé de votre activité afin d'attribuer un code APE.</INote>
           <INote>Si vous souhaitez de l'aide pour identifier la catégorisation de votre activité, vous pouvez faire appel au chatbot.</INote>
         </IField>
         <IRow>
-          <IField label="Catégorisation 1 de l'activité" req>
-            <IHi><ISelect val="Activités de services" /></IHi>
+          <IField label="Catégorisation 1 de l'activité" req num={3}>
+            <ISelect val="Activités de services" />
           </IField>
-          <IField label="Catégorisation 2 de l'activité" req>
-            <IHi><ISelect val="Enseignement" /></IHi>
+          <IField label="Catégorisation 2 de l'activité" req num={3}>
+            <ISelect val="Enseignement" />
           </IField>
         </IRow>
-        <IField label="Catégorisation 3 de l'activité" req>
-          <IHi><ISelect val="Activités de soutien à l'enseignement" /></IHi>
+        <IField label="Catégorisation 3 de l'activité" req num={3}>
+          <ISelect val="Activités de soutien à l'enseignement" />
         </IField>
         <div style={{ marginTop: 8, fontSize: 10.5, color: "#4B5563", lineHeight: 1.55 }}>
           <p>Vous déclarez une activité de forme <strong>Libérale</strong>.</p>
@@ -582,8 +552,8 @@ function MockStep8() {
         </div>
       </ISection>
       <ISection title="Origine">
-        <IField label="Type d'origine" req>
-          <IHi><ISelect val="Création" /></IHi>
+        <IField label="Type d'origine" req num={4}>
+          <ISelect val="Création" />
         </IField>
       </ISection>
     </IShell>
@@ -628,10 +598,10 @@ function MockStep9() {
           Vous pouvez trouver plus d'informations sur les options fiscales sur la page :{" "}
           <span style={{ color: T, textDecoration: "underline", fontWeight: 500 }}>Aide à la définition des options fiscales</span>
         </p>
-        <IField label="Option pour le versement libératoire" req>
+        <IField label="Option pour le versement libératoire" req num={1}>
           <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
             <IRadio checked={false} label="Oui" />
-            <IHi><IRadio checked={true} label="Non" /></IHi>
+            <IRadio checked={true} label="Non" />
           </div>
         </IField>
       </ISection>
@@ -646,23 +616,21 @@ function MockStep10() {
         <IField label="Sélectionner un type de pièce" req>
           <ISelect val="Copie de la carte nationale d'identité" />
         </IField>
-        <IField label="Justificatif d'identité (recto/verso)" req>
-          <IHi>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", border: `1px dashed ${GB}`, borderRadius: 4, padding: "10px 14px", background: "#FAFAFA" }}>
-              <div style={{ flex: 1, fontSize: 11, color: "#9CA3AF", textAlign: "center" as const }}>
-                Faites glisser votre document<br />
-                <span style={{ color: T, fontWeight: 600 }}>Sélectionnez un fichier</span>
-              </div>
-              <div style={{ borderLeft: `1px solid ${GB}`, paddingLeft: 10 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>Photo_Identite.pdf</p>
-                <p style={{ fontSize: 10, color: "#9CA3AF" }}>901 Ko</p>
-                <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                  <span style={{ fontSize: 14, cursor: "pointer" }}>✕</span>
-                  <span style={{ fontSize: 14, cursor: "pointer", color: T }}>👁</span>
-                </div>
+        <IField label="Justificatif d'identité (recto/verso)" req num={1}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", border: `1px dashed ${GB}`, borderRadius: 4, padding: "10px 14px", background: "#FAFAFA" }}>
+            <div style={{ flex: 1, fontSize: 11, color: "#9CA3AF", textAlign: "center" as const }}>
+              Faites glisser votre document<br />
+              <span style={{ color: T, fontWeight: 600 }}>Sélectionnez un fichier</span>
+            </div>
+            <div style={{ borderLeft: `1px solid ${GB}`, paddingLeft: 10 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>Photo_Identite.pdf</p>
+              <p style={{ fontSize: 10, color: "#9CA3AF" }}>901 Ko</p>
+              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 14, cursor: "pointer" }}>✕</span>
+                <span style={{ fontSize: 14, cursor: "pointer", color: T }}>👁</span>
               </div>
             </div>
-          </IHi>
+          </div>
           <INote>Nota bene : Veuillez vérifier que votre copie de la carte nationale d'identité est toujours en cours de validité. Ce document ne sera pas diffusé par le Registre National des Entreprises.</INote>
         </IField>
       </ISection>
@@ -708,12 +676,12 @@ function MockStep11() {
         <p style={{ fontSize: 10, color: "#4B5563", marginBottom: 8, lineHeight: 1.5, fontStyle: "italic" }}>
           Cette information est susceptible d'être communiquée aux Chambres consulaires, ainsi qu'aux organismes fiscaux et sociaux. Les administrations pourront y adresser des documents à l'entreprise au cours de sa vie sociale.
         </p>
-        <IField label="Type de destinataire" req>
+        <IField label="Type de destinataire" req num={1}>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 6, marginTop: 4 }}>
             <IRadio checked={false} label="L'entreprise" />
             <IRadio checked={false} label="Mandataire ayant procuration" />
             <IRadio checked={false} label="Autre personne justifiant d'un intérêt" />
-            <IHi><IRadio checked={true} label="Entrepreneur" /></IHi>
+            <IRadio checked={true} label="Entrepreneur" />
           </div>
         </IField>
         <div style={{ marginTop: 10 }}>
@@ -787,21 +755,14 @@ export function GuideStatutAutoEntrepreneur() {
 
       {/* Header */}
       <div className="mb-10">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-lg">🏪</span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900">Créer son statut auto-entrepreneur</h1>
-        </div>
-        <p className="text-slate-400 text-sm ml-12 mb-4">
+        <h1 className="text-xl font-bold text-slate-900 mb-2">Créer son statut auto-entrepreneur</h1>
+        <p className="text-slate-400 text-sm mb-4">
           Guide pas-à-pas du formulaire INPI — chaque écran est reproduit tel que vous le verrez, avec les bons choix à faire.
         </p>
-        <div className="ml-12 flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           {[
+            { Icon: Info, label: "Info / astuce", color: "#2563EB", bg: "#EFF6FF", border: "#93C5FD" },
             { Icon: AlertTriangle, label: "Attention", color: "#D97706", bg: "#FFFBEB", border: "#F59E0B" },
-            { Icon: Info, label: "À savoir", color: "#EA580C", bg: "#FFF7ED", border: "#FB923C" },
-            { Icon: Lightbulb, label: "Astuce", color: "#CA8A04", bg: "#FEFCE8", border: "#FDE047" },
-            { Icon: CheckCircle2, label: "Colibri", color: "#16A34A", bg: "#F0FDF4", border: "#86EFAC" },
           ].map(({ Icon, label, color, bg, border }) => (
             <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-medium" style={{ background: bg, border: `1px solid ${border}`, color }}>
               <Icon className="w-3 h-3" />{label}
@@ -815,11 +776,11 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={1} total={TOTAL} title="Identité de l'entrepreneur"
         mock={<MockStep1 />}
         callouts={<>
-          <Tip title="Nom du brouillon — libre">
+          <Note title="Nom du brouillon — libre">
             Vous pouvez écrire ce que vous voulez dans ce champ, c'est juste un intitulé interne pour retrouver votre dossier. <strong>«&nbsp;Création statut micro-entrepreneur&nbsp;»</strong> convient parfaitement.
-          </Tip>
-          <Note title="Nature de la création">
-            Sélectionnez <strong>«&nbsp;Entrepreneur individuel&nbsp;»</strong> et répondez <strong>«&nbsp;Oui&nbsp;»</strong> au statut micro-entrepreneur. Ces deux champs encadrés en rouge sont les plus importants de cette page.
+          </Note>
+          <Note title="① ② Les deux choix fondateurs">
+            Sélectionnez <strong>Entrepreneur individuel</strong> en ①, puis répondez <strong>Oui</strong> au statut micro-entrepreneur en ②. Ces deux champs déterminent toute la suite du formulaire.
           </Note>
         </>}
       />
@@ -827,15 +788,12 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={2} total={TOTAL} title="Régime microsocial, adresse et numéro de sécurité sociale"
         mock={<MockStep2 />}
         callouts={<>
-          <Warn title="Numéro de sécu : sans espaces !">
-            Le champ attend <strong>15 chiffres consécutifs</strong>, sans espace, sans tiret. Si vous copiez-collez depuis votre carte Vitale, supprimez tous les espaces. Le site vérifie automatiquement la longueur.
+          <Warn title="② Numéro de sécu : sans espaces !">
+            Le champ ② attend <strong>15 chiffres consécutifs</strong>, sans espace, sans tiret. Si vous copiez-collez depuis votre carte Vitale, supprimez tous les espaces. Le site vérifie automatiquement la longueur.
           </Warn>
-          <Note title="Périodicité mensuelle">
-            Choisissez <strong>«&nbsp;Mensuel&nbsp;»</strong>. Vous devrez déclarer vos revenus chaque mois à l'URSSAF — et vous pourrez le faire directement depuis Colibri.
+          <Note title="① Périodicité mensuelle">
+            Choisissez <strong>Mensuel</strong> en ①. Vous devrez déclarer vos revenus chaque mois à l'URSSAF — et vous pourrez le faire directement depuis Colibri sans quitter la plateforme.
           </Note>
-          <Win>
-            <strong>Avantage Colibri :</strong> une fois inscrit, vous n'aurez pas besoin d'aller sur le site URSSAF pour vos déclarations mensuelles. Tout se fait depuis votre tableau de bord.
-          </Win>
         </>}
       />
 
@@ -847,19 +805,19 @@ export function GuideStatutAutoEntrepreneur() {
             <br /><br />
             <strong>Pour les mineurs :</strong> indiquez l'adresse du domicile de vos <strong>parents</strong>, pas de votre école.
           </Warn>
-          <Tip title="Domiciliation à votre domicile">
+          <Note title="Domiciliation à votre domicile">
             Cochez <strong>«&nbsp;Oui&nbsp;»</strong> pour fixer l'adresse à votre domicile. Aucun local professionnel n'est requis pour donner des cours particuliers. Cochez également la case d'acceptation de la publicité légale pour continuer.
-          </Tip>
+          </Note>
         </>}
       />
 
       <Step n={4} total={TOTAL} title="Contrat d'appui (CAPE)"
         mock={<MockStep4 />}
         callouts={<>
-          <Note title="Qu'est-ce qu'un contrat d'appui ?">
+          <Note title="① Qu'est-ce qu'un contrat d'appui ?">
             Le CAPE (Contrat d'Appui au Projet d'Entreprise) est un dispositif très spécifique permettant de tester une activité quelques mois en restant demandeur d'emploi, grâce à une <strong>couveuse d'entreprise</strong> ou un incubateur qui prête son SIRET.
           </Note>
-          <Warn title="Répondez « Non »">
+          <Warn title="① Répondez « Non »">
             Vous créez votre propre micro-entreprise de façon indépendante : vous n'avez pas signé de contrat avec une couveuse, et vous aurez <strong>votre propre numéro SIRET</strong>. Répondre «&nbsp;Oui&nbsp;» par erreur bloquerait votre dossier en demandant des documents que vous n'avez pas.
           </Warn>
         </>}
@@ -871,56 +829,59 @@ export function GuideStatutAutoEntrepreneur() {
           <Note title="Pourquoi cette section ?">
             Cette page liste les personnes ayant le pouvoir légal de signer des contrats ou des engagements financiers <strong>au nom de votre entreprise</strong> — autres que vous.
           </Note>
-          <Tip title="N'ajoutez personne">
+          <Note title="N'ajoutez personne">
             En auto-entrepreneur, <strong>vous êtes le seul maître à bord</strong>. Ne déclarez pas vos parents, votre conjoint ou un ami, même s'ils vous aident. «&nbsp;Engager l'établissement&nbsp;» signifie pouvoir contracter des dettes en votre nom — ce n'est pas nécessaire pour donner des cours particuliers.
-          </Tip>
+          </Note>
         </>}
       />
 
       <Step n={6} total={TOTAL} title="Insaisissabilité de la résidence principale"
         mock={<MockStep6 />}
         callouts={<>
-          <Note title="La question peut sembler piégée">
+          <Note title="① La question peut sembler piégée">
             Le site ne vous demande <strong>pas</strong> si vous souhaitez protéger votre résidence. Il vous demande si vous avez déjà effectué <strong>une démarche payante chez un notaire</strong> pour y renoncer ou pour protéger d'autres biens.
           </Note>
-          <Tip title="Répondez « Non » dans presque tous les cas">
+          <Note title="① Répondez « Non » dans presque tous les cas">
             Depuis 2015, la loi protège <strong>automatiquement et gratuitement</strong> votre résidence principale. Vous n'avez rien à faire. La déclaration notariale n'est utile que pour protéger d'autres biens immobiliers (résidence secondaire, terrain).
             <br /><br />
             Même si vous êtes <strong>locataire</strong>, répondez «&nbsp;Non&nbsp;» — la question ne change rien à votre situation.
-          </Tip>
+          </Note>
         </>}
       />
 
       <Step n={7} total={TOTAL} title="Établissement — nom commercial et adresse"
         mock={<MockStep7 />}
         callouts={<>
-          <Note title="Nom commercial = votre identité professionnelle">
-            Renseignez votre <strong>NOM DE NAISSANCE</strong> suivi de votre <strong>Prénom</strong>. Les majuscules sont indifférentes pour l'INPI.
+          <Note title="② Nom commercial = votre identité professionnelle">
+            Renseignez votre <strong>NOM DE NAISSANCE</strong> suivi de votre <strong>Prénom</strong> en ②. Les majuscules sont indifférentes pour l'INPI.
             <br /><br />
-            Exemple&nbsp;: <code style={{ background: "#FEF3C7", padding: "1px 5px", borderRadius: 3, fontFamily: "monospace" }}>DIGHIERO–BRECHT Martin</code>
+            Exemple&nbsp;: <code style={{ background: "#DBEAFE", padding: "1px 5px", borderRadius: 3, fontFamily: "monospace" }}>DIGHIERO–BRECHT Martin</code>
           </Note>
-          <Tip title="Établissement principal et adresse">
-            Cochez <strong>«&nbsp;Oui&nbsp;»</strong> comme établissement principal (c'est votre unique établissement). L'adresse est automatiquement reprise depuis votre domicile saisi à l'étape précédente. Laissez «&nbsp;Non&nbsp;» pour la présence de salariés.
-          </Tip>
+          <Note title="① Établissement principal et adresse">
+            Cochez <strong>«&nbsp;Oui&nbsp;»</strong> en ① comme établissement principal (c'est votre unique établissement). L'adresse est automatiquement reprise depuis votre domicile saisi à l'étape précédente. Laissez «&nbsp;Non&nbsp;» pour la présence de salariés.
+          </Note>
         </>}
       />
 
       <Step n={8} total={TOTAL} title="Activités — description et catégorisation"
         mock={<MockStep8 />}
         callouts={<>
-          <Tip title="Description exacte à copier-coller">
-            <strong style={{ display: "block", marginBottom: 4 }}>Dans le champ description :</strong>
-            <code style={{ display: "block", background: "#FEF3C7", padding: "5px 8px", borderRadius: 4, fontFamily: "monospace", fontSize: 11, lineHeight: 1.5 }}>
+          <Note title="② Description exacte à copier-coller">
+            <strong style={{ display: "block", marginBottom: 4 }}>Dans le champ ② :</strong>
+            <code style={{ display: "block", background: "#DBEAFE", padding: "5px 8px", borderRadius: 4, fontFamily: "monospace", fontSize: 11, lineHeight: 1.5 }}>
               Cours particuliers de soutien scolaire, à domicile chez les élèves.
             </code>
             <br />
-            <strong style={{ display: "block", marginBottom: 4 }}>Catégorisation dans l'ordre :</strong>
+            <strong style={{ display: "block", marginBottom: 4 }}>③ Catégorisation dans l'ordre :</strong>
             1. Activités de services<br />
             2. Enseignement<br />
             3. Activités de soutien à l'enseignement
-          </Tip>
-          <Note title="Activité ambulante → Non">
+          </Note>
+          <Warn title="① Activité ambulante → Non">
             «&nbsp;Ambulante&nbsp;» signifie vendre sur <strong>la voie publique ou les marchés</strong> (nécessite une carte payante). Se déplacer <strong>chez vos élèves</strong> n'est pas ambulant. Répondez <strong>«&nbsp;Non&nbsp;»</strong> sans hésiter.
+          </Warn>
+          <Note title="④ Type d'origine → Création">
+            Sélectionnez <strong>«&nbsp;Création&nbsp;»</strong> en ④. Cette valeur indique que vous créez une nouvelle activité (et non que vous reprenez une entreprise existante).
           </Note>
         </>}
       />
@@ -928,9 +889,9 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={9} total={TOTAL} title="Liste des activités de l'établissement"
         mock={<MockStep8b />}
         callouts={<>
-          <Tip title="Une seule activité à renseigner">
+          <Note title="Une seule activité à renseigner">
             Après avoir validé la description de l'activité, vous arrivez sur cette page récapitulative. Vous y voyez l'activité que vous venez d'enregistrer. <strong>N'en ajoutez pas d'autre</strong> — une seule activité suffit pour les cours particuliers.
-          </Tip>
+          </Note>
           <Note title="Nom de domaine internet (écran suivant)">
             La page suivante vous demande un éventuel nom de domaine internet (ex&nbsp;: monsite.fr). <strong>Laissez ce champ vide</strong> — il n'est pas nécessaire pour exercer votre activité.
           </Note>
@@ -940,10 +901,10 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={10} total={TOTAL} title="Options fiscales — versement libératoire"
         mock={<MockStep9 />}
         callouts={<>
-          <Note title="Qu'est-ce que le versement libératoire ?">
+          <Note title="① Qu'est-ce que le versement libératoire ?">
             Cette option permet de payer l'impôt sur le revenu <strong>en même temps que vos cotisations URSSAF</strong>, à un taux fixe de 2,2% du CA. Elle est définitive pour l'année civile en cours.
           </Note>
-          <Warn title="Comment choisir ?">
+          <Warn title="① Comment choisir ?">
             <strong>Mettez «&nbsp;Non&nbsp;»</strong> si vous débutez et ne prévoyez pas de grosses sommes tout de suite, ou si vous n'êtes pas imposable (revenus sous le seuil).
             <br /><br />
             <strong>Mettez «&nbsp;Oui&nbsp;»</strong> si vous êtes déjà salarié à côté, ou si vos parents (foyer fiscal duquel vous dépendez) sont dans une tranche élevée.
@@ -956,7 +917,7 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={11} total={TOTAL} title="Pièces jointes"
         mock={<MockStep10 />}
         callouts={<>
-          <Note title="Carte nationale d'identité">
+          <Note title="① Carte nationale d'identité">
             Déposez une copie de votre <strong>CNI recto/verso</strong> (ou passeport) en un seul fichier si possible. Vérifiez qu'elle est <strong>en cours de validité</strong> — l'INPI le contrôle systématiquement.
           </Note>
           <Warn title="Section « Représentant ou mandataire » — rien à déposer">
@@ -968,9 +929,9 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={12} total={TOTAL} title="Observations et correspondance"
         mock={<MockStep11 />}
         callouts={<>
-          <Tip title="Type de destinataire → Entrepreneur">
-            Sélectionnez <strong>«&nbsp;Entrepreneur&nbsp;»</strong> comme type de destinataire. Les courriers officiels (URSSAF, administrations) seront envoyés à votre adresse personnelle.
-          </Tip>
+          <Note title="① Type de destinataire → Entrepreneur">
+            Sélectionnez <strong>«&nbsp;Entrepreneur&nbsp;»</strong> en ① comme type de destinataire. Les courriers officiels (URSSAF, administrations) seront envoyés à votre adresse personnelle.
+          </Note>
           <Note title="Données Sirène">
             Cochez la case <strong>«&nbsp;Je demande que les informations ne puissent pas être consultées par des tiers&nbsp;»</strong> pour limiter le démarchage commercial. Vos données restent malgré tout publiques dans le registre légal.
           </Note>
@@ -980,11 +941,11 @@ export function GuideStatutAutoEntrepreneur() {
       <Step n={13} total={TOTAL} title="Confirmation — c'est envoyé !"
         mock={<MockStep12 />}
         callouts={<>
-          <Win>
+          <Note>
             <strong>Félicitations !</strong> Votre dossier est soumis. La demande est traitée en <strong>3 à 10 jours ouvrés</strong>. Conservez votre numéro de suivi pour suivre l'avancement.
             <br /><br />
             Dès réception de votre SIRET par courrier, renseignez-le dans <strong>Colibri → Mon profil</strong> pour débloquer la facturation.
-          </Win>
+          </Note>
           <Note title="Les étapes suivantes">
             <strong>1. Espace URSSAF</strong> — vous recevrez un email d'activation. Connectez-vous sur <em>autoentrepreneur.urssaf.fr</em> pour renseigner votre IBAN de paiement des cotisations.
             <br /><br />
