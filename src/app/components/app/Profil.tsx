@@ -4,6 +4,7 @@ import { validateIban, formatIban } from "../../../lib/validateIban";
 import { Navigate, useNavigate } from "react-router";
 import logo from "@/assets/colibri.svg";
 import { useAuth } from "../../../lib/auth";
+import { supabase } from "../../../lib/supabase";
 import { LoadingGuard } from "../layout/LoadingGuard";
 
 const MATIERES = [
@@ -11,16 +12,7 @@ const MATIERES = [
   "Allemand", "Histoire-Géographie", "SES", "SVT", "NSI", "Philosophie", "Autre",
 ];
 
-const ETABLISSEMENTS = [
-  "Polytechnique (X)",
-  "ENS Ulm",
-  "Mines Paris - PSL",
-  "HEC Paris",
-  "ESSEC Business School",
-  "CentraleSupélec",
-  "ENS Paris-Saclay",
-  "Dauphine - PSL",
-];
+const AUTRE_ETAB = "Autre établissement d'excellence (soumis à validation)";
 
 const S = {
   card: { background: "#fff", border: "1px solid #E2E8F0", borderRadius: 16, boxShadow: "0 1px 3px rgba(15,23,42,.06)", padding: 24 } as React.CSSProperties,
@@ -40,11 +32,19 @@ export function Profil() {
   const [matiereInput, setMatiereInput] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [showEtabDropdown, setShowEtabDropdown] = useState(false);
+  const [ecoles, setEcoles] = useState<string[]>([]);
+  const [isAutreEtab, setIsAutreEtab] = useState(false);
+  const [autreEtabNom, setAutreEtabNom] = useState("");
 
   const [form, setForm] = useState({
     prenom: "", nom: "", email: "", telephone: "",
     etablissement: "", niveau_etudes: "", siret: "", adresse: "", iban: "",
   });
+
+  useEffect(() => {
+    supabase.from("ecoles").select("nom").eq("active", true).order("ordre")
+      .then(({ data }) => { if (data) setEcoles(data.map((e) => e.nom)); });
+  }, []);
 
   useEffect(() => {
     if (profile) {
@@ -58,6 +58,16 @@ export function Profil() {
       setMatieres(raw ? raw.split(",").map((m) => m.trim()).filter(Boolean) : []);
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (profile && ecoles.length > 0) {
+      const etab = profile.etablissement ?? "";
+      if (etab && !ecoles.includes(etab)) {
+        setIsAutreEtab(true);
+        setAutreEtabNom(etab);
+      }
+    }
+  }, [profile, ecoles]);
 
   function addMatiere(m: string) {
     const val = m.trim();
@@ -76,8 +86,14 @@ export function Profil() {
     setIbanError(null);
     setSaving(true);
     try {
-      const { error } = await updateProfile({ prenom: form.prenom, nom: form.nom, telephone: form.telephone, etablissement: form.etablissement, niveau_etudes: form.niveau_etudes, matieres_enseignees: matieres.join(", "), siret: form.siret, adresse: form.adresse, iban: form.iban });
-      if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      const finalEtab = isAutreEtab ? autreEtabNom : form.etablissement;
+      const { error } = await updateProfile({ prenom: form.prenom, nom: form.nom, telephone: form.telephone, etablissement: finalEtab, niveau_etudes: form.niveau_etudes, matieres_enseignees: matieres.join(", "), siret: form.siret, adresse: form.adresse, iban: form.iban });
+      if (!error) {
+        if (isAutreEtab && autreEtabNom.trim()) {
+          await supabase.from("ecoles_demandes").insert({ prof_id: user!.id, email_prof: form.email, prenom_prof: form.prenom, nom_prof: form.nom, nom_propose: autreEtabNom.trim() });
+        }
+        setSaved(true); setTimeout(() => setSaved(false), 2500);
+      }
     } finally { setSaving(false); }
   }
 
@@ -127,20 +143,46 @@ export function Profil() {
           <div style={{ marginBottom: 14 }}>
             <label style={S.label}>Établissement</label>
             <div style={{ position: "relative" }}>
-              <input style={S.input} value={form.etablissement}
-                onChange={(e) => { setForm({ ...form, etablissement: e.target.value }); setShowEtabDropdown(true); }}
-                onFocus={() => setShowEtabDropdown(true)}
-                onBlur={() => setTimeout(() => setShowEtabDropdown(false), 150)}
-                placeholder="Ex : Polytechnique..." />
-              {showEtabDropdown && ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(form.etablissement.toLowerCase())).length > 0 && (
-                <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", zIndex: 10, maxHeight: 192, overflowY: "auto" }}>
-                  {ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(form.etablissement.toLowerCase())).map((e) => (
-                    <li key={e} onMouseDown={() => { setForm({ ...form, etablissement: e }); setShowEtabDropdown(false); }} style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#0F172A" }}
-                      onMouseEnter={(ev) => (ev.currentTarget.style.background = "#F1F5F9")} onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
-                      {e}
-                    </li>
-                  ))}
-                </ul>
+              {!isAutreEtab ? (
+                <>
+                  <input style={S.input} value={form.etablissement}
+                    onChange={(e) => { setForm({ ...form, etablissement: e.target.value }); setShowEtabDropdown(true); }}
+                    onFocus={() => setShowEtabDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowEtabDropdown(false), 150)}
+                    placeholder="Rechercher un établissement..." />
+                  {showEtabDropdown && (
+                    <ul style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, boxShadow: "0 4px 16px rgba(15,23,42,.08)", zIndex: 10, maxHeight: 240, overflowY: "auto", padding: 0, margin: 0 }}>
+                      {ecoles.filter((e) => e.toLowerCase().includes(form.etablissement.toLowerCase())).map((e) => (
+                        <li key={e} onMouseDown={() => { setForm({ ...form, etablissement: e }); setShowEtabDropdown(false); }}
+                          style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#0F172A" }}
+                          onMouseEnter={(ev) => (ev.currentTarget.style.background = "#F1F5F9")} onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
+                          {e}
+                        </li>
+                      ))}
+                      <li onMouseDown={() => { setIsAutreEtab(true); setShowEtabDropdown(false); setForm({ ...form, etablissement: "" }); }}
+                        style={{ padding: "10px 14px", fontSize: 13, cursor: "pointer", listStyle: "none", color: "#92400E", borderTop: "1px solid #E2E8F0" }}
+                        onMouseEnter={(ev) => (ev.currentTarget.style.background = "#FFFBEB")} onMouseLeave={(ev) => (ev.currentTarget.style.background = "")}>
+                        {AUTRE_ETAB}
+                      </li>
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                    <input style={{ ...S.input, borderColor: "#F59E0B", background: "#FFFBEB", flex: 1 }}
+                      value={autreEtabNom}
+                      onChange={(e) => setAutreEtabNom(e.target.value)}
+                      placeholder="Nom de votre établissement..." />
+                    <button type="button" onClick={() => { setIsAutreEtab(false); setAutreEtabNom(""); setForm({ ...form, etablissement: "" }); }}
+                      style={{ padding: "10px 14px", borderRadius: 12, background: "#F1F5F9", border: "1px solid #E2E8F0", cursor: "pointer", fontSize: 12, color: "#64748B", fontWeight: 600 }}>
+                      Annuler
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "6px 10px", margin: 0 }}>
+                    Votre établissement sera soumis à validation. Vous pouvez continuer à utiliser l'application normalement.
+                  </p>
+                </div>
               )}
             </div>
           </div>

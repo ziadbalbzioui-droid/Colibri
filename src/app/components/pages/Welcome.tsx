@@ -9,15 +9,13 @@ import {
   HeartHandshake, Landmark, Sparkles
 } from "lucide-react";
 import { useAuth } from "../../../lib/auth";
+import { supabase } from "../../../lib/supabase";
 import urssafBlanc from "../../../assets/Urssaf_BLANC.png";
 
 type Role = "prof" | "parent" | null;
 type AuthMode = "connexion" | "inscription";
 
-const ETABLISSEMENTS = [
-  "Polytechnique (X)", "ENS Ulm", "Mines Paris - PSL", "HEC Paris",
-  "ESSEC Business School", "CentraleSupélec", "ENS Paris-Saclay", "Dauphine - PSL",
-];
+const AUTRE_ETAB = "Autre établissement d'excellence (soumis à validation)";
 
 export function Welcome() {
   const [role, setRole] = useState<Role>(null);
@@ -39,6 +37,9 @@ export function Welcome() {
   const [telephone, setTelephone] = useState("");
   const [etablissement, setEtablissement] = useState("");
   const [showEtabDropdown, setShowEtabDropdown] = useState(false);
+  const [ecoles, setEcoles] = useState<string[]>([]);
+  const [isAutreEtab, setIsAutreEtab] = useState(false);
+  const [autreEtabNom, setAutreEtabNom] = useState("");
   const [prenomEnfant, setPrenomEnfant] = useState(""); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   const [searchParams] = useSearchParams();
@@ -69,6 +70,11 @@ export function Welcome() {
     }
   }, [roleFromUrl, codeFromUrl]);
 
+  useEffect(() => {
+    supabase.from("ecoles").select("nom").eq("active", true).order("ordre")
+      .then(({ data }) => { if (data) setEcoles(data.map(e => e.nom)); });
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -85,11 +91,17 @@ export function Welcome() {
         }
         const codeProf = codeFromUrl || sessionStorage.getItem("colibri_parent_code") || "";
 
+        const finalEtablissement = isAutreEtab ? autreEtabNom : etablissement;
         const extra = role === "parent"
           ? { prenom_enfant: prenomEnfant, code_invitation: codeProf }
-          : { telephone, etablissement };
+          : { telephone, etablissement: finalEtablissement };
         const { error } = await signUp(email, password, role!, prenom, nom, extra);
         if (error) { setErrorMsg(error); return; }
+        if (role === "prof" && isAutreEtab && autreEtabNom.trim()) {
+          await supabase.from("ecoles_demandes").insert({
+            email_prof: email, prenom_prof: prenom, nom_prof: nom, nom_propose: autreEtabNom.trim(),
+          });
+        }
         setEmailSent(true);
       }
     } finally {
@@ -598,31 +610,53 @@ export function Welcome() {
                         </div>
                         {role === "prof" && (
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Établissement (Grande École...)</label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={etablissement}
-                                onChange={(e) => { setEtablissement(e.target.value); setShowEtabDropdown(true); }}
-                                onFocus={() => setShowEtabDropdown(true)}
-                                onBlur={() => setTimeout(() => setShowEtabDropdown(false), 150)}
-                                required
-                                className="w-full px-3 py-2.5 border border-slate-200/60 rounded-xl text-sm bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 focus:border-[#0052D4] outline-none transition-all"
-                              />
-                              {showEtabDropdown && ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(etablissement.toLowerCase())).length > 0 && (
-                                <ul className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
-                                  {ETABLISSEMENTS.filter((e) => e.toLowerCase().includes(etablissement.toLowerCase())).map((e) => (
-                                    <li
-                                      key={e}
-                                      onMouseDown={() => { setEtablissement(e); setShowEtabDropdown(false); }}
-                                      className="px-3 py-2.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 list-none"
-                                    >
-                                      {e}
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Établissement</label>
+                            {!isAutreEtab ? (
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={etablissement}
+                                  onChange={(e) => { setEtablissement(e.target.value); setShowEtabDropdown(true); }}
+                                  onFocus={() => setShowEtabDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowEtabDropdown(false), 150)}
+                                  required
+                                  placeholder="Rechercher un établissement..."
+                                  className="w-full px-3 py-2.5 border border-slate-200/60 rounded-xl text-sm bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-blue-500/20 focus:border-[#0052D4] outline-none transition-all"
+                                />
+                                {showEtabDropdown && (
+                                  <ul className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-52 overflow-y-auto">
+                                    {ecoles
+                                      .filter(e => e.toLowerCase().includes(etablissement.toLowerCase()))
+                                      .map(e => (
+                                        <li key={e} onMouseDown={() => { setEtablissement(e); setShowEtabDropdown(false); }}
+                                          className="px-3 py-2.5 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 list-none">
+                                          {e}
+                                        </li>
+                                      ))
+                                    }
+                                    <li onMouseDown={() => { setIsAutreEtab(true); setEtablissement(""); setShowEtabDropdown(false); }}
+                                      className="px-3 py-2.5 text-sm text-slate-400 italic cursor-pointer hover:bg-slate-50 list-none border-t border-slate-100">
+                                      {AUTRE_ETAB}
                                     </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
+                                  </ul>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                                  <span className="text-xs text-amber-700 font-medium">Autre établissement d'excellence</span>
+                                  <button type="button" onClick={() => { setIsAutreEtab(false); setAutreEtabNom(""); }}
+                                    className="text-xs text-slate-500 hover:text-slate-700 underline">Changer</button>
+                                </div>
+                                <input type="text" value={autreEtabNom} onChange={e => setAutreEtabNom(e.target.value)}
+                                  required placeholder="Nom exact de votre établissement..."
+                                  className="w-full px-3 py-2.5 border border-amber-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none transition-all"
+                                />
+                                <p className="text-[11px] text-amber-600 leading-relaxed">
+                                  Votre inscription se déroule normalement. L'ajout de cet établissement sera examiné par l'équipe Colibri.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

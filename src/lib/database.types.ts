@@ -47,6 +47,16 @@ export interface Database {
         Insert: Omit<ParentEleve, "id" | "created_at">;
         Update: never;
       };
+      ecoles: {
+        Row: Ecole;
+        Insert: Omit<Ecole, "id" | "created_at">;
+        Update: Partial<Omit<Ecole, "id" | "created_at">>;
+      };
+      ecoles_demandes: {
+        Row: EcoleDemande;
+        Insert: Omit<EcoleDemande, "id" | "created_at">;
+        Update: Partial<Omit<EcoleDemande, "id" | "created_at">>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -183,6 +193,26 @@ export interface PapsCandidature {
   annonce_id: string;
   candidat_id: string;
   message: string;
+  created_at: string;
+}
+
+export interface Ecole {
+  id: string;
+  nom: string;
+  ordre: number;
+  active: boolean;
+  categorie: string;
+  created_at: string;
+}
+
+export interface EcoleDemande {
+  id: string;
+  prof_id: string | null;
+  prenom_prof: string | null;
+  nom_prof: string | null;
+  email_prof: string | null;
+  nom_propose: string;
+  statut: "en_attente" | "approuve" | "refuse";
   created_at: string;
 }
 

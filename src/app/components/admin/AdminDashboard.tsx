@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
-  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt, Info,
+  Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt, Info, Landmark,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../lib/auth";
@@ -31,7 +31,7 @@ interface ProfPaiement {
 type DispatchState = "idle" | "loading" | "success" | "error";
 type SingleDispatchState = Record<string, "idle" | "loading" | "done" | "error">;
 type SingleDispatchErrors = Record<string, string>;
-type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta";
+type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta" | "ecoles";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paiements",     label: "Dispatch paiements", Icon: Banknote },
@@ -46,6 +46,7 @@ const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "orphelins",     label: "Cours orphelins",    Icon: Link2 },
   { key: "grille",        label: "Grille commission",  Icon: Percent },
   { key: "compta",        label: "Comptabilité",       Icon: Receipt },
+  { key: "ecoles",        label: "Établissements",     Icon: Landmark },
 ];
 
 const MOIS_LABELS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -156,7 +157,7 @@ function AdminProfs() {
 
   async function load() {
     const { data } = await supabase.from("profiles")
-      .select("id, prenom, nom, email, siret, iban, role, created_at")
+      .select("id, prenom, nom, email, siret, iban, etablissement, role, created_at")
       .eq("role", "prof").order("created_at", { ascending: false });
     setProfs(data ?? []); setLoading(false);
   }
@@ -2420,7 +2421,344 @@ export function AdminDashboard() {
         {section === "orphelins"     && <AdminOrphelins />}
         {section === "grille"        && <AdminGrille />}
         {section === "compta"        && <AdminCompta />}
+        {section === "ecoles"        && <AdminEcoles />}
       </main>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section Établissements
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Ecole { id: string; nom: string; ordre: number; active: boolean; categorie: string; }
+interface EcoleDemande { id: string; prof_id: string | null; prenom_prof: string | null; nom_prof: string | null; email_prof: string | null; nom_propose: string; statut: string; created_at: string; }
+
+const ECOLE_CATS: { key: string; label: string; cls: string }[] = [
+  { key: "ingenierie",  label: "Ingénierie",   cls: "bg-blue-100 text-blue-700" },
+  { key: "commerce",    label: "Commerce",     cls: "bg-purple-100 text-purple-700" },
+  { key: "ens",         label: "ENS",          cls: "bg-amber-100 text-amber-700" },
+  { key: "sciences_po", label: "Sciences Po",  cls: "bg-rose-100 text-rose-700" },
+  { key: "universite",  label: "Université",   cls: "bg-teal-100 text-teal-700" },
+  { key: "droit",       label: "Droit",        cls: "bg-orange-100 text-orange-700" },
+  { key: "autre",       label: "Autre",        cls: "bg-slate-100 text-slate-500" },
+];
+function ecatCls(key: string)   { return ECOLE_CATS.find(c => c.key === key)?.cls   ?? "bg-slate-100 text-slate-500"; }
+function ecatLabel(key: string) { return ECOLE_CATS.find(c => c.key === key)?.label ?? key; }
+
+type EConfirmType = "delete" | "rename";
+const ECONFIRM: Record<EConfirmType, { title: string; body: string; btnCls: string; btnLabel: string }> = {
+  delete: { title: "Supprimer les établissements sélectionnés ?", btnLabel: "Supprimer définitivement", btnCls: "bg-red-600 hover:bg-red-700 text-white",
+    body: "Ces écoles disparaîtront de la liste de sélection à l'inscription et dans la page profil. Les profs déjà inscrits avec ces établissements conservent leur établissement dans leur profil — aucune donnée existante n'est modifiée." },
+  rename: { title: "Modifier le nom de l'établissement ?", btnLabel: "Confirmer la modification", btnCls: "bg-blue-600 hover:bg-blue-700 text-white",
+    body: "Seule la liste de sélection est mise à jour. Les profs déjà inscrits avec l'ancien nom le conserveront dans leur profil — leur établissement ne sera pas renommé automatiquement." },
+};
+
+function AdminEcoles() {
+  const [ecoles, setEcoles]         = useState<Ecole[]>([]);
+  const [demandes, setDemandes]     = useState<EcoleDemande[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [selected, setSelected]     = useState<Set<string>>(new Set());
+  const [editingId, setEditingId]   = useState<string | null>(null);
+  const [editForm, setEditForm]     = useState({ nom: "", categorie: "autre" });
+  const [filterCat, setFilterCat]   = useState("all");
+  const [search, setSearch]         = useState("");
+  const [newNom, setNewNom]         = useState("");
+  const [newCat, setNewCat]         = useState("ingenierie");
+  const [adding, setAdding]         = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [confirm, setConfirm]       = useState<{ type: EConfirmType; ids: string[]; newNom?: string } | null>(null);
+  const [demandeCats, setDemandeCats] = useState<Record<string, string>>({});
+
+  async function fetchAll() {
+    setLoading(true);
+    const [{ data: e }, { data: d }] = await Promise.all([
+      supabase.from("ecoles").select("*").order("ordre"),
+      supabase.from("ecoles_demandes").select("*").eq("statut", "en_attente").order("created_at"),
+    ]);
+    if (e) setEcoles(e);
+    if (d) setDemandes(d);
+    setLoading(false);
+  }
+  useEffect(() => { fetchAll(); }, []);
+
+  const filtered = ecoles.filter(e =>
+    (filterCat === "all" || e.categorie === filterCat) &&
+    (search === "" || e.nom.toLowerCase().includes(search.toLowerCase()))
+  );
+  const allSelected = filtered.length > 0 && filtered.every(e => selected.has(e.id));
+
+  function toggleSelect(id: string) {
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  }
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(filtered.map(e => e.id)));
+  }
+
+  async function addEcole() {
+    const nom = newNom.trim();
+    if (!nom) return;
+    setAdding(true);
+    const maxOrdre = ecoles.reduce((m, e) => Math.max(m, e.ordre), 0);
+    await supabase.from("ecoles").insert({ nom, categorie: newCat, ordre: maxOrdre + 1, active: true });
+    setNewNom(""); setNewCat("ingenierie"); setAdding(false);
+    fetchAll();
+  }
+
+  function startEdit(e: Ecole) { setEditingId(e.id); setEditForm({ nom: e.nom, categorie: e.categorie }); }
+
+  async function saveEdit(original: Ecole) {
+    const nomChanged = editForm.nom.trim() !== original.nom;
+    if (nomChanged) { setConfirm({ type: "rename", ids: [original.id], newNom: editForm.nom.trim() }); return; }
+    setSaving(true);
+    await supabase.from("ecoles").update({ categorie: editForm.categorie }).eq("id", original.id);
+    setEcoles(ecoles.map(e => e.id === original.id ? { ...e, categorie: editForm.categorie } : e));
+    setEditingId(null); setSaving(false);
+  }
+
+  async function executeConfirm() {
+    if (!confirm) return;
+    setSaving(true);
+    const { type, ids, newNom: nm } = confirm;
+    if (type === "delete") {
+      for (const id of ids) await supabase.from("ecoles").delete().eq("id", id);
+      setEcoles(ecoles.filter(e => !ids.includes(e.id))); setSelected(new Set());
+    } else if (type === "rename" && nm) {
+      await supabase.from("ecoles").update({ nom: nm, categorie: editForm.categorie }).eq("id", ids[0]);
+      setEcoles(ecoles.map(e => e.id === ids[0] ? { ...e, nom: nm, categorie: editForm.categorie } : e));
+      setEditingId(null);
+    }
+    setConfirm(null); setSaving(false);
+  }
+
+  async function approuveDemande(d: EcoleDemande) {
+    const nom = d.nom_propose.trim();
+    const cat = demandeCats[d.id] ?? "autre";
+    const maxOrdre = ecoles.reduce((m, e) => Math.max(m, e.ordre), 0);
+    await Promise.all([
+      supabase.from("ecoles").insert({ nom, categorie: cat, ordre: maxOrdre + 1, active: true }),
+      supabase.from("ecoles_demandes").update({ statut: "approuve" }).eq("id", d.id),
+    ]);
+    fetchAll();
+  }
+
+  async function refuseDemande(id: string) {
+    await supabase.from("ecoles_demandes").update({ statut: "refuse" }).eq("id", id);
+    setDemandes(demandes.filter(d => d.id !== id));
+  }
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Landmark className="w-5 h-5 text-blue-600" />
+        <h2 className="text-xl font-bold text-slate-900">Établissements</h2>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{ecoles.length}</span>
+      </div>
+
+      {/* Encart info conséquences */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Info className="w-4 h-4 text-slate-500 shrink-0" />
+          <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">À savoir avant de modifier</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div className="bg-white border border-slate-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-slate-700 mb-1">Ajouter une école</p>
+            <p className="text-xs text-slate-500 leading-relaxed">Elle apparaît immédiatement dans les menus de sélection à l'inscription et dans la page profil des profs.</p>
+          </div>
+          <div className="bg-white border border-amber-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-amber-800 mb-1">Renommer une école</p>
+            <p className="text-xs text-amber-700 leading-relaxed">Seule la liste est mise à jour. Les profs déjà inscrits conservent l'ancien nom dans leur profil — ils ne sont pas renommés automatiquement.</p>
+          </div>
+          <div className="bg-white border border-red-100 rounded-xl p-3">
+            <p className="text-xs font-semibold text-red-800 mb-1">Supprimer une école</p>
+            <p className="text-xs text-red-700 leading-relaxed">Disparaît des menus d'inscription. Les profs déjà inscrits avec cet établissement ne sont pas affectés — leur profil reste inchangé.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Demandes en attente */}
+      {demandes.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <h3 className="font-semibold text-amber-800 text-sm">Demandes d'ajout en attente · {demandes.length}</h3>
+          </div>
+          <p className="text-xs text-amber-700">Un prof a saisi un établissement non listé lors de son inscription. Choisissez la catégorie avant d'approuver.</p>
+          {demandes.map(d => (
+            <div key={d.id} className="bg-white border border-amber-100 rounded-xl p-4 flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-semibold text-slate-900 text-sm">{d.nom_propose}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{d.prenom_prof ?? "—"} {d.nom_prof ?? ""} · {d.email_prof ?? ""}</p>
+                <p className="text-xs text-slate-400">{new Date(d.created_at).toLocaleDateString("fr-FR")}</p>
+              </div>
+              <div className="flex gap-2 shrink-0 flex-wrap items-center">
+                <select className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 outline-none"
+                  value={demandeCats[d.id] ?? "autre"}
+                  onChange={e => setDemandeCats(prev => ({ ...prev, [d.id]: e.target.value }))}>
+                  {ECOLE_CATS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+                <button onClick={() => approuveDemande(d)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors">
+                  <Check className="w-3.5 h-3.5" /> Approuver et ajouter
+                </button>
+                <button onClick={() => refuseDemande(d.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 text-xs font-semibold border border-slate-200 hover:border-red-200 transition-colors">
+                  <X className="w-3.5 h-3.5" /> Refuser
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ajout manuel */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 className="font-semibold text-slate-800 text-sm mb-3">Ajouter un établissement</h3>
+        <div className="flex gap-3 flex-wrap">
+          <input className="flex-1 min-w-48 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 outline-none focus:border-blue-400"
+            placeholder="Nom de l'établissement..."
+            value={newNom} onChange={e => setNewNom(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addEcole(); }} />
+          <select className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 outline-none focus:border-blue-400"
+            value={newCat} onChange={e => setNewCat(e.target.value)}>
+            {ECOLE_CATS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+          </select>
+          <button onClick={addEcole} disabled={adding || !newNom.trim()}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
+            {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Ajouter
+          </button>
+        </div>
+      </div>
+
+      {/* Liste */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+
+        {/* Filtres + recherche */}
+        <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <input className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-blue-400 w-48"
+              placeholder="Rechercher..."
+              value={search} onChange={e => { setSearch(e.target.value); setSelected(new Set()); }} />
+          </div>
+          <select className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 outline-none"
+            value={filterCat} onChange={e => { setFilterCat(e.target.value); setSelected(new Set()); }}>
+            <option value="all">Toutes catégories</option>
+            {ECOLE_CATS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+          </select>
+          <span className="ml-auto text-xs text-slate-400">{filtered.length} résultat{filtered.length !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* Barre d'actions groupées */}
+        {selected.size > 0 && (
+          <div className="flex items-center gap-3 px-5 py-2.5 bg-blue-50 border-b border-blue-100 flex-wrap">
+            <span className="text-sm font-semibold text-blue-700">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+            <button onClick={() => setConfirm({ type: "delete", ids: Array.from(selected) })}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold transition-colors">
+              <Trash2 className="w-3.5 h-3.5" /> Supprimer la sélection
+            </button>
+            <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-slate-400 hover:text-slate-600">Désélectionner</button>
+          </div>
+        )}
+
+        {/* En-tête colonnes */}
+        {!loading && filtered.length > 0 && (
+          <div className="grid items-center px-5 py-2 bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wide"
+            style={{ gridTemplateColumns: "2rem 1fr 160px 48px" }}>
+            <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer" />
+            <span>Nom</span>
+            <span>Catégorie</span>
+            <span />
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center items-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-slate-400 text-sm py-10">{search || filterCat !== "all" ? "Aucun résultat" : "Aucun établissement"}</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {filtered.map(e => (
+              <li key={e.id} className={`grid items-center px-5 py-3 gap-2 ${selected.has(e.id) ? "bg-blue-50/40" : ""}`}
+                style={{ gridTemplateColumns: "2rem 1fr 160px 48px" }}>
+                <input type="checkbox" checked={selected.has(e.id)} onChange={() => toggleSelect(e.id)}
+                  className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer" />
+                {editingId === e.id ? (
+                  <input className="px-2.5 py-1.5 rounded-lg border border-blue-300 bg-white text-sm text-slate-900 outline-none w-full"
+                    value={editForm.nom} autoFocus onChange={ev => setEditForm(f => ({ ...f, nom: ev.target.value }))}
+                    onKeyDown={ev => { if (ev.key === "Enter") saveEdit(e); if (ev.key === "Escape") setEditingId(null); }} />
+                ) : (
+                  <span className="text-sm text-slate-900 font-medium truncate">{e.nom}</span>
+                )}
+                {editingId === e.id ? (
+                  <select className="px-2.5 py-1.5 rounded-lg border border-blue-300 bg-white text-xs text-slate-700 outline-none"
+                    value={editForm.categorie} onChange={ev => setEditForm(f => ({ ...f, categorie: ev.target.value }))}>
+                    {ECOLE_CATS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </select>
+                ) : (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${ecatCls(e.categorie)}`}>{ecatLabel(e.categorie)}</span>
+                )}
+                <div className="flex items-center gap-1 justify-end">
+                  {editingId === e.id ? (
+                    <>
+                      <button onClick={() => saveEdit(e)} disabled={saving}
+                        className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors" title="Enregistrer">
+                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                      </button>
+                      <button onClick={() => setEditingId(null)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition-colors" title="Annuler">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => startEdit(e)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors" title="Modifier">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Modal de confirmation */}
+      {confirm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setConfirm(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-slate-900">{ECONFIRM[confirm.type].title}</h3>
+            {confirm.type === "rename" && confirm.newNom && (
+              <p className="text-sm text-slate-600">
+                <span className="text-slate-400 line-through">{ecoles.find(e => e.id === confirm.ids[0])?.nom}</span>
+                {" → "}
+                <span className="font-semibold text-slate-900">{confirm.newNom}</span>
+              </p>
+            )}
+            {confirm.type === "delete" && confirm.ids.length > 0 && (
+              <ul className="text-xs text-slate-600 space-y-0.5 max-h-28 overflow-y-auto bg-slate-50 rounded-xl p-3 border border-slate-100">
+                {confirm.ids.map(id => <li key={id}>· {ecoles.find(e => e.id === id)?.nom}</li>)}
+              </ul>
+            )}
+            <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800 leading-relaxed">{ECONFIRM[confirm.type].body}</p>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setConfirm(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+                Annuler
+              </button>
+              <button onClick={executeConfirm} disabled={saving}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${ECONFIRM[confirm.type].btnCls}`}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : ECONFIRM[confirm.type].btnLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2434,9 +2772,9 @@ function AdminEcheancier() {
   const day   = now.getDate();
   const month = now.getMonth();
   const year  = now.getFullYear();
-  const MOIS  = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const MOIS       = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const MOIS_COURT = ["jan.","fév.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
 
-  // Détermination de la phase courante et du cycle N / N+1
   type Phase = "cloture" | "validation" | "atp" | "virements" | "calme";
   let phase: Phase;
   let N: number, N1: number;
@@ -2446,229 +2784,344 @@ function AdminEcheancier() {
   else if (day <= 12) { phase = "virements";  N = (month - 1 + 12) % 12; N1 = month; }
   else                { phase = "calme";      N = (month - 1 + 12) % 12; N1 = month; }
 
-  const MOIS_COURT = ["jan.","fév.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
   const n   = MOIS[N];
   const n1  = MOIS[N1];
   const n2  = MOIS[(N1 + 1) % 12];
-  const n1c = MOIS_COURT[N1];  // version courte pour la frise
+  const n1c = MOIS_COURT[N1];
+  const n2c = MOIS_COURT[(N1 + 1) % 12];
 
-  const phaseOrder: Phase[] = ["cloture", "validation", "atp", "virements", "calme"];
-  const phaseIdx = phaseOrder.indexOf(phase);
-  // Le jalon "cible" de la phase courante (index dans milestones[])
-  // cloture→1, validation→2, atp→3, virements→4, calme→tous passés (5)
-  const targetMs = phaseIdx + 1;
+  const phaseOrder: Phase[] = ["cloture", "validation", "atp", "virements"];
+  const phaseIdx = phase === "calme" ? 4 : phaseOrder.indexOf(phase);
 
-  function msState(i: number): "past" | "active" | "future" {
-    if (i === 0)              return "past";
-    if (phase === "calme")    return "past";
-    if (i < targetMs)         return "past";
-    if (i === targetMs)       return "active";
-    return "future";
-  }
-
-  // Largeur de la ligne de progression (va jusqu'au dernier jalon "past")
-  const progressPct = phase === "calme" ? 100 : Math.max(0, ((targetMs - 1) / 4) * 100);
-
-  // Config du bandeau selon la phase
-  const banner = {
-    cloture: {
-      label: "Phase en cours — Clôture des récaps",
-      deadline: `Jusqu'au 5 ${n1} à minuit`,
-      border: "border-l-slate-700", bg: "bg-slate-50", badge: "bg-slate-900 text-white",
-      text: `Les profs ont jusqu'au 5 ${n1} à minuit pour créer et soumettre leur récap mensuel de ${n}. À cette échéance, le système génère automatiquement les récaps manquants avec tous les cours déclarés.`,
-      vigilance: null as string | null,
-    },
-    validation: {
-      label: "Phase en cours — Validation par les parents",
-      deadline: `Jusqu'au 7 ${n1} à minuit`,
-      border: "border-l-amber-500", bg: "bg-amber-50", badge: "bg-amber-500 text-white",
-      text: `Les parents valident ou contestent le récap mensuel de ${n}. Sans action de leur part au 7 ${n1} à minuit, la validation est automatique.`,
-      vigilance: `C'est la période la plus critique du cycle. Toutes les contestations doivent être résolues avant le 8 ${n1} au matin pour que les déclarations ATP et les virements partent à l'heure. Objectif : 100 % des récaps en statut « validé ».`,
-    },
-    atp: {
-      label: "Phase en cours — Déclarations ATP",
-      deadline: `Aujourd'hui — 8 ${n1}`,
-      border: "border-l-slate-400", bg: "bg-slate-50", badge: "bg-slate-500 text-white",
-      text: `Le serveur envoie les déclarations à l'API Tierce de Prestation pour chaque séance du mois de ${n} validée par les parents. Traitement entièrement automatique — aucune action requise.`,
-      vigilance: null as string | null,
-    },
-    virements: {
-      label: "Phase en cours — Virements aux profs",
-      deadline: `Virements attendus autour du 12 ${n1}`,
-      border: "border-l-emerald-500", bg: "bg-emerald-50", badge: "bg-emerald-600 text-white",
-      text: `Le serveur a calculé le montant à verser à chaque prof. Les virements sont prêts à être envoyés depuis « Dispatch paiements ». Les profs attendent leur paiement autour du 12 ${n1}.`,
-      vigilance: `Aller dans « Dispatch paiements », vérifier les montants et les IBAN, puis cliquer sur Dispatcher. Ne pas tarder — les profs s'attendent à recevoir leur virement rapidement.`,
-    },
-    calme: {
-      label: "Période calme — pas de cycle actif",
-      deadline: `Prochain cycle : 1er ${n2}`,
-      border: "border-l-slate-300", bg: "bg-slate-50", badge: "bg-slate-200 text-slate-600",
-      text: `Le cycle de paiement de ${n} est terminé. Les profs déclarent actuellement leurs cours de ${n1}. Le prochain cycle de clôture s'ouvrira le 1er ${n2}.`,
-      vigilance: null as string | null,
-    },
-  }[phase];
-
-  // 4 étapes du cycle (pas les jalons de la frise)
-  const steps = [
-    { key: "cloture",    num: 1, label: "Clôture des récaps",    dates: `1er ${n} – 5 ${n1}` },
-    { key: "validation", num: 2, label: "Validation parents",     dates: `5 – 7 ${n1}` },
-    { key: "atp",        num: 3, label: "Déclarations ATP",       dates: `8 ${n1}` },
-    { key: "virements",  num: 4, label: "Virements aux profs",    dates: `8 – ~12 ${n1}` },
-  ];
-
-  // done = phase passée, current = phase en cours, upcoming = à venir
-  function stepState(i: number): "done" | "current" | "upcoming" {
+  function stepState(i: number): "done" | "active" | "upcoming" {
     if (phase === "calme") return "done";
     if (i < phaseIdx)     return "done";
-    if (i === phaseIdx)   return "current";
+    if (i === phaseIdx)   return "active";
     return "upcoming";
   }
 
+  const phases = [
+    {
+      key: "cloture" as Phase, num: 1,
+      title: "Clôture des récaps",
+      dates: `1er ${n} – 5 ${n1}`, datesShort: `→ 5 ${n1c}`,
+      dotBg: "bg-slate-700", badgeCls: "bg-slate-900 text-white",
+      headerBg: "bg-slate-50", headerBorder: "border-slate-200",
+      actors: [
+        { Icon: GraduationCap, role: "Profs", iconCls: "bg-slate-100 text-slate-600",
+          desc: `Chaque prof crée son récap mensuel de ${n} depuis son espace et le soumet aux parents. Il peut ajuster les cours avant envoi.` },
+      ] as { Icon: React.ElementType; role: string; iconCls: string; desc: string }[],
+      auto: { label: `5 ${n1} à minuit`, desc: `Si un prof n'a pas soumis son récap, le système le génère automatiquement avec tous ses cours du mois.` } as { label: string; desc: string } | null,
+      vigilance: null as string | null,
+    },
+    {
+      key: "validation" as Phase, num: 2,
+      title: "Validation parents",
+      dates: `5 – 7 ${n1}`, datesShort: `5→7 ${n1c}`,
+      dotBg: "bg-amber-500", badgeCls: "bg-amber-500 text-white",
+      headerBg: "bg-amber-50", headerBorder: "border-amber-200",
+      actors: [
+        { Icon: Users, role: "Parents", iconCls: "bg-amber-100 text-amber-700",
+          desc: `Valident ou contestent les heures déclarées par le prof. Un commentaire est obligatoire en cas de contestation.` },
+        { Icon: ClipboardList, role: "Admin", iconCls: "bg-amber-100 text-amber-700",
+          desc: `Surveiller les contestations ouvertes et les résoudre avant le 8 ${n1} au matin. Objectif : 100 % des récaps en statut validé.` },
+      ] as { Icon: React.ElementType; role: string; iconCls: string; desc: string }[],
+      auto: { label: `7 ${n1} à minuit`, desc: `Sans action du parent dans le délai, le récap est automatiquement marqué comme validé.` } as { label: string; desc: string } | null,
+      vigilance: `Période critique — résoudre toutes les contestations avant le 8 ${n1} au matin pour que les déclarations ATP et les virements partent à l'heure.` as string | null,
+    },
+    {
+      key: "atp" as Phase, num: 3,
+      title: "Déclarations ATP",
+      dates: `8 ${n1}`, datesShort: `8 ${n1c}`,
+      dotBg: "bg-slate-500", badgeCls: "bg-slate-500 text-white",
+      headerBg: "bg-slate-50", headerBorder: "border-slate-200",
+      actors: [
+        { Icon: Info, role: "Automatique", iconCls: "bg-slate-100 text-slate-500",
+          desc: `Le serveur envoie les déclarations à l'API Tierce de Prestation pour chaque séance de ${n} validée. Aucune action requise — peut prendre plusieurs heures.` },
+      ] as { Icon: React.ElementType; role: string; iconCls: string; desc: string }[],
+      auto: null as { label: string; desc: string } | null,
+      vigilance: null as string | null,
+    },
+    {
+      key: "virements" as Phase, num: 4,
+      title: "Virements aux profs",
+      dates: `8 – ~12 ${n1}`, datesShort: `~12 ${n1c}`,
+      dotBg: "bg-emerald-500", badgeCls: "bg-emerald-600 text-white",
+      headerBg: "bg-emerald-50", headerBorder: "border-emerald-200",
+      actors: [
+        { Icon: Banknote, role: "Admin", iconCls: "bg-emerald-100 text-emerald-700",
+          desc: `Aller dans « Dispatch paiements », vérifier les montants et les IBAN de chaque prof, puis cliquer sur Dispatcher. Ne pas tarder.` },
+        { Icon: GraduationCap, role: "Profs", iconCls: "bg-emerald-100 text-emerald-700",
+          desc: `Attendent le virement autour du 12 ${n1}. Le montant versé est calculé pour que net après cotisations = net attendu.` },
+      ] as { Icon: React.ElementType; role: string; iconCls: string; desc: string }[],
+      auto: null as { label: string; desc: string } | null,
+      vigilance: `Ne pas tarder — les profs s'attendent à recevoir leur virement rapidement après les déclarations ATP.` as string | null,
+    },
+  ];
+
+  const current = phase !== "calme" ? phases[phaseIdx] : null;
+  const declProgress = Math.min(100, Math.round((day / 30) * 100));
+
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl space-y-5">
 
       {/* ── En-tête ── */}
-      <div className="mb-8">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Paiement en cours de traitement</p>
-        <h1 className="text-2xl font-bold text-slate-900">Cours du mois de {n}</h1>
-        <p className="text-sm text-slate-500 mt-1">Règlement effectué en {n1} {year} · Aujourd'hui : {day} {n1} {year}</p>
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Échéancier</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {n1.charAt(0).toUpperCase() + n1.slice(1)} {year}
+          </h1>
+        </div>
+        <p className="text-sm text-slate-400">Aujourd'hui · {day} {n1c} {year}</p>
       </div>
 
-      {/* ── Bandeau phase actuelle ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-        <div className={`px-6 py-4 flex items-center justify-between ${phase === "calme" ? "bg-slate-50" : "bg-slate-900"}`}>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-mono font-semibold ${phase === "calme" ? "text-slate-400" : "text-slate-500"}`}>
-              {phase === "calme" ? "Aucune phase active" : `Phase ${phaseIdx + 1} sur 4`}
-            </span>
-            <span className={`w-px h-3 ${phase === "calme" ? "bg-slate-300" : "bg-slate-700"}`} />
-            <span className={`text-sm font-semibold ${phase === "calme" ? "text-slate-700" : "text-white"}`}>{banner.title}</span>
-          </div>
-          <span className={`text-xs ${phase === "calme" ? "text-slate-400" : "text-slate-400"}`}>{banner.deadline}</span>
-        </div>
-        <div className="px-6 py-5">
-          <p className="text-sm text-slate-700 leading-relaxed">{banner.text}</p>
-          {banner.vigilance && (
-            <div className="mt-4 flex gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-800 leading-relaxed">
-                <span className="font-semibold">Point de vigilance — </span>{banner.vigilance}
-              </p>
+      {/* ── Deux cycles en parallèle ── */}
+      <div className="grid grid-cols-2 gap-4">
+
+        {/* Cycle A : Règlement */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
+              <Banknote className="w-4 h-4 text-white" />
             </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Règlement en cours</p>
+              <p className="text-sm font-bold text-slate-900">Cours d'{n}</p>
+            </div>
+          </div>
+
+          {/* Mini progress : 4 segments */}
+          <div className="flex gap-1 mb-4">
+            {[0, 1, 2, 3].map(i => {
+              const s = stepState(i);
+              return (
+                <div key={i} className={[
+                  "flex-1 h-1 rounded-full",
+                  s === "done"     ? "bg-slate-700" : "",
+                  s === "active"   ? phases[i].dotBg : "",
+                  s === "upcoming" ? "bg-slate-100" : "",
+                ].join(" ")} />
+              );
+            })}
+          </div>
+
+          {phase === "calme" ? (
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                <Check className="w-3 h-3 text-white" />
+              </div>
+              <p className="text-sm text-slate-500 font-medium">Cycle d'{n} terminé</p>
+            </div>
+          ) : current ? (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${current.badgeCls}`}>
+                  Phase {phaseIdx + 1}/4
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-slate-800 mb-0.5">{current.title}</p>
+              <p className="text-xs text-slate-400">{current.dates}</p>
+              {current.vigilance && (
+                <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-snug">{current.vigilance}</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Cycle B : Déclarations */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+          <div className="flex items-start gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+              <ClipboardList className="w-4 h-4 text-slate-600" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Déclarations en cours</p>
+              <p className="text-sm font-bold text-slate-900">Cours de {n1}</p>
+            </div>
+          </div>
+
+          {/* Avancement dans le mois */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-slate-400 rounded-full" style={{ width: `${declProgress}%` }} />
+            </div>
+            <span className="text-[11px] text-slate-400 shrink-0 tabular-nums">J. {day} / ~30</span>
+          </div>
+
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Les profs déclarent leurs cours de {n1} au fil du mois.
+          </p>
+          <p className="text-xs text-slate-400 mt-2">
+            Clôture le 5 {n2c} · Règlement en {n2}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Timeline des phases du règlement ── */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+
+        {/* Header de la timeline */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            Phases du règlement · Cours d'{n}
+          </p>
+          {phase !== "calme" && current && (
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${current.badgeCls}`}>
+              Phase {phaseIdx + 1}/4 en cours
+            </span>
           )}
         </div>
+
+        {/* Segments connectés */}
+        <div className="flex divide-x divide-slate-100">
+          {phases.map((p, i) => {
+            const state = stepState(i);
+            return (
+              <div
+                key={p.key}
+                className={[
+                  "flex-1 px-4 py-4",
+                  state === "done"     ? "bg-slate-50" : "",
+                  state === "active"   ? p.headerBg : "",
+                  state === "upcoming" ? "bg-white" : "",
+                ].join(" ")}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className={[
+                    "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                    state === "done"     ? "bg-slate-600" : "",
+                    state === "active"   ? p.dotBg : "",
+                    state === "upcoming" ? "border-2 border-slate-200 bg-white" : "",
+                  ].join(" ")}>
+                    {state === "done"
+                      ? <Check className="w-3 h-3 text-white" />
+                      : <span className={`text-[10px] font-bold ${state === "active" ? "text-white" : "text-slate-300"}`}>{p.num}</span>
+                    }
+                  </div>
+                  {state === "active" && (
+                    <span className={`text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full ${p.badgeCls}`}>
+                      Maintenant
+                    </span>
+                  )}
+                </div>
+                <p className={`text-xs font-semibold leading-snug mb-1 ${state === "upcoming" ? "text-slate-300" : "text-slate-800"}`}>
+                  {p.title}
+                </p>
+                <p className={`text-[10px] leading-relaxed ${state === "upcoming" ? "text-slate-200" : "text-slate-400"}`}>
+                  {p.datesShort}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {phase === "calme" && (
+          <div className="px-6 py-3 border-t border-slate-100 flex items-center gap-2 bg-slate-50">
+            <Check className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <p className="text-xs text-slate-500">Cycle d'{n} terminé. Prochain règlement : 1er {n2}.</p>
+          </div>
+        )}
       </div>
 
-      {/* ── Stepper 4 phases ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 px-8 py-8 mb-6" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-        <div className="flex items-start">
-          {steps.map((step, i) => {
-            const state  = stepState(i);
-            const isLast = i === steps.length - 1;
+      {/* ── Détail des phases ── */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Détail de chaque phase</p>
+        <div className="space-y-3">
+          {phases.map((p, i) => {
+            const state = stepState(i);
             return (
-              <React.Fragment key={step.key}>
-                <div className="flex flex-col items-center text-center" style={{ minWidth: 90 }}>
-                  <div className={[
-                    "flex items-center justify-center rounded-full font-bold shrink-0",
-                    state === "done"     ? "w-8 h-8 bg-slate-700 text-white text-sm"                          : "",
-                    state === "current"  ? "w-10 h-10 bg-slate-900 text-white text-sm shadow ring-4 ring-slate-200" : "",
-                    state === "upcoming" ? "w-8 h-8 border-2 border-slate-200 text-slate-300 text-sm bg-white" : "",
-                  ].filter(Boolean).join(" ")}>
-                    {state === "done" ? <Check className="w-3.5 h-3.5" /> : step.num}
+              <div
+                key={p.key}
+                className={[
+                  "bg-white rounded-2xl border overflow-hidden",
+                  state === "active" ? "border-slate-300" : "border-slate-200",
+                ].join(" ")}
+                style={{ boxShadow: state === "active" ? "0 2px 8px rgba(15,23,42,.07)" : "0 1px 3px rgba(15,23,42,.04)" }}
+              >
+                {/* En-tête de phase */}
+                <div className={[
+                  "flex items-center justify-between px-5 py-4 border-b",
+                  state === "done"     ? "bg-slate-50 border-slate-100" : "",
+                  state === "active"   ? `${p.headerBg} ${p.headerBorder}` : "",
+                  state === "upcoming" ? "bg-white border-slate-100" : "",
+                ].join(" ")}>
+                  <div className="flex items-center gap-3">
+                    <div className={[
+                      "w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                      state === "done"     ? "bg-slate-600 text-white" : "",
+                      state === "active"   ? `${p.dotBg} text-white` : "",
+                      state === "upcoming" ? "border-2 border-slate-200 text-slate-300 bg-white" : "",
+                    ].join(" ")}>
+                      {state === "done" ? <Check className="w-3.5 h-3.5" /> : p.num}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-bold ${state === "upcoming" ? "text-slate-400" : "text-slate-900"}`}>{p.title}</p>
+                      <p className={`text-xs ${state === "upcoming" ? "text-slate-300" : "text-slate-400"}`}>{p.dates}</p>
+                    </div>
                   </div>
-                  <p className={`text-xs font-semibold mt-3 leading-snug ${state === "current" ? "text-slate-900" : state === "done" ? "text-slate-500" : "text-slate-300"}`}>
-                    {step.label}
-                  </p>
-                  <p className={`text-[11px] mt-1 ${state === "current" ? "text-slate-500" : state === "done" ? "text-slate-400" : "text-slate-300"}`}>
-                    {step.dates}
-                  </p>
-                  <p className={`text-[10px] font-bold uppercase tracking-wide mt-1.5 ${state === "current" ? "text-slate-700" : state === "done" ? "text-slate-400" : "text-slate-300"}`}>
-                    {state === "done" ? "Terminé" : state === "current" ? "En cours" : "À venir"}
-                  </p>
+                  <span className={[
+                    "text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full",
+                    state === "done"     ? "bg-slate-100 text-slate-400" : "",
+                    state === "active"   ? p.badgeCls : "",
+                    state === "upcoming" ? "bg-slate-50 text-slate-300" : "",
+                  ].join(" ")}>
+                    {state === "done" ? "Terminé" : state === "active" ? "En cours" : "À venir"}
+                  </span>
                 </div>
-                {!isLast && (
-                  <div className="flex-1 pt-4">
-                    <div className={`h-px ${state === "done" || phase === "calme" ? "bg-slate-500" : "bg-slate-200"}`} />
+
+                {/* Corps de phase */}
+                <div className="px-5 py-5 space-y-4">
+                  <div className="space-y-3">
+                    {p.actors.map((actor) => (
+                      <div key={actor.role} className="flex gap-3 items-start">
+                        <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${actor.iconCls}`}>
+                          <actor.Icon className="w-4 h-4" />
+                        </div>
+                        <div className="pt-0.5">
+                          <p className={`text-[11px] font-bold uppercase tracking-wide mb-0.5 ${state === "upcoming" ? "text-slate-300" : "text-slate-500"}`}>
+                            {actor.role}
+                          </p>
+                          <p className={`text-sm leading-relaxed ${state === "upcoming" ? "text-slate-300" : "text-slate-600"}`}>
+                            {actor.desc}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </React.Fragment>
+
+                  {p.auto && (
+                    <div className={`flex gap-3 items-start rounded-xl px-4 py-3 ${state === "upcoming" ? "bg-slate-50" : "bg-slate-50 border border-slate-100"}`}>
+                      <div className="shrink-0">
+                        <p className={`text-[10px] font-bold uppercase tracking-wide leading-relaxed ${state === "upcoming" ? "text-slate-300" : "text-slate-400"}`}>
+                          Auto<br />{p.auto.label}
+                        </p>
+                      </div>
+                      <div className={`w-px self-stretch mx-1 ${state === "upcoming" ? "bg-slate-100" : "bg-slate-200"}`} />
+                      <p className={`text-xs leading-relaxed ${state === "upcoming" ? "text-slate-300" : "text-slate-500"}`}>
+                        {p.auto.desc}
+                      </p>
+                    </div>
+                  )}
+
+                  {state === "active" && p.vigilance && (
+                    <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        <span className="font-semibold">Point de vigilance — </span>{p.vigilance}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
       </div>
 
-      {/* ── Encadrés détail ── */}
-      <div className="grid grid-cols-2 gap-4">
-
-        <div className={`bg-white rounded-2xl border p-5 ${phase === "cloture" ? "border-slate-500 ring-1 ring-slate-200" : "border-slate-200"}`} style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Phase 1</p>
-              <h3 className="text-sm font-bold text-slate-900">Clôture des récaps</h3>
-              <p className="text-xs text-slate-400 mt-0.5">1er {n} – 5 {n1}</p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md shrink-0">Profs</span>
-          </div>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Chaque prof crée son récap mensuel depuis son espace et le soumet aux parents pour validation.
-          </p>
-          <p className="text-xs text-slate-500 leading-relaxed mt-3 pt-3 border-t border-slate-100">
-            <span className="font-semibold text-slate-700">Auto le 5 {n1} à minuit</span> — Si un prof n'a pas agi, le système génère son récap avec tous ses cours du mois.
-          </p>
-        </div>
-
-        <div className={`bg-white rounded-2xl border p-5 ${phase === "validation" ? "border-amber-400 ring-1 ring-amber-100" : "border-slate-200"}`} style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Phase 2</p>
-              <h3 className="text-sm font-bold text-slate-900">Validation parents</h3>
-              <p className="text-xs text-slate-400 mt-0.5">5 – 7 {n1}</p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md shrink-0">Parents</span>
-          </div>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Les parents valident ou contestent les heures déclarées. Un commentaire est obligatoire en cas de contestation.
-          </p>
-          <p className="text-xs text-slate-500 leading-relaxed mt-3 pt-3 border-t border-slate-100 mb-3">
-            <span className="font-semibold text-slate-700">Auto le 7 {n1} à minuit</span> — Sans action du parent, le récap est validé automatiquement.
-          </p>
-          <div className="bg-amber-50 rounded-lg px-3 py-2.5">
-            <p className="text-xs text-amber-800"><span className="font-semibold">Vigilance —</span> Résoudre toutes les contestations avant le 8 {n1} au matin. Objectif : 100 % validés.</p>
-          </div>
-        </div>
-
-        <div className={`bg-white rounded-2xl border p-5 ${phase === "atp" ? "border-slate-500 ring-1 ring-slate-200" : "border-slate-200"}`} style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Phase 3</p>
-              <h3 className="text-sm font-bold text-slate-900">Déclarations ATP</h3>
-              <p className="text-xs text-slate-400 mt-0.5">8 {n1} — toute la journée</p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md shrink-0">Auto</span>
-          </div>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Le serveur envoie les déclarations à l'API Tierce de Prestation (ATP) pour chaque séance du mois de {n} validée. Entièrement automatique — peut prendre plusieurs heures.
-          </p>
-        </div>
-
-        <div className={`bg-white rounded-2xl border p-5 ${phase === "virements" ? "border-emerald-500 ring-1 ring-emerald-50" : "border-slate-200"}`} style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Phase 4</p>
-              <h3 className="text-sm font-bold text-slate-900">Virements aux profs</h3>
-              <p className="text-xs text-slate-400 mt-0.5">À partir du 8 {n1} — ~12 {n1}</p>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md shrink-0">Admin</span>
-          </div>
-          <p className="text-sm text-slate-600 leading-relaxed mb-3">
-            Le serveur calcule le <strong className="text-slate-800">montant augmenté</strong> de chaque prof (le net qu'il doit toucher in fine), puis remonte au <strong className="text-slate-800">montant à verser</strong> : le brut à virer pour qu'après cotisations et impôts il lui reste exactement ce net.
-          </p>
-          <div className="bg-amber-50 rounded-lg px-3 py-2.5">
-            <p className="text-xs text-amber-800"><span className="font-semibold">Action admin —</span> Aller dans « Dispatch paiements », vérifier les montants et IBAN, puis cliquer sur Dispatcher.</p>
-          </div>
-        </div>
-
-      </div>
     </div>
   );
 }
