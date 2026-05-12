@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Laptop, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare, Landmark, TrendingUp, HeartHandshake, Flag, Send, ArrowRight, KeyRound, Info, Plus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Laptop, FileText, HelpCircle, AlertTriangle, ExternalLink, Clock, CreditCard, CheckCircle, AlertCircle, BookOpen, CheckSquare, Landmark, TrendingUp, HeartHandshake, Flag, Send, ArrowRight, KeyRound, Info, Plus, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 
 // ─── Mock components ───────────────────────────────────────────
@@ -448,6 +448,72 @@ function MockParcours() {
   );
 }
 
+// ─── Timeline échéancier parent ────────────────────────────────
+
+function EcheancierTimelineParent() {
+  const now   = new Date();
+  const month = now.getMonth();
+  const MOIS  = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const n  = MOIS[(month - 1 + 12) % 12];
+  const n1 = MOIS[month];
+
+  const steps = [
+    {
+      dates: `1er ${n} – 5 ${n1}`,
+      title: "Votre professeur finalise son récap",
+      desc: `Il clôture son récapitulatif de ${n} avant le 5 ${n1} à minuit. Si ce n'est pas fait à temps, Colibri génère automatiquement le récap avec tous les cours déclarés.`,
+    },
+    {
+      dates: `5 – 7 ${n1}`,
+      title: "Vous validez (ou c'est automatique)",
+      desc: `Vous avez jusqu'au 7 ${n1} à minuit pour consulter le détail des séances et valider. Sans action de votre part, le récap est accepté automatiquement.`,
+    },
+    {
+      dates: `8 ${n1}`,
+      title: "Déclarations Urssaf automatiques",
+      desc: `L'Urssaf traite les déclarations — aucune action de votre côté. Vous recevrez un email de notification de prélèvement.`,
+    },
+    {
+      dates: `8 – 12 ${n1}`,
+      title: "Prélèvement de votre part",
+      desc: `L'Urssaf prélève uniquement votre 50%. L'État règle l'autre moitié directement au professeur — aucune avance, aucun remboursement à attendre.`,
+    },
+  ];
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Calendrier mensuel</p>
+      </div>
+      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
+        {steps.map((step, i) => (
+          <div
+            key={i}
+            className={`flex gap-3 px-4 py-3 ${i < steps.length - 1 ? "border-b border-slate-100" : ""}`}
+          >
+            <div className="flex flex-col items-center shrink-0 pt-0.5" style={{ width: 20 }}>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 bg-white border-slate-200 text-slate-400">
+                {i + 1}
+              </div>
+              {i < steps.length - 1 && (
+                <div className="w-px flex-1 mt-1 min-h-2 bg-slate-100" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pb-1">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-slate-600">{step.title}</span>
+                <span className="text-[11px] font-mono text-slate-400">· {step.dates}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1">{step.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Guide data ────────────────────────────────────────────────
 
 type GuideItem = {
@@ -557,37 +623,10 @@ const GUIDES: {
       },
     ],
   },
-  {
-    id: "factures",
-    Icon: FileText,
-    title: "Vos factures",
-    desc: "Comprendre et payer vos factures en toute sérénité.",
-    color: "text-purple-600",
-    iconBg: "bg-purple-50",
-    accent: "#7c3aed",
-    items: [
-      {
-        title: "Quand est générée une facture ?",
-        desc: "Une facture est créée automatiquement après que vous avez validé le récapitulatif mensuel dans la section « Validations ». Elle récapitule tous les cours du mois avec le montant brut et votre part nette après crédit d'impôt.",
-      },
-      {
-        title: "Comprendre le montant",
-        desc: "Le montant brut = total des cours au tarif plein. Vous ne payez que 50% — la différence est couverte par l'Urssaf directement. Vous n'avancez rien : la réduction est immédiate et s'applique sur chaque facture.",
-      },
-      {
-        title: "Comment se passe le paiement ?",
-        desc: "Une fois la facture générée, l'Urssaf vous envoie un email vous informant du montant qui va être prélevé. Vous avez 48 heures pour contester directement auprès de l'Urssaf sur particulier.urssaf.fr si quelque chose vous semble incorrect. Passé ce délai, l'Urssaf prélève automatiquement votre 50% sur votre compte bancaire.",
-      },
-      {
-        title: "Une facture semble incorrecte ?",
-        desc: "La facture correspond au récapitulatif que vous avez validé dans Colibri. Si vous avez un doute avant de valider, utilisez la contestation dans Colibri. Si la facture a déjà été émise et prélevée, contactez notre support à contact@colibri-soutien.fr.",
-      },
-    ],
-  },
 ];
 
 const FAQ_ITEMS = [
-  { q: "Que se passe-t-il si je ne valide pas le récapitulatif mensuel ?", a: "Le mois reste en statut « en attente » dans la section Validations. Aucune facture ne peut être générée. Si vous avez une question sur un cours, contactez votre professeur avant de valider — ou contestez directement depuis la modale de validation." },
+  { q: "Que se passe-t-il si je ne valide pas le récapitulatif mensuel ?", a: "La période allouée à la validation parent sur Colibri est de 48 heures. Passé ce délai, le récapitulatif est considéré comme validé et la facture peut être générée." },
   { q: "Puis-je modifier un cours après avoir validé le récapitulatif ?", a: "Non. La validation est irréversible : elle clôture le mois et déclenche la génération de la facture. C'est pourquoi nous vous recommandons d'examiner attentivement chaque cours avant de confirmer, et d'utiliser la contestation si quelque chose vous paraît incorrect." },
   { q: "Comment fonctionne le prélèvement Urssaf ?", a: "Après votre validation dans Colibri, l'Urssaf vous envoie un email de notification. Vous avez 48h pour contester sur particulier.urssaf.fr. Passé ce délai, l'Urssaf prélève automatiquement votre 50% — l'État verse l'autre moitié directement au professeur. Aucune avance, aucun remboursement." },
   { q: "Suis-je remboursé après paiement avec l'avance immédiate ?", a: "Non, et c'est précisément l'avantage. La réduction est appliquée directement sur chaque prélèvement. Vous ne payez que 50%, l'Urssaf règle le reste directement au professeur. Pas de délai, pas d'avance de trésorerie de votre part." },
@@ -677,6 +716,8 @@ function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
         <h1 className="text-xl font-bold text-slate-900">Centre d'aide</h1>
         <p className="text-sm text-slate-400 mt-1">Guides pratiques, questions fréquentes et contact direct.</p>
       </div>
+
+      <EcheancierTimelineParent />
 
       <section>
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Guides</p>

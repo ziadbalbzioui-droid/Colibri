@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, TrendingUp, ChevronRight } from "lucide-react";
+import { Euro, Users, BookOpen, Plus, CheckCircle2, X, Loader2, TrendingUp, ChevronRight, Info } from "lucide-react";
 import { LoadingGuard } from "../layout/LoadingGuard";
 import { useEleves } from "../../../lib/hooks/useEleves";
 import { useCours } from "../../../lib/hooks/useCours";
@@ -90,6 +90,78 @@ function Initials({ name, index }: { name: string; index: number }) {
   return (
     <div style={{ width: 28, height: 28, borderRadius: "50%", background: `hsl(${hue} 65% 82%)`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>
       {initials}
+    </div>
+  );
+}
+
+function ProfActionCard() {
+  const now    = new Date();
+  const day    = now.getDate();
+  const month  = now.getMonth();
+  const MOIS_LC = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+  type Phase = "cloture" | "validation" | "atp" | "virements" | "calme";
+  let phase: Phase;
+  let N: number, N1: number;
+  if      (day <= 5)  { phase = "cloture";    N = (month - 1 + 12) % 12; N1 = month; }
+  else if (day <= 7)  { phase = "validation"; N = (month - 1 + 12) % 12; N1 = month; }
+  else if (day === 8) { phase = "atp";        N = (month - 1 + 12) % 12; N1 = month; }
+  else if (day <= 12) { phase = "virements";  N = (month - 1 + 12) % 12; N1 = month; }
+  else                { phase = "calme";      N = (month - 1 + 12) % 12; N1 = month; }
+
+  const n  = MOIS_LC[N];
+  const n1 = MOIS_LC[N1];
+  const n2 = MOIS_LC[(N1 + 1) % 12];
+  const urgent = phase === "cloture";
+
+  const cardBase = urgent
+    ? { ...S.card, padding: "20px 22px", background: "#FFFBEB", border: "1px solid #FDE68A" }
+    : { ...S.card, padding: "20px 22px" };
+
+  return (
+    <div style={cardBase}>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: urgent ? "#FEF3C7" : "#F1F5F9", borderRadius: 999, padding: "3px 10px 3px 7px", marginBottom: 14 }}>
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: urgent ? "#F59E0B" : "#94A3B8" }} />
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: urgent ? "#B45309" : "#64748B" }}>
+          {urgent ? "Action requise" : "Aucune action"}
+        </span>
+      </div>
+
+      {phase === "cloture" && (
+        <>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "#92400E", margin: "0 0 6px", lineHeight: 1.3 }}>
+            Clôturez votre mois de {n}
+          </p>
+          <p style={{ fontSize: 12, color: "#78350F", margin: 0, lineHeight: 1.6 }}>
+            Jusqu'au <strong>5 {n1} à minuit</strong>. Sans action, Colibri génère automatiquement le récap avec vos cours déclarés.
+          </p>
+        </>
+      )}
+
+      {(phase === "validation" || phase === "atp") && (
+        <>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", margin: "0 0 5px", lineHeight: 1.3 }}>
+            En attente de validation
+          </p>
+          <p style={{ fontSize: 12, color: "#64748B", margin: 0, lineHeight: 1.6 }}>
+            Les familles valident votre récap de {n}. Délai : <strong style={{ color: "#475569" }}>7 {n1}</strong>, puis automatique.
+          </p>
+        </>
+      )}
+
+      {(phase === "virements" || phase === "calme") && (
+        <>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", margin: "0 0 5px", lineHeight: 1.3 }}>
+            Aucun récap en attente
+          </p>
+          <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 14px", lineHeight: 1.6 }}>
+            Continuez à déclarer vos cours de {n1} au fil des séances.
+          </p>
+          <p style={{ fontSize: 11, color: "#94A3B8", borderTop: "1px solid #F1F5F9", paddingTop: 12, margin: 0 }}>
+            Prochaine clôture · <strong style={{ color: "#64748B" }}>5 {n2}</strong>
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -199,8 +271,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Money hero */}
-        <div style={{ ...S.card, padding: "32px 36px", marginBottom: 16, position: "relative", overflow: "hidden" }}>
+        {/* Money hero + Action requise */}
+        <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 16, alignItems: "stretch" }}>
+        <div style={{ ...S.card, padding: "32px 36px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -30, right: -30, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle,rgba(46,107,234,.12),transparent 65%)" }} />
           <div style={{ position: "relative" }}>
             <div style={{ ...S.eyebrow, display: "flex", alignItems: "center", gap: 6, marginBottom: 12, color: "#1E3A8A" }}>
@@ -218,6 +291,8 @@ export function Dashboard() {
               <span style={S.badge("#0F172A", "#fff")}><Users className="w-3 h-3" />{elevesActifs} élèves</span>
             </div>
           </div>
+        </div>
+        <ProfActionCard />
         </div>
 
         {/* Actions rapides */}

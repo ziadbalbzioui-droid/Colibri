@@ -816,6 +816,72 @@ const FAQ_ITEMS = [
   { q: "Dois-je cotiser même si mon CA est très faible ?", a: "Oui, mais proportionnellement. Les cotisations URSSAF sont calculées en pourcentage de votre CA réel — si vous encaissez peu, vous payez peu. Il n'y a pas de cotisation minimale forfaitaire en micro-entreprise. Pour un CA de 100 €, vous devrez environ 22 € de cotisations. En revanche, la déclaration reste obligatoire même à 0 €." },
 ];
 
+// ─── Timeline échéancier prof ──────────────────────────────────
+
+function EcheancierTimeline() {
+  const now   = new Date();
+  const month = now.getMonth();
+  const MOIS  = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const n  = MOIS[(month - 1 + 12) % 12];
+  const n1 = MOIS[month];
+
+  const steps = [
+    {
+      dates: `1er ${n} – 5 ${n1}`,
+      title: "Clôture du récapitulatif",
+      desc: `Déclarez vos cours au fil des séances, puis clôturez votre mois de ${n} avant le 5 ${n1} à minuit. Sans clôture manuelle, Colibri génère automatiquement le récap à l'échéance.`,
+    },
+    {
+      dates: `5 – 7 ${n1}`,
+      title: "Validation par les familles",
+      desc: `Les familles vérifient le détail de chaque séance et valident. Sans action de leur part avant le 7 ${n1} à minuit, le récap est accepté automatiquement.`,
+    },
+    {
+      dates: `8 ${n1}`,
+      title: "Déclarations Urssaf",
+      desc: `Colibri transmet les déclarations à l'URSSAF - aucune action requise de votre côté.`,
+    },
+    {
+      dates: `8 – 12 ${n1}`,
+      title: "Virement",
+      desc: `Votre paiement est calculé et envoyé. Il apparaît sur votre compte dans les jours qui suivent.`,
+    },
+  ];
+
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Calendrier de paiement</p>
+      </div>
+      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden">
+        {steps.map((step, i) => (
+          <div
+            key={i}
+            className={`flex gap-3 px-4 py-3 ${i < steps.length - 1 ? "border-b border-slate-100" : ""}`}
+          >
+            <div className="flex flex-col items-center shrink-0 pt-0.5" style={{ width: 20 }}>
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 bg-white border-slate-200 text-slate-400">
+                {i + 1}
+              </div>
+              {i < steps.length - 1 && (
+                <div className="w-px flex-1 mt-1 min-h-2 bg-slate-100" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pb-1">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-slate-600">{step.title}</span>
+                <span className="text-[11px] font-mono text-slate-400">· {step.dates}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed mt-1">{step.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Guide detail page ─────────────────────────────────────────
 
 const ONBOARDING_GUIDE_IDS = ["auto-entrepreneur", "plateforme"];
@@ -909,6 +975,8 @@ function HomeView({ onSelectGuide }: { onSelectGuide: (id: string) => void }) {
         <h1 className="text-xl font-bold text-slate-900">Centre d'aide</h1>
         <p className="text-sm text-slate-400 mt-1">Guides pratiques, questions fréquentes et contact direct.</p>
       </div>
+
+      <EcheancierTimeline />
 
       <section>
         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">Guides</p>

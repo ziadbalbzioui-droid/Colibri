@@ -190,41 +190,6 @@ export function ParentDashboard() {
           </button>
         )}
 
-        {/* Banner: validations en attente */}
-        {(() => {
-          const pending = validations.filter((v) => v.statut === "en_attente_parent");
-          if (pending.length === 0) return null;
-          const MOIS_NOMS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-          return (
-            <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 16, padding: "16px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <Flag style={{ width: 15, height: 15, color: "#B45309" }} />
-                <p style={{ fontWeight: 700, fontSize: 13, color: "#92400E", margin: 0 }}>
-                  {pending.length === 1
-                    ? "1 récapitulatif en attente de votre validation"
-                    : `${pending.length} récapitulatifs en attente de validation`}
-                </p>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {pending.map((v) => {
-                  const moisLabel = `${MOIS_NOMS[(v.recap_mensuel.mois ?? 1) - 1]} ${v.recap_mensuel.annee}`;
-                  return (
-                    <div key={v.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", borderRadius: 12, padding: "10px 16px", border: "1px solid #FDE68A" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", margin: 0 }}>{moisLabel}</p>
-                      <Link
-                        to="/parent/validations"
-                        style={{ fontSize: 12, background: "#B45309", color: "#fff", padding: "6px 14px", borderRadius: 10, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
-                      >
-                        Voir & Valider
-                      </Link>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
         <div style={{ opacity: isActivationPending ? 0.4 : 1, pointerEvents: isActivationPending ? "none" : "auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
           {/* Header */}
@@ -306,27 +271,53 @@ export function ParentDashboard() {
                   </p>
                   <p style={{ fontSize: 11, color: "#64748B", marginTop: 4, marginBottom: 0 }}>{coursCeMois} séance{coursCeMois > 1 ? "s" : ""}</p>
                 </div>
-                {/* Montant */}
-                <div style={{ ...S.card, padding: 20 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: enAttente > 0 ? "#FFFBEB" : "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                    <CreditCard style={{ width: 16, height: 16, color: enAttente > 0 ? "#D97706" : "#16A34A" }} />
-                  </div>
-                  <p style={{ fontSize: 11, color: "#64748B", margin: 0 }}>Montant en attente</p>
-                  {enAttente > 0 ? (
-                    <>
-                      <p style={{ fontSize: 12, color: "#94A3B8", textDecoration: "line-through", marginTop: 4, marginBottom: 0 }}>{(enAttente * 2).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} € facturé</p>
-                      <p style={{ ...S.serif, fontSize: 24, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>
-                        {enAttente.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €
-                      </p>
-                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 2, marginBottom: 0 }}>après crédit d'impôt (50%)</p>
-                    </>
-                  ) : (
-                    <>
-                      <p style={{ ...S.serif, fontSize: 26, fontWeight: 400, color: "#16A34A", marginTop: 2, marginBottom: 0, letterSpacing: "-.02em" }}>À jour</p>
-                      <p style={{ fontSize: 11, color: "#16A34A", marginTop: 4, marginBottom: 0 }}>Tout est payé ✓</p>
-                    </>
-                  )}
-                </div>
+                {/* Action requise */}
+                {(() => {
+                  const pending = validations.filter((v) => v.statut === "en_attente_parent");
+                  const MOIS_LC = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+                  if (pending.length === 0) {
+                    return (
+                      <div style={{ ...S.card, padding: "20px 22px", display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#ECFDF5", borderRadius: 999, padding: "3px 10px 3px 7px", alignSelf: "flex-start" }}>
+                          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+                          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#15803D" }}>Aucune action</span>
+                        </div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", margin: 0, lineHeight: 1.3 }}>Tout est à jour</p>
+                        <p style={{ fontSize: 12, color: "#64748B", margin: 0, lineHeight: 1.5 }}>Aucun récapitulatif en attente de validation.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ ...S.card, padding: "20px 22px", background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#FEF3C7", borderRadius: 999, padding: "3px 10px 3px 7px", marginBottom: 12 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: "#B45309" }}>Action requise</span>
+                      </div>
+                      {pending.map((v) => {
+                        const moisNom = MOIS_LC[(v.recap_mensuel.mois ?? 1) - 1];
+                        const deadlineMois = MOIS_LC[(v.recap_mensuel.mois ?? 1) % 12];
+                        return (
+                          <div key={v.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: "#92400E", margin: 0, lineHeight: 1.3 }}>
+                              Validez le mois de {moisNom}
+                            </p>
+                            <p style={{ fontSize: 11, color: "#78350F", margin: 0, lineHeight: 1.5 }}>
+                              Délai : <strong>7 {deadlineMois}</strong>, puis validé automatiquement.
+                            </p>
+                            <Link
+                              to="/parent/validations"
+                              style={{ display: "block", textAlign: "center", fontSize: 12, background: "#B45309", color: "#fff", padding: "8px 0", borderRadius: 10, fontWeight: 700, textDecoration: "none" }}
+                            >
+                              Voir & Valider →
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Dernières factures — full width */}
