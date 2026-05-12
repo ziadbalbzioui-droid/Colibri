@@ -30,6 +30,7 @@ interface ProfPaiement {
 }
 type DispatchState = "idle" | "loading" | "success" | "error";
 type SingleDispatchState = Record<string, "idle" | "loading" | "done" | "error">;
+type SingleDispatchErrors = Record<string, string>;
 type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
@@ -2091,6 +2092,7 @@ export function AdminDashboard() {
   const [showDispatchConfirm, setShowDispatchConfirm] = useState(false);
   const [confirmSingleProf, setConfirmSingleProf] = useState<ProfPaiement | null>(null);
   const [singleDispatchState, setSingleDispatchState] = useState<SingleDispatchState>({});
+  const [singleDispatchErrors, setSingleDispatchErrors] = useState<SingleDispatchErrors>({});
   const { isVerified, verifyPassword, resetVerified } = useReauth();
   const [showOTP, setShowOTP] = useState(false);
   const pendingDispatchRef = useRef<(() => void) | null>(null);
@@ -2160,14 +2162,21 @@ export function AdminDashboard() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       if (profId) {
-        setSingleDispatchState((s) => ({ ...s, [profId]: json.errors?.length > 0 ? "error" : "done" }));
-        setLastRefresh(new Date());
+        const hasError = json.errors?.length > 0;
+        setSingleDispatchState((s) => ({ ...s, [profId]: hasError ? "error" : "done" }));
+        if (hasError) {
+          setSingleDispatchErrors((s) => ({ ...s, [profId]: json.errors[0]?.error ?? "Erreur inconnue" }));
+        } else {
+          setLastRefresh(new Date());
+        }
       } else {
         setDispatchResult(json); setDispatchState(json.errors?.length > 0 ? "error" : "success"); setLastRefresh(new Date());
       }
     } catch (e) {
       if (profId) {
+        const msg = e instanceof Error ? e.message : String(e);
         setSingleDispatchState((s) => ({ ...s, [profId]: "error" }));
+        setSingleDispatchErrors((s) => ({ ...s, [profId]: msg }));
       } else {
         setDispatchResult({ success: [], errors: [{ prof_id: "global", error: e instanceof Error ? e.message : String(e) }] });
         setDispatchState("error");
@@ -2281,7 +2290,19 @@ export function AdminDashboard() {
                           {st === "done" ? (
                             <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1"><Check className="w-3.5 h-3.5" />Envoyé</span>
                           ) : st === "error" ? (
-                            <span className="text-xs font-semibold text-red-600">Échec</span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-semibold text-red-600">Échec</span>
+                              {singleDispatchErrors[p.prof_id] && (
+                                <span className="text-xs text-red-400 max-w-[180px] break-words">{singleDispatchErrors[p.prof_id]}</span>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setSingleDispatchState((s) => ({ ...s, [p.prof_id]: "idle" }));
+                                  setSingleDispatchErrors((s) => { const n = { ...s }; delete n[p.prof_id]; return n; });
+                                }}
+                                className="text-xs text-slate-500 underline hover:text-slate-700 text-left"
+                              >Réessayer</button>
+                            </div>
                           ) : (
                             <button
                               disabled={!p.iban || st === "loading" || dispatchState === "loading"}
