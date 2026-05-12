@@ -17,7 +17,8 @@ import { ReauthPrompt } from "./ReauthPrompt";
 import { useReauth } from "../../hooks/useReauth";
 import { getMultiplicateurBrut, GrilleRow } from "../../../lib/hooks/useGrilleCommission";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 interface ProfPaiement {
   prof_id: string; prenom: string; nom: string; iban: string | null;
@@ -2153,7 +2154,7 @@ export function AdminDashboard() {
       const body = profId ? JSON.stringify({ prof_id: profId }) : "{}";
       const res = await fetch(`${SUPABASE_URL}/functions/v1/dispatch-payments`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
         body,
       });
       const json = await res.json();
