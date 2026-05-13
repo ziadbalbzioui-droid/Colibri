@@ -345,24 +345,17 @@ function ParentFicheModal({ parent, onClose }: { parent: any; onClose: () => voi
               {field("prénoms", parent.prenom)}
               {field("date naissance", parent.date_naissance)}
               {field("téléphone", parent.telephone)}
-              {field("dept naissance", parent.lieu_naissance_code_dept)}
-              {field("commune naiss.", parent.lieu_naissance_code_commune)}
-              {field("libellé commune", parent.lieu_naissance_libelle_commune)}
-              {field("pays naissance", parent.lieu_naissance_code_pays)}
+              {field("naissance", [parent.lieu_naissance_cp, parent.lieu_naissance_ville, parent.lieu_naissance_pays].filter(Boolean).join(" · "))}
               {!parent.nom_naissance && <p className="text-xs text-slate-300 italic">Activation URSSAF non complétée.</p>}
             </div>
           </div>
 
           {/* Adresse */}
-          {parent.adresse_libelle_commune && (
+          {parent.adresse_postale && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Adresse</p>
               <div className="space-y-1.5">
-                {field("voie", `${parent.adresse_numero_voie ?? ""} ${parent.adresse_code_type_voie ?? ""} ${parent.adresse_libelle_voie ?? ""}`.trim())}
-                {field("complément", parent.adresse_complement)}
-                {field("lieu-dit", parent.adresse_lieu_dit)}
-                {field("commune", `${parent.adresse_code_postal ?? ""} ${parent.adresse_libelle_commune ?? ""}`.trim())}
-                {field("code commune", parent.adresse_code_commune)}
+                {field("adresse", parent.adresse_postale)}
               </div>
             </div>
           )}
@@ -418,10 +411,9 @@ function AdminParents() {
   const [bulkLoading, setBulkLoading] = useState(false);
 
   async function load() {
-    const { data, error } = await supabase.from("profiles")
-      .select("id, prenom, nom, email, telephone, iban, nom_naissance, civilite, created_at, date_naissance, nom_usage, urssaf_status, lieu_naissance_code_dept, lieu_naissance_code_commune, lieu_naissance_libelle_commune, lieu_naissance_code_pays, adresse_numero_voie, adresse_code_type_voie, adresse_libelle_voie, adresse_complement, adresse_lieu_dit, adresse_libelle_commune, adresse_code_commune, adresse_code_postal, bic, iban_titulaire")
+    const { data } = await supabase.from("profiles")
+      .select("*")
       .eq("role", "parent").order("created_at", { ascending: false });
-    console.error("[AdminParents] error:", error, "data:", data);
     setParents(data ?? []); setLoading(false);
   }
   useEffect(() => { load(); }, []);
