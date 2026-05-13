@@ -41,7 +41,7 @@ const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "recaps",        label: "Récaps mensuels",    Icon: ClipboardList },
   { key: "contestations", label: "Contestations",      Icon: AlertTriangle },
   { key: "paps",          label: "PAPS",               Icon: Megaphone },
-  { key: "liaisons",      label: "Liaisons Profs–Élèves", Icon: Link2 },
+  { key: "liaisons",      label: "Liaisons Parents–Élèves", Icon: Link2 },
   { key: "grille",        label: "Grille commission",  Icon: Percent },
   { key: "compta",        label: "Comptabilité",       Icon: Receipt },
   { key: "ecoles",        label: "Établissements",     Icon: Landmark },

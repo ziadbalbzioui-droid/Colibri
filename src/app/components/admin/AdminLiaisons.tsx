@@ -1,101 +1,95 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, Plus, ArrowLeftRight, Search, Users, UserCheck, Check, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Search, Users, UserCheck, X, Link2, GraduationCap } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
-import { FL, FI, FS, TH, TD, CopyID, AdminEditModal } from "./adminShared";
-import { MATIERES_FORM, NIVEAUX_FORM } from "./adminShared";
+import { FL, FS, TH, TD, CopyID, AdminEditModal } from "./adminShared";
 
-interface Prof  { id: string; prenom: string; nom: string; email: string; }
-interface Eleve { id: string; prof_id: string; nom: string; matiere: string; niveau: string; tarif_heure: number; statut: string; code_invitation: string | null; }
-
-const STATUT_ELEVE_STYLE: Record<string, string> = {
-  "actif":       "bg-emerald-100 text-emerald-700",
-  "en attente":  "bg-amber-100 text-amber-700",
-  "en pause":    "bg-slate-100 text-slate-500",
-  "terminé":     "bg-red-100 text-red-600",
-};
+interface Parent { id: string; prenom: string; nom: string; email: string; }
+interface Eleve  { id: string; prof_id: string; nom: string; matiere: string; niveau: string; statut: string; }
+interface Prof   { id: string; prenom: string; nom: string; }
+interface Link   { parent_id: string; eleve_id: string; }
 
 export function AdminLiaisons() {
-  const [profs,   setProfs]   = useState<Prof[]>([]);
+  const [parents, setParents] = useState<Parent[]>([]);
   const [eleves,  setEleves]  = useState<Eleve[]>([]);
+  const [profs,   setProfs]   = useState<Prof[]>([]);
+  const [links,   setLinks]   = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  const [selectedProfId, setSelectedProfId] = useState<string | null>(null);
-  const [searchProf,     setSearchProf]     = useState("");
-  const [searchEleve,    setSearchEleve]    = useState("");
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [searchParent,     setSearchParent]     = useState("");
 
-  // Modal: créer un élève
-  const [showCreate, setShowCreate] = useState(false);
-  const [newNom,     setNewNom]     = useState("");
-  const [newMatiere, setNewMatiere] = useState("");
-  const [newNiveau,  setNewNiveau]  = useState("");
-  const [newTarif,   setNewTarif]   = useState("");
+  const [showAdd,    setShowAdd]    = useState(false);
+  const [addEleveId, setAddEleveId] = useState("");
+  const [saving,     setSaving]     = useState(false);
 
-  // Modal: réassigner
-  const [reassigning,    setReassigning]    = useState<Eleve | null>(null);
-  const [newProfId,      setNewProfId]      = useState("");
-
-  const [saving, setSaving] = useState(false);
-
-  // ── Load ────────────────────────────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────────────────────────────────
 
   async function load() {
     setLoading(true);
-    const [{ data: profsData, error: e1 }, { data: elevesData, error: e2 }] = await Promise.all([
-      supabase.from("profiles").select("id, prenom, nom, email").eq("role", "prof").order("nom"),
-      supabase.from("eleves").select("id, prof_id, nom, matiere, niveau, tarif_heure, statut, code_invitation").order("nom"),
+    const [
+      { data: parentsData, error: e1 },
+      { data: elevesData,  error: e2 },
+      { data: profsData,   error: e3 },
+      { data: linksData,   error: e4 },
+    ] = await Promise.all([
+      supabase.from("profiles").select("id, prenom, nom, email").eq("role", "parent").order("nom"),
+      supabase.from("eleves").select("id, prof_id, nom, matiere, niveau, statut").order("nom"),
+      supabase.from("profiles").select("id, prenom, nom").eq("role", "prof"),
+      supabase.from("parent_eleve").select("parent_id, eleve_id"),
     ]);
-    if (e1 || e2) setError("Erreur lors du chargement.");
-    setProfs(profsData ?? []);
+    if (e1 || e2 || e3 || e4) setError("Erreur lors du chargement.");
+    setParents(parentsData ?? []);
     setEleves(elevesData ?? []);
+    setProfs(profsData ?? []);
+    setLinks(linksData ?? []);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
-  // ── Dérivés ─────────────────────────────────────────────────────────────────
+  // ── Dérivés ───────────────────────────────────────────────────────────────────
 
-  const selectedProf  = profs.find(p => p.id === selectedProfId) ?? null;
-  const elevesOfProf  = eleves.filter(e => e.prof_id === selectedProfId);
-  const filteredEleves = elevesOfProf.filter(e =>
-    e.nom.toLowerCase().includes(searchEleve.toLowerCase())
-  );
-  const filteredProfs = profs.filter(p =>
-    `${p.prenom} ${p.nom} ${p.email}`.toLowerCase().includes(searchProf.toLowerCase())
+  const selectedParent = parents.find(p => p.id === selectedParentId) ?? null;
+  const filteredParents = parents.filter(p =>
+    `${p.prenom} ${p.nom} ${p.email}`.toLowerCase().includes(searchParent.toLowerCase())
   );
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  const linkedEleveIds = links.filter(l => l.parent_id === selectedParentId).map(l => l.eleve_id);
+  const linkedEleves   = eleves.filter(e => linkedEleveIds.includes(e.id));
 
-  async function createEleve() {
-    if (!selectedProfId || !newNom.trim() || !newMatiere || !newNiveau) return;
+  const profMap = new Map(profs.map(p => [p.id, `${p.prenom} ${p.nom}`]));
+
+  const countForParent = (parentId: string) => links.filter(l => l.parent_id === parentId).length;
+
+  // Élèves non encore liés à ce parent
+  const unlinkableEleves = eleves.filter(e => !linkedEleveIds.includes(e.id));
+
+  // ── Actions ───────────────────────────────────────────────────────────────────
+
+  async function addLink() {
+    if (!selectedParentId || !addEleveId) return;
     setSaving(true);
-    const { error } = await supabase.from("eleves").insert({
-      prof_id:     selectedProfId,
-      nom:         newNom.trim(),
-      matiere:     newMatiere,
-      niveau:      newNiveau,
-      tarif_heure: parseFloat(newTarif) || 0,
-      statut:      "actif",
-    });
+    const { error } = await supabase.from("parent_eleve").insert({ parent_id: selectedParentId, eleve_id: addEleveId });
     if (error) { setError(error.message); setSaving(false); return; }
     await load();
-    setShowCreate(false);
-    setNewNom(""); setNewMatiere(""); setNewNiveau(""); setNewTarif("");
+    setShowAdd(false);
+    setAddEleveId("");
     setSaving(false);
   }
 
-  async function reassignEleve() {
-    if (!reassigning || !newProfId || newProfId === reassigning.prof_id) return;
-    setSaving(true);
-    const { error } = await supabase.from("eleves").update({ prof_id: newProfId }).eq("id", reassigning.id);
-    if (error) { setError(error.message); setSaving(false); return; }
-    await load();
-    setReassigning(null);
-    setNewProfId("");
-    setSaving(false);
+  async function removeLink(eleveId: string) {
+    if (!selectedParentId) return;
+    const { error } = await supabase
+      .from("parent_eleve")
+      .delete()
+      .eq("parent_id", selectedParentId)
+      .eq("eleve_id", eleveId);
+    if (error) { setError(error.message); return; }
+    setLinks(prev => prev.filter(l => !(l.parent_id === selectedParentId && l.eleve_id === eleveId)));
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   if (loading) return (
     <div className="flex items-center justify-center py-20 text-slate-400">
@@ -107,11 +101,11 @@ export function AdminLiaisons() {
     <div>
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <h2 className="text-base font-bold text-slate-900 mb-0.5">Liaisons Profs — Élèves</h2>
-          <p className="text-xs text-slate-400">Créer des élèves et les assigner à un prof, ou réassigner un élève existant.</p>
+          <h2 className="text-base font-bold text-slate-900 mb-0.5">Liaisons Parents — Élèves</h2>
+          <p className="text-xs text-slate-400">Associer un compte parent à un ou plusieurs élèves.</p>
         </div>
         <div className="text-xs font-mono text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
-          {profs.length} profs · {eleves.length} élèves
+          {parents.length} parents · {links.length} liens
         </div>
       </div>
 
@@ -124,35 +118,35 @@ export function AdminLiaisons() {
 
       <div className="grid grid-cols-[280px_1fr] gap-4 items-start">
 
-        {/* ── Colonne gauche : liste des profs ── */}
+        {/* ── Colonne gauche : liste des parents ── */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input value={searchProf} onChange={e => setSearchProf(e.target.value)}
-                placeholder="Chercher un prof…"
+              <input value={searchParent} onChange={e => setSearchParent(e.target.value)}
+                placeholder="Chercher un parent…"
                 className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 placeholder:text-slate-300" />
             </div>
           </div>
           <div className="max-h-[calc(100vh-260px)] overflow-y-auto divide-y divide-slate-50">
-            {filteredProfs.length === 0 && (
+            {filteredParents.length === 0 && (
               <p className="text-xs text-slate-400 text-center py-6">Aucun résultat</p>
             )}
-            {filteredProfs.map(prof => {
-              const count = eleves.filter(e => e.prof_id === prof.id).length;
-              const active = selectedProfId === prof.id;
+            {filteredParents.map(parent => {
+              const count = countForParent(parent.id);
+              const active = selectedParentId === parent.id;
               return (
-                <button key={prof.id} onClick={() => { setSelectedProfId(prof.id); setSearchEleve(""); }}
+                <button key={parent.id} onClick={() => setSelectedParentId(parent.id)}
                   className={`w-full text-left px-4 py-3 transition-colors ${active ? "bg-blue-50" : "hover:bg-slate-50"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold truncate ${active ? "text-blue-700" : "text-slate-800"}`}>
-                        {prof.prenom} {prof.nom}
+                        {parent.prenom} {parent.nom}
                       </p>
-                      <p className="text-[11px] text-slate-400 truncate">{prof.email}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{parent.email}</p>
                     </div>
                     <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                      count > 0 ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-300"
+                      count > 0 ? "bg-blue-100 text-blue-600" : "bg-slate-50 text-slate-300"
                     }`}>
                       {count}
                     </span>
@@ -163,93 +157,85 @@ export function AdminLiaisons() {
           </div>
         </div>
 
-        {/* ── Colonne droite : contenu ── */}
+        {/* ── Colonne droite ── */}
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          {!selectedProf ? (
+          {!selectedParent ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
               <Users className="w-8 h-8 opacity-30" />
-              <p className="text-sm">Sélectionnez un prof à gauche</p>
+              <p className="text-sm">Sélectionnez un parent à gauche</p>
             </div>
           ) : (
             <>
-              {/* Header du prof sélectionné */}
+              {/* Header */}
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                     <UserCheck className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{selectedProf.prenom} {selectedProf.nom}</p>
-                    <p className="text-[11px] text-slate-400">{selectedProf.email} · {elevesOfProf.length} élève(s)</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedParent.prenom} {selectedParent.nom}</p>
+                    <p className="text-[11px] text-slate-400">{selectedParent.email} · {linkedEleves.length} élève(s) lié(s)</p>
                   </div>
                 </div>
-                <button onClick={() => setShowCreate(true)}
+                <button onClick={() => { setShowAdd(true); setAddEleveId(""); }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 transition-colors">
-                  <Plus className="w-3.5 h-3.5" /> Créer un élève
+                  <Plus className="w-3.5 h-3.5" /> Lier un élève
                 </button>
               </div>
 
-              {/* Barre de recherche élèves */}
-              {elevesOfProf.length > 0 && (
-                <div className="px-6 pt-4">
-                  <div className="relative max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                    <input value={searchEleve} onChange={e => setSearchEleve(e.target.value)}
-                      placeholder="Filtrer les élèves…"
-                      className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 placeholder:text-slate-300" />
-                  </div>
-                </div>
-              )}
-
-              {/* Table des élèves */}
-              {elevesOfProf.length === 0 ? (
+              {/* Table */}
+              {linkedEleves.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
-                  <p className="text-sm">Aucun élève pour ce prof.</p>
-                  <button onClick={() => setShowCreate(true)}
+                  <Link2 className="w-7 h-7 opacity-25" />
+                  <p className="text-sm">Aucun élève lié à ce parent.</p>
+                  <button onClick={() => { setShowAdd(true); setAddEleveId(""); }}
                     className="text-xs text-blue-600 hover:underline font-semibold mt-1">
-                    + Créer le premier élève
+                    + Lier un premier élève
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto mt-4">
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b border-slate-100">
                       <tr>
                         <th className={TH}>Élève</th>
-                        <th className={TH}>Matière</th>
-                        <th className={TH}>Niveau</th>
-                        <th className={TH}>Tarif / h</th>
+                        <th className={TH}>Matière · Niveau</th>
+                        <th className={TH}>Prof</th>
                         <th className={TH}>Statut</th>
-                        <th className={TH}>Code invite</th>
-                        <th className={TH}>Action</th>
+                        <th className={TH}></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {filteredEleves.map(eleve => (
+                      {linkedEleves.map(eleve => (
                         <tr key={eleve.id} className="hover:bg-slate-50/60 transition-colors">
                           <td className={TD}>
                             <p className="font-medium text-slate-900">{eleve.nom}</p>
                             <CopyID id={eleve.id} />
                           </td>
-                          <td className={TD + " text-slate-600"}>{eleve.matiere}</td>
-                          <td className={TD + " text-slate-600"}>{eleve.niveau}</td>
-                          <td className={TD + " tabular-nums text-slate-700 font-medium"}>{eleve.tarif_heure} €</td>
+                          <td className={TD + " text-slate-600"}>
+                            {eleve.matiere}
+                            <span className="text-slate-400"> · {eleve.niveau}</span>
+                          </td>
                           <td className={TD}>
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUT_ELEVE_STYLE[eleve.statut] ?? "bg-slate-100 text-slate-500"}`}>
+                            <span className="flex items-center gap-1.5 text-slate-600">
+                              <GraduationCap className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              {profMap.get(eleve.prof_id) ?? <span className="text-slate-300 italic">—</span>}
+                            </span>
+                          </td>
+                          <td className={TD}>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                              eleve.statut === "actif" ? "bg-emerald-100 text-emerald-700"
+                              : eleve.statut === "en pause" ? "bg-slate-100 text-slate-500"
+                              : "bg-red-100 text-red-600"
+                            }`}>
                               {eleve.statut}
                             </span>
                           </td>
                           <td className={TD}>
-                            {eleve.code_invitation
-                              ? <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{eleve.code_invitation}</span>
-                              : <span className="text-slate-300 text-xs">—</span>
-                            }
-                          </td>
-                          <td className={TD}>
                             <button
-                              onClick={() => { setReassigning(eleve); setNewProfId(""); }}
-                              className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors px-2 py-1 rounded-md hover:bg-blue-50">
-                              <ArrowLeftRight className="w-3 h-3" /> Réassigner
+                              onClick={() => removeLink(eleve.id)}
+                              className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-red-600 transition-colors px-2 py-1 rounded-md hover:bg-red-50">
+                              <Trash2 className="w-3 h-3" /> Délier
                             </button>
                           </td>
                         </tr>
@@ -263,65 +249,26 @@ export function AdminLiaisons() {
         </div>
       </div>
 
-      {/* ── Modal : créer un élève ── */}
-      {showCreate && selectedProf && (
+      {/* ── Modal : lier un élève ── */}
+      {showAdd && selectedParent && (
         <AdminEditModal
-          title={`Nouvel élève — ${selectedProf.prenom} ${selectedProf.nom}`}
-          onClose={() => { setShowCreate(false); setNewNom(""); setNewMatiere(""); setNewNiveau(""); setNewTarif(""); }}
-          onSave={createEleve}
+          title={`Lier un élève — ${selectedParent.prenom} ${selectedParent.nom}`}
+          onClose={() => { setShowAdd(false); setAddEleveId(""); }}
+          onSave={addLink}
           saving={saving}>
           <div>
-            <label className={FL}>Nom de l'élève *</label>
-            <input className={FI} value={newNom} onChange={e => setNewNom(e.target.value)} placeholder="Prénom Nom" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={FL}>Matière *</label>
-              <select className={FS} value={newMatiere} onChange={e => setNewMatiere(e.target.value)}>
-                <option value="">Sélectionner…</option>
-                {MATIERES_FORM.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={FL}>Niveau *</label>
-              <select className={FS} value={newNiveau} onChange={e => setNewNiveau(e.target.value)}>
-                <option value="">Sélectionner…</option>
-                {NIVEAUX_FORM.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className={FL}>Tarif horaire (€)</label>
-            <input className={FI} type="number" min="0" step="0.5" value={newTarif} onChange={e => setNewTarif(e.target.value)} placeholder="Ex : 25" />
-          </div>
-        </AdminEditModal>
-      )}
-
-      {/* ── Modal : réassigner ── */}
-      {reassigning && (
-        <AdminEditModal
-          title={`Réassigner — ${reassigning.nom}`}
-          onClose={() => { setReassigning(null); setNewProfId(""); }}
-          onSave={reassignEleve}
-          saving={saving}>
-          <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs text-slate-600 space-y-1">
-            <p><span className="font-mono font-bold text-slate-400 uppercase tracking-wide">Élève</span> — {reassigning.nom}</p>
-            <p><span className="font-mono font-bold text-slate-400 uppercase tracking-wide">Prof actuel</span> — {profs.find(p => p.id === reassigning.prof_id)?.prenom} {profs.find(p => p.id === reassigning.prof_id)?.nom}</p>
-          </div>
-          <div>
-            <label className={FL}>Nouveau prof *</label>
-            <select className={FS} value={newProfId} onChange={e => setNewProfId(e.target.value)}>
-              <option value="">Sélectionner un prof…</option>
-              {profs.filter(p => p.id !== reassigning.prof_id).map(p => (
-                <option key={p.id} value={p.id}>{p.prenom} {p.nom} — {p.email}</option>
+            <label className={FL}>Élève à lier *</label>
+            <select className={FS} value={addEleveId} onChange={e => setAddEleveId(e.target.value)}>
+              <option value="">Sélectionner un élève…</option>
+              {unlinkableEleves.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.nom} — {e.matiere} {e.niveau} ({profMap.get(e.prof_id) ?? "sans prof"})
+                </option>
               ))}
             </select>
           </div>
-          {newProfId && (
-            <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-              <Check className="w-3.5 h-3.5 shrink-0" />
-              L'élève sera rattaché à {profs.find(p => p.id === newProfId)?.prenom} {profs.find(p => p.id === newProfId)?.nom}.
-            </div>
+          {unlinkableEleves.length === 0 && (
+            <p className="text-xs text-slate-400 italic">Tous les élèves sont déjà liés à ce parent.</p>
           )}
         </AdminEditModal>
       )}
