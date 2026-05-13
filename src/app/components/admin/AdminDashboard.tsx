@@ -9,8 +9,7 @@ import logo from "@/assets/colibri.svg";
 import { ProfFicheModal } from "./ProfFicheModal";
 import { EleveFicheModal } from "./EleveFicheModal";
 import { CreateRecapModal } from "./CreateRecapModal";
-import { AdminSearch } from "./AdminSearch";
-import { AdminOrphelins } from "./AdminOrphelins";
+import { AdminLiaisons } from "./AdminLiaisons";
 import { AdminGrille } from "./AdminGrille";
 import { AdminCompta } from "./AdminCompta";
 import { ReauthPrompt } from "./ReauthPrompt";
@@ -31,7 +30,7 @@ interface ProfPaiement {
 type DispatchState = "idle" | "loading" | "success" | "error";
 type SingleDispatchState = Record<string, "idle" | "loading" | "done" | "error">;
 type SingleDispatchErrors = Record<string, string>;
-type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "search" | "orphelins" | "grille" | "compta" | "ecoles";
+type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "liaisons" | "grille" | "compta" | "ecoles";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paiements",     label: "Dispatch paiements", Icon: Banknote },
@@ -42,8 +41,7 @@ const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "recaps",        label: "Récaps mensuels",    Icon: ClipboardList },
   { key: "contestations", label: "Contestations",      Icon: AlertTriangle },
   { key: "paps",          label: "PAPS",               Icon: Megaphone },
-  { key: "search",        label: "Recherche globale",  Icon: Search },
-  { key: "orphelins",     label: "Cours orphelins",    Icon: Link2 },
+  { key: "liaisons",      label: "Liaisons Profs–Élèves", Icon: Link2 },
   { key: "grille",        label: "Grille commission",  Icon: Percent },
   { key: "compta",        label: "Comptabilité",       Icon: Receipt },
   { key: "ecoles",        label: "Établissements",     Icon: Landmark },
@@ -2417,8 +2415,7 @@ export function AdminDashboard() {
         {section === "recaps"        && <AdminRecaps />}
         {section === "contestations" && <AdminContestations />}
         {section === "paps"          && <AdminPaps />}
-        {section === "search"        && <AdminSearch />}
-        {section === "orphelins"     && <AdminOrphelins />}
+        {section === "liaisons"      && <AdminLiaisons />}
         {section === "grille"        && <AdminGrille />}
         {section === "compta"        && <AdminCompta />}
         {section === "ecoles"        && <AdminEcoles />}
