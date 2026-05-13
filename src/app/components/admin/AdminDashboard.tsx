@@ -418,9 +418,10 @@ function AdminParents() {
   const [bulkLoading, setBulkLoading] = useState(false);
 
   async function load() {
-    const { data } = await supabase.from("profiles")
+    const { data, error } = await supabase.from("profiles")
       .select("id, prenom, nom, email, telephone, iban, nom_naissance, civilite, created_at, date_naissance, nom_usage, urssaf_status, lieu_naissance_code_dept, lieu_naissance_code_commune, lieu_naissance_libelle_commune, lieu_naissance_code_pays, adresse_numero_voie, adresse_code_type_voie, adresse_libelle_voie, adresse_complement, adresse_lieu_dit, adresse_libelle_commune, adresse_code_commune, adresse_code_postal, bic, iban_titulaire")
       .eq("role", "parent").order("created_at", { ascending: false });
+    console.error("[AdminParents] error:", error, "data:", data);
     setParents(data ?? []); setLoading(false);
   }
   useEffect(() => { load(); }, []);
