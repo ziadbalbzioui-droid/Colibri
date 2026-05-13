@@ -314,7 +314,7 @@ function ParentFicheModal({ parent, onClose }: { parent: any; onClose: () => voi
     </div>
   ) : null;
 
-  const activated = !!(parent.iban || parent.nom_naissance);
+  const activated = parent.urssaf_status === "activation_pending" || parent.urssaf_status === "active" || !!(parent.iban && parent.nom_naissance);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
@@ -342,7 +342,7 @@ function ParentFicheModal({ parent, onClose }: { parent: any; onClose: () => voi
               {field("civilité", parent.civilite)}
               {field("nom naissance", parent.nom_naissance)}
               {field("nom usage", parent.nom_usage)}
-              {field("prénoms", parent.prenoms)}
+              {field("prénoms", parent.prenom)}
               {field("date naissance", parent.date_naissance)}
               {field("téléphone", parent.telephone)}
               {field("dept naissance", parent.lieu_naissance_code_dept)}
@@ -419,7 +419,7 @@ function AdminParents() {
 
   async function load() {
     const { data } = await supabase.from("profiles")
-      .select("id, prenom, nom, email, telephone, iban, nom_naissance, civilite, created_at, date_naissance, prenoms, nom_usage, lieu_naissance_code_dept, lieu_naissance_code_commune, lieu_naissance_libelle_commune, lieu_naissance_code_pays, adresse_numero_voie, adresse_code_type_voie, adresse_libelle_voie, adresse_complement, adresse_lieu_dit, adresse_libelle_commune, adresse_code_commune, adresse_code_postal, bic, iban_titulaire")
+      .select("id, prenom, nom, email, telephone, iban, nom_naissance, civilite, created_at, date_naissance, nom_usage, urssaf_status, lieu_naissance_code_dept, lieu_naissance_code_commune, lieu_naissance_libelle_commune, lieu_naissance_code_pays, adresse_numero_voie, adresse_code_type_voie, adresse_libelle_voie, adresse_complement, adresse_lieu_dit, adresse_libelle_commune, adresse_code_commune, adresse_code_postal, bic, iban_titulaire")
       .eq("role", "parent").order("created_at", { ascending: false });
     setParents(data ?? []); setLoading(false);
   }
