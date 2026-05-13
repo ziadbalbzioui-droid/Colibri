@@ -299,6 +299,8 @@ function AdminEleves() {
   const [bulkSelectedE, setBulkSelectedE] = useState<Set<string>>(new Set());
   const [bulkLoadingE, setBulkLoadingE] = useState(false);
   const [bulkStatutE, setBulkStatutE] = useState("actif");
+  const [showCreate, setShowCreate] = useState(false);
+  const [createF, setCreateF] = useState({ nom: "", niveau: "", matiere: "", tarif_heure: "", prof_id: "" });
 
   async function load() {
     const [{ data: el }, { data: pr }] = await Promise.all([
@@ -337,6 +339,21 @@ function AdminEleves() {
     setEleves((prev) => prev.filter((x) => x.id !== e.id));
   }
 
+  async function createEleve() {
+    if (!createF.nom.trim() || !createF.matiere || !createF.niveau || !createF.prof_id) return;
+    setSaving(true);
+    const { error } = await supabase.from("eleves").insert({
+      nom: createF.nom.trim(),
+      matiere: createF.matiere,
+      niveau: createF.niveau,
+      tarif_heure: parseFloat(createF.tarif_heure) || 0,
+      prof_id: createF.prof_id,
+      statut: "actif",
+    });
+    if (!error) { await load(); setShowCreate(false); setCreateF({ nom: "", niveau: "", matiere: "", tarif_heure: "", prof_id: "" }); }
+    setSaving(false);
+  }
+
   const filtered = eleves.filter((e) =>
     `${e.nom} ${e.matiere} ${e.niveau} ${e.profiles ? `${e.profiles.prenom} ${e.profiles.nom}` : ""}`.toLowerCase().includes(search.toLowerCase())
   );
@@ -369,6 +386,10 @@ function AdminEleves() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div><h1 className="text-xl font-bold text-slate-900">Élèves</h1><p className="text-xs font-mono text-slate-400 mt-0.5">{eleves.length} rows · eleves</p></div>
+        <button onClick={() => { setShowCreate(true); setCreateF({ nom: "", niveau: "", matiere: "", tarif_heure: "", prof_id: "" }); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-blue-600 transition-colors">
+          <Plus className="w-3.5 h-3.5" /> Créer un élève
+        </button>
       </div>
       <InfoBox title="Gestion des élèves">
         <p>Chaque élève est rattaché à un seul prof. Le <span className="font-semibold">tarif_heure</span> est le tarif famille — il sert à calculer le montant des cours et le net prof via la grille de commission.</p>
@@ -472,6 +493,44 @@ function AdminEleves() {
         </AdminEditModal>
       )}
       {ficheEleve && <EleveFicheModal eleve={ficheEleve} onClose={() => setFicheEleve(null)} />}
+
+      {showCreate && (
+        <AdminEditModal title="Nouvel élève" onClose={() => setShowCreate(false)} onSave={createEleve} saving={saving}>
+          <div>
+            <label className={FL}>Nom de l'élève *</label>
+            <input className={FI} value={createF.nom} onChange={(e) => setCreateF({ ...createF, nom: e.target.value })} placeholder="Prénom Nom" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FL}>Matière *</label>
+              <select className={FS} value={createF.matiere} onChange={(e) => setCreateF({ ...createF, matiere: e.target.value })}>
+                <option value="">Sélectionner…</option>
+                {MATIERES_FORM.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={FL}>Niveau *</label>
+              <select className={FS} value={createF.niveau} onChange={(e) => setCreateF({ ...createF, niveau: e.target.value })}>
+                <option value="">Sélectionner…</option>
+                {NIVEAUX_FORM.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={FL}>Tarif horaire (€)</label>
+              <input className={FI} type="number" min="0" step="0.5" value={createF.tarif_heure} onChange={(e) => setCreateF({ ...createF, tarif_heure: e.target.value })} placeholder="Ex : 25" />
+            </div>
+            <div>
+              <label className={FL}>Prof *</label>
+              <select className={FS} value={createF.prof_id} onChange={(e) => setCreateF({ ...createF, prof_id: e.target.value })}>
+                <option value="">Sélectionner un prof…</option>
+                {profsList.map((p) => <option key={p.id} value={p.id}>{p.prenom} {p.nom}</option>)}
+              </select>
+            </div>
+          </div>
+        </AdminEditModal>
+      )}
     </div>
   );
 }
