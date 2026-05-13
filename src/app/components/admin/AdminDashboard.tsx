@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  GraduationCap, Users, BookOpen, AlertTriangle, Banknote, LogOut,
+  GraduationCap, Users, UserCheck, BookOpen, AlertTriangle, Banknote, LogOut,
   Search, ClipboardList, X, Check, Pencil, Loader2, Megaphone, Plus, Trash2, Copy, RotateCcw, Link2, CalendarDays, Percent, Receipt, Info, Landmark,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
@@ -30,18 +30,19 @@ interface ProfPaiement {
 type DispatchState = "idle" | "loading" | "success" | "error";
 type SingleDispatchState = Record<string, "idle" | "loading" | "done" | "error">;
 type SingleDispatchErrors = Record<string, string>;
-type Section = "paiements" | "echeancier" | "profs" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "liaisons" | "grille" | "compta" | "ecoles";
+type Section = "paiements" | "echeancier" | "profs" | "parents" | "eleves" | "cours" | "recaps" | "contestations" | "paps" | "liaisons" | "grille" | "compta" | "ecoles";
 
 const NAV: { key: Section; label: string; Icon: React.ElementType }[] = [
   { key: "paiements",     label: "Dispatch paiements", Icon: Banknote },
   { key: "echeancier",    label: "Échéancier",         Icon: CalendarDays },
   { key: "profs",         label: "Profs",              Icon: GraduationCap },
+  { key: "parents",       label: "Parents",            Icon: UserCheck },
   { key: "eleves",        label: "Élèves",             Icon: Users },
   { key: "cours",         label: "Cours",              Icon: BookOpen },
   { key: "recaps",        label: "Récaps mensuels",    Icon: ClipboardList },
   { key: "contestations", label: "Contestations",      Icon: AlertTriangle },
   { key: "paps",          label: "PAPS",               Icon: Megaphone },
-  { key: "liaisons",      label: "Liaisons Parents–Élèves", Icon: Link2 },
+  { key: "liaisons",      label: "Parent–Élève",            Icon: Link2 },
   { key: "grille",        label: "Grille commission",  Icon: Percent },
   { key: "compta",        label: "Comptabilité",       Icon: Receipt },
   { key: "ecoles",        label: "Établissements",     Icon: Landmark },
@@ -282,6 +283,261 @@ function AdminProfs() {
         </AdminEditModal>
       )}
       {ficheProf && <ProfFicheModal prof={ficheProf} onClose={() => setFicheProf(null)} />}
+    </div>
+  );
+}
+
+// ── AdminParents ──────────────────────────────────────────────────────────────
+function ParentFicheModal({ parent, onClose }: { parent: any; onClose: () => void }) {
+  const [eleves, setEleves] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data: links } = await supabase.from("parent_eleve").select("eleve_id").eq("parent_id", parent.id);
+      const ids = (links ?? []).map((l: any) => l.eleve_id);
+      if (ids.length > 0) {
+        const { data } = await supabase.from("eleves")
+          .select("id, nom, matiere, niveau, statut, profiles!eleves_prof_id_fkey(prenom, nom)")
+          .in("id", ids);
+        setEleves(data ?? []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [parent.id]);
+
+  const field = (label: string, value: any) => value ? (
+    <div className="grid grid-cols-[140px_1fr] gap-2 text-xs">
+      <span className="text-slate-400 font-mono uppercase tracking-wide pt-0.5">{label}</span>
+      <span className="text-slate-800 font-medium break-all">{value}</span>
+    </div>
+  ) : null;
+
+  const activated = !!(parent.iban || parent.nom_naissance);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <p className="text-sm font-bold text-slate-900">{parent.prenom} {parent.nom}</p>
+            <p className="text-xs text-slate-400 font-mono">{parent.email}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${activated ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+              {activated ? "Activé URSSAF" : "Non activé"}
+            </span>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+              <X className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
+          {/* Identité */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Identité</p>
+            <div className="space-y-1.5">
+              {field("civilité", parent.civilite)}
+              {field("nom naissance", parent.nom_naissance)}
+              {field("nom usage", parent.nom_usage)}
+              {field("prénoms", parent.prenoms)}
+              {field("date naissance", parent.date_naissance)}
+              {field("téléphone", parent.telephone)}
+              {field("dept naissance", parent.lieu_naissance_code_dept)}
+              {field("commune naiss.", parent.lieu_naissance_code_commune)}
+              {field("libellé commune", parent.lieu_naissance_libelle_commune)}
+              {field("pays naissance", parent.lieu_naissance_code_pays)}
+              {!parent.nom_naissance && <p className="text-xs text-slate-300 italic">Activation URSSAF non complétée.</p>}
+            </div>
+          </div>
+
+          {/* Adresse */}
+          {parent.adresse_libelle_commune && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Adresse</p>
+              <div className="space-y-1.5">
+                {field("voie", `${parent.adresse_numero_voie ?? ""} ${parent.adresse_code_type_voie ?? ""} ${parent.adresse_libelle_voie ?? ""}`.trim())}
+                {field("complément", parent.adresse_complement)}
+                {field("lieu-dit", parent.adresse_lieu_dit)}
+                {field("commune", `${parent.adresse_code_postal ?? ""} ${parent.adresse_libelle_commune ?? ""}`.trim())}
+                {field("code commune", parent.adresse_code_commune)}
+              </div>
+            </div>
+          )}
+
+          {/* Banque */}
+          {parent.iban && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Banque</p>
+              <div className="space-y-1.5">
+                {field("IBAN", parent.iban)}
+                {field("BIC", parent.bic)}
+                {field("titulaire", parent.iban_titulaire)}
+              </div>
+            </div>
+          )}
+
+          {/* Élèves liés */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Élèves liés ({eleves.length})</p>
+            {loading ? (
+              <div className="flex items-center gap-2 text-xs text-slate-400"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Chargement…</div>
+            ) : eleves.length === 0 ? (
+              <p className="text-xs text-slate-300 italic">Aucun élève lié.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {eleves.map((e: any) => (
+                  <div key={e.id} className="flex items-center justify-between text-xs bg-slate-50 rounded-lg px-3 py-2">
+                    <span className="font-medium text-slate-800">{e.nom}</span>
+                    <span className="text-slate-400">{e.matiere} · {e.niveau}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">{e.profiles ? `${e.profiles.prenom} ${e.profiles.nom}` : "—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs font-mono text-slate-300">id: {parent.id} · créé le {new Date(parent.created_at).toLocaleDateString("fr-FR")}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminParents() {
+  const [parents, setParents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editF, setEditF] = useState({ prenom: "", nom: "", email: "" });
+  const [saving, setSaving] = useState(false);
+  const [ficheParent, setFicheParent] = useState<any | null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  async function load() {
+    const { data } = await supabase.from("profiles")
+      .select("id, prenom, nom, email, telephone, iban, nom_naissance, civilite, created_at, date_naissance, prenoms, nom_usage, lieu_naissance_code_dept, lieu_naissance_code_commune, lieu_naissance_libelle_commune, lieu_naissance_code_pays, adresse_numero_voie, adresse_code_type_voie, adresse_libelle_voie, adresse_complement, adresse_lieu_dit, adresse_libelle_commune, adresse_code_commune, adresse_code_postal, bic, iban_titulaire")
+      .eq("role", "parent").order("created_at", { ascending: false });
+    setParents(data ?? []); setLoading(false);
+  }
+  useEffect(() => { load(); }, []);
+
+  function openEdit(p: any) { setEditing(p); setEditF({ prenom: p.prenom ?? "", nom: p.nom ?? "", email: p.email ?? "" }); }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setSaving(true);
+    await supabase.from("profiles").update({ prenom: editF.prenom, nom: editF.nom, email: editF.email }).eq("id", editing.id);
+    setParents((prev) => prev.map((p) => p.id === editing.id ? { ...p, ...editF } : p));
+    setSaving(false); setEditing(null);
+  }
+
+  async function deleteParent(p: any) {
+    if (!window.confirm(`Supprimer le compte parent ${p.prenom} ${p.nom} ?\n\nLes liaisons parent–élève seront supprimées, mais les élèves et leurs cours resteront intacts.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    await supabase.from("profiles").delete().eq("id", p.id);
+    setParents((prev) => prev.filter((x) => x.id !== p.id));
+  }
+
+  const filtered = parents.filter((p) => `${p.prenom} ${p.nom} ${p.email}`.toLowerCase().includes(search.toLowerCase()));
+
+  function toggleBulk(id: string) {
+    setBulkSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+  function toggleAllBulk() {
+    if (bulkSelected.size === filtered.length) setBulkSelected(new Set());
+    else setBulkSelected(new Set(filtered.map((p) => p.id)));
+  }
+  async function bulkDeleteParents() {
+    if (!bulkSelected.size || !window.confirm(`Supprimer ${bulkSelected.size} parent(s) ? Les liaisons parent–élève seront supprimées. Action irréversible.`)) return;
+    if (!window.confirm("Dernière confirmation.")) return;
+    setBulkLoading(true);
+    await supabase.from("profiles").delete().in("id", [...bulkSelected]);
+    setParents((prev) => prev.filter((p) => !bulkSelected.has(p.id)));
+    setBulkSelected(new Set()); setBulkLoading(false);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div><h1 className="text-xl font-bold text-slate-900">Parents</h1><p className="text-xs font-mono text-slate-400 mt-0.5">{parents.length} rows · profiles WHERE role='parent'</p></div>
+      </div>
+      <InfoBox title="Comptes parents">
+        <p>Les parents se connectent via un lien d'invitation ou en s'inscrivant eux-mêmes. Le compte est <span className="font-semibold">activé</span> dès que le formulaire URSSAF (état civil + IBAN) est complété.</p>
+        <p>Les liaisons parent–élève sont dans la table <span className="font-mono font-semibold">parent_eleve</span>. Gérer ces liens dans la section <span className="font-semibold">Parent–Élève</span>.</p>
+        <p className="font-semibold text-amber-700">⚠ Supprimer un parent supprime son compte et ses liaisons, mais pas les élèves ni les cours associés.</p>
+      </InfoBox>
+      <SearchInput value={search} onChange={setSearch} placeholder="Rechercher…" />
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "0 1px 3px rgba(15,23,42,.06)" }}>
+        {loading ? <div className="p-8 text-center text-slate-400 text-sm">Chargement…</div> : (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-3 py-2.5 w-8"><input type="checkbox" checked={bulkSelected.size > 0 && bulkSelected.size === filtered.length} onChange={toggleAllBulk} className="rounded w-3.5 h-3.5 accent-primary" /></th>
+                <th className={TH}>id</th><th className={TH}>prenom / nom</th><th className={TH}>email</th><th className={TH}>téléphone</th><th className={TH}>activation</th><th className={TH}>created_at</th><th className={TH}>actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.map((p) => {
+                const activated = !!(p.iban || p.nom_naissance);
+                return (
+                  <tr key={p.id} className={`transition-colors ${bulkSelected.has(p.id) ? "bg-primary/5" : "hover:bg-slate-50/60"}`}>
+                    <td className="px-3 py-2.5 text-center"><input type="checkbox" checked={bulkSelected.has(p.id)} onChange={() => toggleBulk(p.id)} className="rounded w-3.5 h-3.5 accent-primary" /></td>
+                    <td className={TD}><CopyID id={p.id} /></td>
+                    <td className={`${TD} font-medium text-slate-900`}>
+                      <button onClick={() => setFicheParent(p)} className="hover:text-primary hover:underline transition-colors text-left">{p.prenom} {p.nom}</button>
+                    </td>
+                    <td className={`${TD} text-slate-500 font-mono text-xs`}>{p.email}</td>
+                    <td className={`${TD} text-slate-500 font-mono text-xs`}>{p.telephone ?? <span className="text-slate-300">—</span>}</td>
+                    <td className={TD}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${activated ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+                        {activated ? "Activé" : "En attente"}
+                      </span>
+                    </td>
+                    <td className={`${TD} font-mono text-xs text-slate-400`}>{new Date(p.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td className={TD}>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => openEdit(p)} className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"><Pencil className="w-3 h-3" /> Edit</button>
+                        <button onClick={() => deleteParent(p)} className="flex items-center gap-1 px-2 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-slate-400">Aucun résultat.</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {bulkSelected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white rounded-2xl shadow-2xl px-5 py-3.5 flex items-center gap-4 min-w-max">
+          <span className="text-sm font-semibold text-slate-300">{bulkSelected.size} parent(s)</span>
+          <div className="w-px h-5 bg-slate-700" />
+          <button onClick={bulkDeleteParents} disabled={bulkLoading}
+            className="px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5">
+            {bulkLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Supprimer
+          </button>
+          <button onClick={() => setBulkSelected(new Set())} className="ml-1 p-1 hover:text-slate-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {editing && (
+        <AdminEditModal title={`EDIT profiles · ${editing.id.slice(0,8)}`} onClose={() => setEditing(null)} onSave={saveEdit} saving={saving}>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={FL}>prenom</label><input value={editF.prenom} onChange={(e) => setEditF({ ...editF, prenom: e.target.value })} className={FI} /></div>
+            <div><label className={FL}>nom</label><input value={editF.nom} onChange={(e) => setEditF({ ...editF, nom: e.target.value })} className={FI} /></div>
+          </div>
+          <div><label className={FL}>email</label><input value={editF.email} onChange={(e) => setEditF({ ...editF, email: e.target.value })} className={FI} /></div>
+          <p className="text-xs text-slate-400 font-mono">UPDATE profiles SET … WHERE id='{editing.id}'</p>
+        </AdminEditModal>
+      )}
+      {ficheParent && <ParentFicheModal parent={ficheParent} onClose={() => setFicheParent(null)} />}
     </div>
   );
 }
@@ -2469,6 +2725,7 @@ export function AdminDashboard() {
         />
         {section === "echeancier"    && <AdminEcheancier />}
         {section === "profs"         && <AdminProfs />}
+        {section === "parents"       && <AdminParents />}
         {section === "eleves"        && <AdminEleves />}
         {section === "cours"         && <AdminCours />}
         {section === "recaps"        && <AdminRecaps />}
