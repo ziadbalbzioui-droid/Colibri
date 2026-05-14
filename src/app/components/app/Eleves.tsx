@@ -280,6 +280,18 @@ export function Eleves() {
                       <Copy style={{ width: 15, height: 15, color: "#1E3A8A" }} />
                     </button>
                   </div>
+                  <button
+                    onClick={() => {
+                      const code = selectedEleve.code_invitation ?? selectedEleve.id.slice(0, 6).toUpperCase();
+                      const lien = `${window.location.origin}/signup?code=${code}&role=parent`;
+                      navigator.clipboard.writeText(lien);
+                      toast.success("Lien copié !");
+                    }}
+                    style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#1E3A8A", background: "none", border: "1px solid #C7D8FB", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}
+                  >
+                    <Copy style={{ width: 12, height: 12 }} />
+                    Copier le lien d'inscription parent
+                  </button>
                   {parentsMap[selectedEleve.id] && (
                     <p style={{ fontSize: 12, color: "#10B981", marginTop: 8 }}>✓ Parent connecté</p>
                   )}
